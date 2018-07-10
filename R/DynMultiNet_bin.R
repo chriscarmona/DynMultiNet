@@ -194,13 +194,14 @@ DynMultiNet_bin <- function( net_data,
     }
     
     # Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions
-    tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
-    tau_minush_l <- matrix(tau_h, nrow=H_dim, ncol=H_dim )
-    tau_minush_l[upper.tri(tau_minush_l)] <- NA ; tau_minush_l[1,1] <- NA
-    tau_minush_l <- tau_minush_l / matrix(v_dim, nrow=H_dim, ncol=H_dim, byrow=T)
-    aux_1 <- apply(tau_minush_l,2,sum,na.rm=TRUE)
-    aux_2 <- vector(mode="numeric",length=V_net)
+    
     for(h in 2:H_dim) {
+      tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
+      tau_minush_l <- matrix(tau_h, nrow=H_dim, ncol=H_dim )
+      tau_minush_l[upper.tri(tau_minush_l)] <- NA ; tau_minush_l[1,1] <- NA
+      tau_minush_l <- tau_minush_l / matrix(v_dim, nrow=H_dim, ncol=H_dim, byrow=T)
+      aux_1 <- apply(tau_minush_l,2,sum,na.rm=TRUE)
+      aux_2 <- vector(mode="numeric",length=V_net)
       for( i in 1:V_net ){aux_2[i]<-matrix(x_iht[i,h,],nrow=1) %*% solve(x_t_sigma_prior) %*% matrix(x_iht[i,h,],ncol=1)}
       if(h==1){
         v_dim[h,1] <- rgamma( n=1,
