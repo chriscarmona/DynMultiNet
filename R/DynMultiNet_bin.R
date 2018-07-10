@@ -34,8 +34,9 @@
 #'
 #' @examples
 #' 
-#'    DynMultiNet_bin( net_data, pred_data,
-#'                     H_dim=10,
+#'    DynMultiNet_bin( net_data,
+#'                     pred_data=NULL,
+#'                     H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
 #'                     n_iter_mcmc=100000,
 #'                     out_file=NULL, log_file=NULL,
 #'                     quiet_mcmc=FALSE )
@@ -49,7 +50,7 @@
 
 DynMultiNet_bin <- function( net_data,
                              pred_data=NULL,
-                             H_dim=10, k_x=0.01, k_mu=0.10, a_1=2, a_2=2.5,
+                             H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
                              n_iter_mcmc=100000,
                              out_file=NULL, log_file=NULL,
                              quiet_mcmc=FALSE ) {
@@ -127,19 +128,29 @@ DynMultiNet_bin <- function( net_data,
   rm(k)
   
   # Covariance matrix prior for baseline mu_t
-  mu_tk_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k_mu*(x-y)^2) } )
+  mu_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
-  x_iht <- array( data=0.10,
+  x_iht <- array( data=runif(V_net*H_dim*T_net),
                   dim=c(V_net,H_dim,T_net) )
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
-    x_ihtk <- array( data=0.10,
+    x_ihtk <- array( data=runif(V_net*H_dim*T_net*K_net),
                      dim=c(V_net,H_dim,T_net,K_net) )
   }
+  # Covariance matrix prior for coordinates x_t
+  x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
+  
+  # Shrinkage Parameters
+  v_dim <- matrix( NA, nrow=H_dim, ncol=1 )
+  v_dim[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
+  # 1/tau_h
   #### End: MCMC initialization ####
+  
+  
   
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
@@ -163,7 +174,7 @@ DynMultiNet_bin <- function( net_data,
     aux_sum_w_tk <- apply(w_ijtk,c(3,4),sum,na.rm=T)
     for( k in 1:K_net) {
       #k <- 1
-      mu_tk_sigma[,,k] <- solve( diag(aux_sum_w_tk[,k]) + solve(mu_tk_sigma_prior) )
+      mu_tk_sigma[,,k] <- solve( diag(aux_sum_w_tk[,k]) + solve(mu_t_sigma_prior) )
       aux_vec1 <- matrix(NA,T_net,1)
       for( t in 1:T_net) {
         aux_vec1[t,] <- sum( y_ijtk[,,t,k] - 0.5 - x_iht[,,t] %*% t(x_iht[,,t]), na.rm=TRUE )
@@ -181,6 +192,30 @@ DynMultiNet_bin <- function( net_data,
     for(i in 1:V_net) {
       1
     }
+    
+    # Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions
+    tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
+    tau_minush_l <- matrix(tau_h, nrow=H_dim, ncol=H_dim )
+    tau_minush_l[upper.tri(tau_minush_l)] <- NA ; tau_minush_l[1,1] <- NA
+    tau_minush_l <- tau_minush_l / matrix(v_dim, nrow=H_dim, ncol=H_dim, byrow=T)
+    aux_1 <- apply(tau_minush_l,2,sum,na.rm=TRUE)
+    aux_2 <- vector(mode="numeric",length=V_net)
+    for(h in 2:H_dim) {
+      for( i in 1:V_net ){aux_2[i]<-matrix(x_iht[i,h,],nrow=1) %*% solve(x_t_sigma_prior) %*% matrix(x_iht[i,h,],ncol=1)}
+      if(h==1){
+        v_dim[h,1] <- rgamma( n=1,
+                              shape = a_1+0.5*(V_net*T_net*H_dim),
+                              rate = 1+0.5*aux_1[h]*sum(aux_2) )
+      }
+      if(h>1){
+        v_dim[h,1] <- rgamma( n=1,
+                              shape = a_1+0.5*(V_net*T_net*(H_dim-h+1)),
+                              rate = 1+0.5*aux_1[h]*sum(aux_2) )
+      }
+    }
+    tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
+    rm(h,i,tau_minush_l,aux_1,aux_2)
+    
     
     if(!quiet_mcmc){
       if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
