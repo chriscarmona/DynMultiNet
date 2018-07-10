@@ -2,18 +2,18 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 rcpparma_hello_world <- function() {
-    .Call(`_DynMultiNet_rcpparma_hello_world`)
+    .Call('_DynMultiNet_rcpparma_hello_world', PACKAGE = 'DynMultiNet')
 }
 
 rcpparma_outerproduct <- function(x) {
-    .Call(`_DynMultiNet_rcpparma_outerproduct`, x)
+    .Call('_DynMultiNet_rcpparma_outerproduct', PACKAGE = 'DynMultiNet', x)
 }
 
 rcpparma_innerproduct <- function(x) {
-    .Call(`_DynMultiNet_rcpparma_innerproduct`, x)
+    .Call('_DynMultiNet_rcpparma_innerproduct', PACKAGE = 'DynMultiNet', x)
 }
 
 rcpparma_bothproducts <- function(x) {
-    .Call(`_DynMultiNet_rcpparma_bothproducts`, x)
+    .Call('_DynMultiNet_rcpparma_bothproducts', PACKAGE = 'DynMultiNet', x)
 }
 
