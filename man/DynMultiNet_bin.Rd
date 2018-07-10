@@ -5,8 +5,8 @@
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
 DynMultiNet_bin(net_data, pred_data = NULL, H_dim = 10, k_x = 0.01,
-  k_mu = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 1e+05, devel = FALSE,
-  out_file = NULL, log_file = NULL)
+  k_mu = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 1e+05,
+  out_file = NULL, log_file = NULL, quiet_mcmc = FALSE)
 }
 \arguments{
 \item{net_data}{Data frame with network information}
@@ -17,11 +17,11 @@ DynMultiNet_bin(net_data, pred_data = NULL, H_dim = 10, k_x = 0.01,
 
 \item{n_iter_mcmc}{number of iterations for the MCMC}
 
-\item{devel}{Development mode}
-
 \item{out_file}{Indicates a file (.RData) where the output should be saved}
 
 \item{log_file}{Indicates a file (.txt) where the log of the process should be saved}
+
+\item{quiet_mcmc}{Silent mode, no progress update}
 }
 \value{
 A list with the following components:
@@ -49,7 +49,7 @@ The model assumes a latent variable approach
    DynMultiNet_bin( net_data, pred_data,
                     H_dim=10,
                     n_iter_mcmc=100000,
-                    devel=FALSE,
-                    out_file=NULL, log_file=NULL )
+                    out_file=NULL, log_file=NULL,
+                    quiet_mcmc=FALSE )
 
 }

@@ -8,9 +8,9 @@
 #' @param pred_data Data frame with linked predictors information
 #' @param H_dim Latent space dimension
 #' @param n_iter_mcmc number of iterations for the MCMC
-#' @param devel Development mode
 #' @param out_file Indicates a file (.RData) where the output should be saved
 #' @param log_file Indicates a file (.txt) where the log of the process should be saved
+#' @param quiet_mcmc Silent mode, no progress update
 #'
 #'
 #' @details
@@ -37,8 +37,8 @@
 #'    DynMultiNet_bin( net_data, pred_data,
 #'                     H_dim=10,
 #'                     n_iter_mcmc=100000,
-#'                     devel=FALSE,
-#'                     out_file=NULL, log_file=NULL )
+#'                     out_file=NULL, log_file=NULL,
+#'                     quiet_mcmc=FALSE )
 #' 
 #' @useDynLib DynMultiNet
 #' 
@@ -51,8 +51,8 @@ DynMultiNet_bin <- function( net_data,
                              pred_data=NULL,
                              H_dim=10, k_x=0.01, k_mu=0.10, a_1=2, a_2=2.5,
                              n_iter_mcmc=100000,
-                             devel=FALSE,
-                             out_file=NULL, log_file=NULL ) {
+                             out_file=NULL, log_file=NULL,
+                             quiet_mcmc=FALSE ) {
   
   #### Start: Checking inputs ####
   colnames_net_data <- c("source","target","weight","time","layer")
@@ -77,21 +77,42 @@ DynMultiNet_bin <- function( net_data,
   
   #### Start: MCMC initialization ####
   # Edge between actors i and j at time t in layer k
-  y_ijtk <- array( data=0,
-                   dim=c(V_net,V_net,T_net,K_net) )
+  cat("Procesing data...\n")
+  y_ijtk <- array( data=NA,
+                   dim=c(V_net,V_net,T_net,K_net),
+                   dimnames=list(node_all,node_all,time_all,layer_all))
+  for( t in 1:T_net) {
+    for( k in 1:K_net) {
+      #t<-1;k<-1
+      y_ijtk[,,t,k][lower.tri(y_ijtk[,,t,k])] <- 0
+    }
+  }
+  
+  for( row_i in 1:nrow(net_data) ){
+    # row_i <- 1
+    aux_ij <- match(net_data[row_i,c("source","target")],node_all)
+    i <- max(aux_ij)
+    j <- min(aux_ij)
+    t <- match(net_data[row_i,"time"],time_all)
+    k <- match(net_data[row_i,"layer"],layer_all)
+    if(net_data[row_i,"weight"]>0){
+      y_ijtk[i,j,t,k] <- 1
+    }
+  }
+  cat("done!\n")
   
   # Probability of an edge between actors i and j at time t in layer k
-  pi_ijtk <- array( data=0.5,
-                    dim=c(V_net,V_net,T_net,K_net) )
+  pi_ijtk <- y_ijtk
+  pi_ijtk[!is.na(pi_ijtk)] <- 0.5
   
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
   # all( qlogis( pi_ijtk ) == s_ijtk ) # TRUE
-  s_ijtk <- array( data=0,
-                   dim=c(V_net,V_net,T_net,K_net) )
+  s_ijtk <- y_ijtk
+  s_ijtk[!is.na(s_ijtk)] <- 0
   
   # Augmented Polya-gamma data
-  w_ijtk <- array( data=0,
-                   dim=c(V_net,V_net,T_net,K_net) )
+  w_ijtk <- y_ijtk
+  w_ijtk[!is.na(w_ijtk)] <- 0
   
   # Baseline parameter #
   # at time t for layer k
@@ -121,15 +142,15 @@ DynMultiNet_bin <- function( net_data,
   #### End: MCMC initialization ####
   
   #### Start: MCMC Sampling ####
+  if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
   for ( iter_i in 1:n_iter_mcmc) {
+    
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
-    for( i in 1:V_net) {
-      for( j in 1:V_net) {
+    for( i in 2:V_net) {
+      for( j in 1:i) {
         for( t in 1:T_net) {
           for( k in 1:K_net) {
             # i<-1;j<-1;t<-1;k<-1
-            #browser()
-            #cat("i=",i,", j=",j,", t=",t,", k=",k,"\n")
             s_ijtk[i,j,t,k] <- mu_tk[t,k] + t(x_iht[i,,t]) %*% x_iht[j,,t]
             w_ijtk[i,j,t,k] <- rpg( num=1, h=1, z=s_ijtk[i,j,t,k] )
           }
@@ -138,10 +159,36 @@ DynMultiNet_bin <- function( net_data,
     }
     rm(i,j,t,k)
     
+    ### Step 2. Sample mu_t_k from its conditional N-variate Gaussian posterior ###
+    aux_sum_w_tk <- apply(w_ijtk,c(3,4),sum,na.rm=T)
+    for( k in 1:K_net) {
+      #k <- 1
+      mu_tk_sigma[,,k] <- solve( diag(aux_sum_w_tk[,k]) + solve(mu_tk_sigma_prior) )
+      aux_vec1 <- matrix(NA,T_net,1)
+      for( t in 1:T_net) {
+        aux_vec1[t,] <- sum( y_ijtk[,,t,k] - 0.5 - x_iht[,,t] %*% t(x_iht[,,t]), na.rm=TRUE )
+      }
+      mu_tk[,k] <- mvtnorm::rmvnorm( n=1,
+                                     mean=mu_tk_sigma[,,k] %*% aux_vec1,
+                                     sigma=mu_tk_sigma[,,k] )
+      # plot(y=mu_tk[,k],x=time_all,type="l")
+      
+    }
+    rm(aux_sum_w_tk,k,aux_vec1)
     
+    # Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht
+    browser()
+    for(i in 1:V_net) {
+      1
+    }
+    
+    if(!quiet_mcmc){
+      if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
+        cat(round(100*iter_i/n_iter_mcmc),"% ",sep="")
+      }
+    }
   }
-  browser()
-  
+  if(!quiet_mcmc){cat("\nMCMC finished!\n")}
   #### End: MCMC Sampling ####
   
   
