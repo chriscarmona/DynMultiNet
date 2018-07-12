@@ -197,7 +197,7 @@ DynMultiNet_bin <- function( net_data,
       
     }
     rm(aux_sum_w_tk,k,aux_vec1)
-    
+    write.csv(mu_tk[,1],paste("mu_t_iter_",iter_i,".csv",sep=""),row.names=F)
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
     for( k in 1:K_net) {
@@ -243,6 +243,7 @@ DynMultiNet_bin <- function( net_data,
     dim(x_iht) <- c(V_net,T_net,H_dim)
     x_iht <- aperm(a=x_iht,perm=c(1,3,2))
     
+    write.csv(x_iht_mat,paste("x_iht_mat_iter_",iter_i,".csv",sep=""),row.names=F)
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
     for(h in 2:H_dim) {
