@@ -82,13 +82,12 @@ DynMultiNet_bin <- function( net_data,
   y_ijtk <- array( data=NA,
                    dim=c(V_net,V_net,T_net,K_net),
                    dimnames=list(node_all,node_all,time_all,layer_all))
-  for( t in 1:T_net) {
-    for( k in 1:K_net) {
+  for( k in 1:K_net) {
+    for( t in 1:T_net) {
       #t<-1;k<-1
       y_ijtk[,,t,k][lower.tri(y_ijtk[,,t,k])] <- 0
     }
   }
-  
   for( row_i in 1:nrow(net_data) ){
     # row_i <- 1
     aux_ij <- match(net_data[row_i,c("source","target")],node_all)
@@ -98,6 +97,12 @@ DynMultiNet_bin <- function( net_data,
     k <- match(net_data[row_i,"layer"],layer_all)
     if(net_data[row_i,"weight"]>0){
       y_ijtk[i,j,t,k] <- 1
+    }
+  }
+  for( k in 1:K_net) {
+    for( t in 1:T_net) {
+      #t<-1;k<-1
+      diag(y_ijtk[,,t,k]) <- NA
     }
   }
   cat("done!\n")
@@ -134,6 +139,9 @@ DynMultiNet_bin <- function( net_data,
   # shared: hth coordinate of actor v at time t shared across the different layers
   x_iht <- array( data=runif(V_net*H_dim*T_net),
                   dim=c(V_net,H_dim,T_net) )
+  x_iht_mat <- aperm(a=x_iht,perm=c(1,3,2))
+  dim(x_iht_mat) <- c(V_net,T_net*H_dim)
+  if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
@@ -155,6 +163,8 @@ DynMultiNet_bin <- function( net_data,
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
   for ( iter_i in 1:n_iter_mcmc) {
+    cat(iter_i,", ")
+    
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
     for( i in 2:V_net) {
@@ -169,6 +179,7 @@ DynMultiNet_bin <- function( net_data,
       }
     }
     rm(i,j,t,k)
+    
     
     ### Step 2. Sample mu_t_k from its conditional N-variate Gaussian posterior ###
     aux_sum_w_tk <- apply(w_ijtk,c(3,4),sum,na.rm=T)
@@ -187,14 +198,53 @@ DynMultiNet_bin <- function( net_data,
     }
     rm(aux_sum_w_tk,k,aux_vec1)
     
-    # Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht
-    browser()
-    for(i in 1:V_net) {
-      1
+    
+    ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
+    for( k in 1:K_net) {
+      for(i in 1:V_net) {
+        #k<-1; i<-3
+        y_i <- c(t(rbind( matrix(y_ijtk[i,1:i,,k],i,T_net)[-i,],
+                          matrix(y_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
+        y_i <- matrix(y_i)
+        w_i <- c(t(rbind( matrix(w_ijtk[i,1:i,,k],i,T_net)[-i,],
+                          matrix(w_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
+        w_diag_i <- diag(w_i)
+        
+        x_tilde_i <- x_iht_mat[rep((1:V_net)[-i],each=T_net),]
+        
+        x_tilde_i_rm <- matrix(TRUE,T_net,T_net*H_dim)
+        for(t in 1:T_net){
+          x_tilde_i_rm[t,seq(t,T_net*H_dim,by=T_net)] <- F
+        }
+        x_tilde_i_rm <- do.call(rbind, replicate(V_net-1, x_tilde_i_rm, simplify=FALSE))
+        
+        x_tilde_i[x_tilde_i_rm] <- 0
+        
+        if(F){
+          s_i <- c(t(rbind( matrix(s_ijtk[i,1:i,,k],i,T_net)[-i,],
+                            matrix(s_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
+          s_i <- matrix(s_i)
+          x_i <- matrix(x_iht_mat[i,])
+          all(s_i == x_tilde_i %*% x_i)
+          rm(s_i,x_i)
+        }
+        x_i_cov <- solve( t(x_tilde_i) %*% w_diag_i %*% x_tilde_i + kronecker(diag(as.numeric(tau_h)),solve(x_t_sigma_prior)))
+        x_i_mean <- x_i_cov %*% ( t(x_tilde_i) %*% ( y_i - kronecker(matrix(1,V_net-1,1),matrix(1,T_net,1)*0.5) - w_diag_i %*% kronecker(matrix(1,V_net-1,1),mu_tk[,k]) ) )
+        
+        x_i <- mvtnorm::rmvnorm( n=1,
+                                 mean=x_i_mean,
+                                 sigma=x_i_cov )
+        x_iht_mat[i,] <- x_i
+      }
     }
+    rm(k,i,y_i,w_i,w_diag_i,x_tilde_i,x_tilde_i_rm,x_i_cov,x_i_mean)
+    # redefine x_iht with the new sampled values
+    x_iht <- x_iht_mat
+    dim(x_iht) <- c(V_net,T_net,H_dim)
+    x_iht <- aperm(a=x_iht,perm=c(1,3,2))
     
-    # Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions
     
+    ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
     for(h in 2:H_dim) {
       tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
       tau_minush_l <- matrix(tau_h, nrow=H_dim, ncol=H_dim )
