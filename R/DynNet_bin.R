@@ -36,20 +36,20 @@
 #'    DynMultiNet_bin( net_data,
 #'                     H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
 #'                     n_iter_mcmc=100000,
-#'                     out_file=NULL, log_file=NULL, out_dir=NULL,
+#'                     out_file=NULL, log_file=NULL,
 #'                     quiet_mcmc=FALSE )
 #' 
 #' @useDynLib DynMultiNet
 #' 
 #' @import BayesLogit
-#' @import igraph
+#' @importFrom abind abind
 #' 
 #' @export
 
 DynNet_bin <- function( net_data,
                         H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
                         n_iter_mcmc=100000,
-                        out_file=NULL, log_file=NULL, out_dir=NULL,
+                        out_file=NULL, log_file=NULL,
                         quiet_mcmc=FALSE ) {
   
   #### Start: Checking inputs ####
@@ -116,6 +116,7 @@ DynNet_bin <- function( net_data,
   mu_t <- matrix( data=0,
                   nrow=T_net,
                   ncol=1 )
+  mu_t_mcmc <- matrix( data=NA, nrow=n_iter_mcmc,ncol=T_net )
   
   # Covariance matrix for baseline mu_t
   mu_t_sigma <- matrix( data=0,
@@ -133,6 +134,7 @@ DynNet_bin <- function( net_data,
   x_iht_mat <- aperm(a=x_iht,perm=c(1,3,2))
   dim(x_iht_mat) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
+  x_iht_mat_mcmc <- array(NA,dim=c(V_net,T_net*H_dim,n_iter_mcmc))
   
   # Covariance matrix prior for coordinates x_t
   x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,kappa=k_x){ exp(-kappa*(x-y)^2) } )
@@ -165,8 +167,6 @@ DynNet_bin <- function( net_data,
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
   for ( iter_i in 1:n_iter_mcmc) {
-    cat(iter_i,", ")
-    
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
     #browser()
@@ -205,9 +205,10 @@ DynNet_bin <- function( net_data,
       #if(iter_i==6){browser()}
     }
     mu_t <- mu_t_new
-    
     rm(aux_sum_w_t,aux_vec1)
-    write.csv(mu_t,paste(out_dir,"mu_t_iter_",iter_i,".csv",sep=""),row.names=F)
+    
+    mu_t_mcmc <- rbind(mu_t_mcmc,t(mu_t))
+    #write.csv(mu_t,paste(out_dir,"mu_t_iter_",iter_i,".csv",sep=""),row.names=F)
     
     
     
@@ -255,7 +256,8 @@ DynNet_bin <- function( net_data,
     x_iht <- aperm(a=x_iht,perm=c(1,3,2))
     if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
     
-    write.csv(x_iht_mat,paste(out_dir,"x_iht_mat_iter_",iter_i,".csv",sep=""),row.names=F)
+    x_iht_mat_mcmc <- abind::abind(x_iht_mat_mcmc,x_iht_mat,along=3)
+    #write.csv(x_iht_mat,paste(out_dir,"x_iht_mat_iter_",iter_i,".csv",sep=""),row.names=F)
     
     # Linear predictor and link probabilities
     for( t in 1:T_net ){ s_ijt[,,t] <- mu_t[t,] + x_iht[,,t] %*% t(x_iht[,,t]) }
@@ -296,18 +298,27 @@ DynNet_bin <- function( net_data,
     tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
     rm(h,i,tau_minush_l,aux_1,aux_2)
     
-    if(!quiet_mcmc){
-      if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
+    if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
+      if(!is.null(out_file)){
+        DynNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc,
+                             x_iht_mat_mcmc=x_iht_mat_mcmc,
+                             V_net=V_net, T_net=T_net, H_dim=H_dim )
+        save(DynNet_mcmc,file=out_file)
+      }
+      if(!quiet_mcmc){
         cat(round(100*iter_i/n_iter_mcmc),"% ",sep="")
       }
     }
+    
   }
   if(!quiet_mcmc){cat("\nMCMC finished!\n")}
   #### End: MCMC Sampling ####
   
   
   
-  out <- list(NULL)
-  return( out )
+  DynNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc,
+                       x_iht_mat_mcmc=x_iht_mat_mcmc,
+                       V_net=V_net, T_net=T_net, H_dim=H_dim )
+  return( DynNet_mcmc )
   
 }

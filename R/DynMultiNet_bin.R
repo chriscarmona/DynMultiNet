@@ -38,13 +38,13 @@
 #'                     pred_data=NULL,
 #'                     H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
 #'                     n_iter_mcmc=100000,
-#'                     out_file=NULL, log_file=NULL, out_dir=NULL,
+#'                     out_file=NULL, log_file=NULL,
 #'                     quiet_mcmc=FALSE )
 #' 
 #' @useDynLib DynMultiNet
 #' 
 #' @import BayesLogit
-#' @import igraph
+#' @importFrom abind abind
 #' 
 #' @export
 
@@ -52,7 +52,7 @@ DynMultiNet_bin <- function( net_data,
                              pred_data=NULL,
                              H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
                              n_iter_mcmc=100000,
-                             out_file=NULL, log_file=NULL, out_dir=NULL,
+                             out_file=NULL, log_file=NULL,
                              quiet_mcmc=FALSE ) {
   
   #### Start: Checking inputs ####
@@ -133,6 +133,7 @@ DynMultiNet_bin <- function( net_data,
   x_iht_mat <- aperm(a=x_iht,perm=c(1,3,2))
   dim(x_iht_mat) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
+  x_iht_mat_mcmc <- array(NA,c(V_net,T_net*H_dim,n_iter_mcmc))
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
@@ -171,12 +172,11 @@ DynMultiNet_bin <- function( net_data,
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
   for ( iter_i in 1:n_iter_mcmc) {
-    cat(iter_i,", ")
-    
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
+    #browser()
     for( i in 2:V_net) {
-      for( j in 1:i) {
+      for( j in 1:(i-1)) {
         for( t in 1:T_net) {
           for( k in 1:K_net) {
             # i<-1;j<-1;t<-1;k<-1
@@ -218,7 +218,7 @@ DynMultiNet_bin <- function( net_data,
     }
     
     rm(aux_sum_w_tk,k,aux_mat,aux_vec1)
-    write.csv(mu_tk[,1],paste(out_dir,"mu_t_iter_",iter_i,".csv",sep=""),row.names=F)
+    #write.csv(mu_tk[,1],paste(out_dir,"mu_t_iter_",iter_i,".csv",sep=""),row.names=F)
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
     for( k in 1:K_net) {
@@ -265,7 +265,7 @@ DynMultiNet_bin <- function( net_data,
     x_iht <- aperm(a=x_iht,perm=c(1,3,2))
     if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
     
-    write.csv(x_iht_mat,paste(out_dir,"x_iht_mat_iter_",iter_i,".csv",sep=""),row.names=F)
+    #write.csv(x_iht_mat,paste(out_dir,"x_iht_mat_iter_",iter_i,".csv",sep=""),row.names=F)
     
     # Linear predictor and link probabilities
     for( k in 1:K_net ){
