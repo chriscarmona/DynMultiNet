@@ -116,7 +116,7 @@ DynNet_bin <- function( net_data,
   mu_t <- matrix( data=0,
                   nrow=T_net,
                   ncol=1 )
-  mu_t_mcmc <- matrix( data=NA, nrow=n_iter_mcmc,ncol=T_net )
+  mu_t_mcmc <- matrix( data=NA, nrow=1,ncol=T_net )
   
   # Covariance matrix for baseline mu_t
   mu_t_sigma <- matrix( data=0,
@@ -134,7 +134,7 @@ DynNet_bin <- function( net_data,
   x_iht_mat <- aperm(a=x_iht,perm=c(1,3,2))
   dim(x_iht_mat) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
-  x_iht_mat_mcmc <- array(NA,dim=c(V_net,T_net*H_dim,n_iter_mcmc))
+  x_iht_mat_mcmc <- array(NA,dim=c(V_net,T_net*H_dim,1))
   
   # Covariance matrix prior for coordinates x_t
   x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,kappa=k_x){ exp(-kappa*(x-y)^2) } )
@@ -207,8 +207,8 @@ DynNet_bin <- function( net_data,
     mu_t <- mu_t_new
     rm(aux_sum_w_t,aux_vec1)
     
+    # MCMC chain #
     mu_t_mcmc <- rbind(mu_t_mcmc,t(mu_t))
-    #write.csv(mu_t,paste(out_dir,"mu_t_iter_",iter_i,".csv",sep=""),row.names=F)
     
     
     
@@ -300,8 +300,8 @@ DynNet_bin <- function( net_data,
     
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
       if(!is.null(out_file)){
-        DynNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc,
-                             x_iht_mat_mcmc=x_iht_mat_mcmc,
+        DynNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc[-1,],
+                             x_iht_mat_mcmc=x_iht_mat_mcmc[,,-1],
                              V_net=V_net, T_net=T_net, H_dim=H_dim )
         save(DynNet_mcmc,file=out_file)
       }
@@ -316,8 +316,8 @@ DynNet_bin <- function( net_data,
   
   
   
-  DynNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc,
-                       x_iht_mat_mcmc=x_iht_mat_mcmc,
+  DynNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc[-1,],
+                       x_iht_mat_mcmc=x_iht_mat_mcmc[,,-1],
                        V_net=V_net, T_net=T_net, H_dim=H_dim )
   return( DynNet_mcmc )
   

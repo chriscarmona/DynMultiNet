@@ -36,7 +36,9 @@
 #' 
 #'    DynMultiNet_bin( net_data,
 #'                     pred_data=NULL,
-#'                     H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
+#'                     H_dim=10,
+#'                     k_x=0.10, k_mu=0.10, k_p=0.10,
+#'                     a_1=2, a_2=2.5,
 #'                     n_iter_mcmc=100000,
 #'                     out_file=NULL, log_file=NULL,
 #'                     quiet_mcmc=FALSE )
@@ -44,23 +46,41 @@
 #' @useDynLib DynMultiNet
 #' 
 #' @import BayesLogit
+#' @import dplyr
 #' @importFrom abind abind
 #' 
 #' @export
+#' 
 
 DynMultiNet_bin <- function( net_data,
                              pred_data=NULL,
-                             H_dim=10, k_x=0.10, k_mu=0.10, a_1=2, a_2=2.5,
+                             H_dim=10,
+                             k_x=0.10, k_mu=0.10, k_p=0.10,
+                             a_1=2, a_2=2.5,
                              n_iter_mcmc=100000,
                              out_file=NULL, log_file=NULL,
                              quiet_mcmc=FALSE ) {
   
   #### Start: Checking inputs ####
-  colnames_net_data <- c("source","target","weight","time","layer")
+  colnames_net_data <- c("source","target","time","layer","weight")
   if( !all(is.element(colnames_net_data,colnames(net_data))) ) {
     stop('"net_data" must contain the following columns: ',paste(colnames_net_data,collapse=", ") )
   }
   net_data <- net_data[,colnames_net_data]
+  rm(colnames_net_data)
+  
+  if(!is.null(pred_data)){
+    colnames_pred_data <- c("source","target","time","layer","id","pred")
+    if( !all(is.element(colnames_pred_data,colnames(pred_data))) ) {
+      stop('"pred_data" must contain the following columns: ',paste(colnames_pred_data,collapse=", ") )
+    }
+    pred_data <- pred_data[,colnames_pred_data]
+    if( any(is.na(pred_data[,c("time","id","pred")])) ) {
+      stop('"pred_data" does NOT allow NAs in columns: ',paste(c("time","id","pred"),collapse=", ") )
+    }
+    
+    rm(colnames_pred_data)
+  }
   #### End: Checking inputs ####
   
   
@@ -75,10 +95,9 @@ DynMultiNet_bin <- function( net_data,
   K_net <- length(layer_all)
   #### End: Global parameters ####
   
-  
-  #### Start: MCMC initialization ####
-  # Edge between actors i and j at time t in layer k
-  cat("Procesing data...\n")
+  #### Start: Processing data ####
+  ### Network data ###
+  cat("Procesing Network data...\n")
   y_ijtk <- array( data=NA,
                    dim=c(V_net,V_net,T_net,K_net) )
   for( k in 1:K_net) {
@@ -106,34 +125,109 @@ DynMultiNet_bin <- function( net_data,
   }
   cat("done!\n")
   
+  ### Predictors data ###
+  pred_all <- NULL
+  pred_id_global<-NULL; pred_id_layer<-NULL; pred_id_edge<-NULL
+  z_tp<-NULL; z_tkp<-NULL; z_ijtkp<-NULL
+  beta_z_global<-NULL; beta_z_layer<-NULL; beta_z_edge<-NULL
+  if(!is.null(pred_data)) {
+    #colnames_pred_data <- c("source","target","time","layer","id","pred")
+    
+    if( !all(is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data[,"layer"])))) ) {
+      stop('Layers in "pred_data" must be one of layers in "net_data"')
+    }
+    
+    ## Predictors ##
+    pred_all <- sort(unique(unlist(pred_data$id)))
+    P_pred <- length(pred_all)
+    
+    cat("Procesing predictors data...\n")
+    ## Global ##
+    cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data)), 1, identical, c(F,F,T,F,T,T) )
+    if( any(cond_pred) ) {
+      pred_id_global <- pred_data[cond_pred,c("id","layer")]
+      pred_id_global <- pred_id_global[!duplicated(pred_id_global),]
+      z_tp <- matrix(NA,nrow=T_net,ncol=P_pred)
+      for(row_i in 1:sum(cond_pred)){
+        # row_i <- 1
+        t <- match(pred_data[row_i,"time"],time_all)
+        p <- match(pred_data[row_i,"id"],pred_all)
+        z_tp[t,p] <- pred_data[cond_pred,][row_i,"pred"]
+      }
+      rm(row_i,t,p)
+    }
+    ## Layer specific ##
+    cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data)), 1, identical, c(F,F,T,T,T,T) )
+    if( any(cond_pred) ) {
+      pred_id_layer <- pred_data[cond_pred,c("id","layer")]
+      pred_id_layer <- pred_id_layer[!duplicated(pred_id_layer),]
+      z_tkp <- array( NA, dim=c(T_net,K_net,P_pred) )
+      for(row_i in 1:sum(cond_pred)){
+        # row_i <- 1
+        t <- match(pred_data[row_i,"time"],time_all)
+        k <- match(pred_data[row_i,"layer"],time_all)
+        p <- match(pred_data[row_i,"id"],pred_all)
+        z_tp[t,p] <- pred_data[cond_pred,][row_i,"pred"]
+      }
+      rm(row_i,t,k,p)
+    }
+    ## Edge specific ##
+    # The edge specific predictors MUST specify also the asscociated layer.
+    # there will be one coefficient for each predictor-layer combination
+    cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data)), 1, identical, c(T,T,T,T,T,T) )
+    if( any(cond_pred) ) {
+      pred_id_edge <- pred_data[cond_pred,c("id","layer")]
+      pred_id_edge <- pred_id_edge[!duplicated(pred_id_edge),]
+      z_ijtkp <- array( NA, dim=c(V_net,V_net,T_net,K_net,P_pred) )
+      for(row_i in 1:sum(cond_pred)){
+        # row_i <- 1
+        i <- match(pred_data[row_i,c("source")],node_all)
+        j <- match(pred_data[row_i,c("target")],node_all)
+        t <- match(pred_data[row_i,"time"],time_all)
+        k <- match(pred_data[row_i,"layer"],time_all)
+        p <- match(pred_data[row_i,"id"],pred_all)
+        z_ijtkp[i,j,t,k,p] <- pred_data[cond_pred,][row_i,"pred"]
+      }
+      rm(row_i,i,j,t,k,p)
+    }
+    rm(cond_pred)
+    
+    cat("done!\n")
+  }
+  #### End: Processing data ####
+  
+  #### Start: MCMC initialization ####
+  # Edge between actors i and j at time t in layer k
+  
   # Augmented Polya-gamma data
   w_ijtk <- y_ijtk
   w_ijtk[!is.na(w_ijtk)] <- 0
   
   # Baseline parameter #
   # at time t for layer k
-  mu_tk <- matrix( data=0,
+  mu_tk <- matrix( #data=0,
+                   data=runif(T_net*K_net),
                    nrow=T_net,
                    ncol=K_net )
+  mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,1) )
   
-  # Covariance matrix for baseline mu_t
-  mu_tk_sigma <- array( data=0,
-                        dim=c(T_net,T_net,K_net) )
-  for(k in 1:K_net) { mu_tk_sigma[,,k]<-diag(T_net) }
-  rm(k)
+  # Covariance matrix prior for baseline mu_tk
+  mu_t_cov_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
+  mu_t_cov_prior_inv <- solve(mu_t_cov_prior)
   
-  # Covariance matrix prior for baseline mu_t
-  mu_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
+  # Covariance matrix prior for parameters beta
+  beta_t_cov_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_p){ exp(-k*(x-y)^2) } )
+  beta_t_cov_prior_inv <- solve(beta_t_cov_prior)
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
-  x_iht <- array( data=0.01,
-                  #data=runif(V_net*H_dim*T_net,-1,1),
+  x_iht <- array( #data=0.01,
+                  data=runif(V_net*H_dim*T_net,-1,1),
                   dim=c(V_net,H_dim,T_net) )
   x_iht_mat <- aperm(a=x_iht,perm=c(1,3,2))
   dim(x_iht_mat) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
-  x_iht_mat_mcmc <- array(NA,c(V_net,T_net*H_dim,n_iter_mcmc))
+  x_iht_mat_mcmc <- array(NA,c(V_net,T_net*H_dim,1))
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
@@ -142,18 +236,27 @@ DynMultiNet_bin <- function( net_data,
   }
   # Covariance matrix prior for coordinates x_t
   x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
+  x_t_sigma_prior_inv <- solve(x_t_sigma_prior)
   
-  # Linear predictor for the probability of an edge between actors i and j at time t in layer k
-  s_ijtk <- array( data=NA,
-                   dim=c(V_net,V_net,T_net,K_net) )
-  for( k in 1:K_net ){
-    for( t in 1:T_net ){
-      #t<-1
-      s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht[,,t] %*% t(x_iht[,,t])
+  # Predictor coefficients
+  if(!is.null(pred_data)) {
+    if(!is.null(pred_id_global)){
+      beta_z_global <- matrix(0,nrow=T_net,ncol=nrow(pred_id_global))
+    }
+    if(!is.null(pred_id_layer)){
+      beta_z_layer <- matrix(0,nrow=T_net,ncol=nrow(pred_id_layer))
+    }
+    if(!is.null(pred_id_edge)){
+      beta_z_edge <- matrix(0,nrow=T_net,ncol=nrow(pred_id_edge))
     }
   }
-  s_ijtk[is.na(y_ijtk)]<-NA
-  rm(k,t)
+  
+  # Linear predictor for the probability of an edge between actors i and j at time t in layer k
+  s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
+                                pred_all, layer_all,
+                                z_tp, z_tkp, z_ijtkp,
+                                beta_z_global, beta_z_layer, beta_z_edge,
+                                pred_id_global, pred_id_layer, pred_id_edge )
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk <- plogis(s_ijtk)
@@ -172,15 +275,17 @@ DynMultiNet_bin <- function( net_data,
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
   for ( iter_i in 1:n_iter_mcmc) {
+    #cat(iter_i,",")
+    
+    
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
-    #browser()
     for( i in 2:V_net) {
       for( j in 1:(i-1)) {
         for( t in 1:T_net) {
           for( k in 1:K_net) {
             # i<-1;j<-1;t<-1;k<-1
-            w_ijtk[i,j,t,k] <- rpg( num=1, h=1, z=s_ijtk[i,j,t,k] )
+            w_ijtk[i,j,t,k] <- BayesLogit::rpg.devroye( num=1, n=1, z=s_ijtk[i,j,t,k] )
           }
         }
       }
@@ -188,133 +293,90 @@ DynMultiNet_bin <- function( net_data,
     rm(i,j,t,k)
     
     
-    ### Step 2. Sample mu_t_k from its conditional N-variate Gaussian posterior ###
-    aux_sum_w_tk <- apply(w_ijtk,c(3,4),sum,na.rm=T)
-    for( k in 1:K_net) {
-      #k <- 1
-      aux_mat <- solve( diag(aux_sum_w_tk[,k]) + solve(mu_t_sigma_prior) )
-      if(!isSymmetric(aux_mat)) {aux_mat[upper.tri(aux_mat)] <- t(aux_mat)[upper.tri(aux_mat)]}
-      mu_tk_sigma[,,k] <- aux_mat
-      
-      aux_vec1 <- matrix(NA,T_net,1)
-      for( t in 1:T_net) {
-        aux_vec1[t,] <- sum( y_ijtk[,,t,k] - 0.5 - w_ijtk[,,t,k] * (x_iht[,,t] %*% t(x_iht[,,t])), na.rm=TRUE )
-      }
-      mu_old <- mu_tk[,k]
-      
-      
-      mu_t_new <- mvtnorm::rmvnorm( n=1,
-                                     mean=mu_tk_sigma[,,k] %*% aux_vec1,
-                                     sigma=mu_tk_sigma[,,k] )
-      mu_t_new <- matrix(mu_t_new)
-      if(T){
-        k<-1
-        plot(y=mu_tk[,k], x=1:T_net, col="blue", type="l", ylim=range(mu_tk[,k],mu_t_new),main="mu_tk[,k]")
-        lines(y=mu_t_new, x=1:T_net, col="red")
-        legend("topright",col=c("blue","red"),legend=paste("iter ",c(iter_i-1,iter_i),sep=""),lty=1)
-        #if(iter_i==6){browser()}
-      }
-      mu_tk[,k] <- mu_t_new
-    }
     
-    rm(aux_sum_w_tk,k,aux_mat,aux_vec1)
-    #write.csv(mu_tk[,1],paste(out_dir,"mu_t_iter_",iter_i,".csv",sep=""),row.names=F)
+    ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
+    mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk,
+                                           y_ijtk, w_ijtk, s_ijtk,
+                                           mu_t_cov_prior_inv )
+    # MCMC chain #
+    mu_tk_mcmc <- abind::abind(mu_tk_mcmc,mu_tk,along=3)
+    
+    
+    ### Step 2_beta. Sample beta_z_global, beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###
+    if(!is.null(pred_all)){
+      if(F&!is.null(beta_z_global)&!is.null(pred_id_global)){
+        beta_z_global <- sample_beta_z_layer_DynMultiNet_bin( beta_z_global,
+                                                              z_tp, pred_id_global, pred_all,
+                                                              y_ijtk, w_ijtk, s_ijtk,
+                                                              beta_t_cov_prior_inv )
+      }
+      if(F&!is.null(beta_z_layer)&!is.null(pred_id_layer)){
+        beta_z_layer <- sample_beta_z_layer_DynMultiNet_bin( beta_z_layer,
+                                                             z_tkp, pred_id_layer, pred_all,
+                                                             y_ijtk, w_ijtk, s_ijtk,
+                                                             beta_t_cov_prior_inv )
+      }
+      if(!is.null(beta_z_edge)&!is.null(pred_id_edge)){
+        beta_z_edge <- sample_beta_z_edge_DynMultiNet_bin( beta_z_edge,
+                                                           z_ijtkp, pred_id_edge, pred_all,
+                                                           y_ijtk, w_ijtk, s_ijtk,
+                                                           beta_t_cov_prior_inv )
+      }
+    }
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
-    for( k in 1:K_net) {
-      for(i in 1:V_net) {
-        #k<-1; i<-3
-        y_i <- c(t(rbind( matrix(y_ijtk[i,1:i,,k],i,T_net)[-i,],
-                          matrix(y_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
-        y_i <- matrix(y_i)
-        w_i <- c(t(rbind( matrix(w_ijtk[i,1:i,,k],i,T_net)[-i,],
-                          matrix(w_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
-        w_diag_i <- diag(w_i)
-        
-        x_tilde_i <- x_iht_mat[rep((1:V_net)[-i],each=T_net),]
-        
-        x_tilde_i_rm <- matrix(TRUE,T_net,T_net*H_dim)
-        for(t in 1:T_net){
-          x_tilde_i_rm[t,seq(t,T_net*H_dim,by=T_net)] <- F
-        }
-        x_tilde_i_rm <- do.call(rbind, replicate(V_net-1, x_tilde_i_rm, simplify=FALSE))
-        
-        x_tilde_i[x_tilde_i_rm] <- 0
-        
-        if(F){
-          s_i <- c(t(rbind( matrix(s_ijtk[i,1:i,,k],i,T_net)[-i,],
-                            matrix(s_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
-          s_i <- matrix(s_i)
-          x_i <- matrix(x_iht_mat[i,])
-          all(s_i == x_tilde_i %*% x_i)
-          rm(s_i,x_i)
-        }
-        x_i_cov <- solve( t(x_tilde_i) %*% w_diag_i %*% x_tilde_i + kronecker( diag(as.numeric(tau_h)), solve(x_t_sigma_prior) ) )
-        if(!isSymmetric(x_i_cov)) {x_i_cov[upper.tri(x_i_cov)] <- t(x_i_cov)[upper.tri(x_i_cov)]}
-        x_i_mean <- x_i_cov %*% ( t(x_tilde_i) %*% ( y_i - kronecker(matrix(1,V_net-1,1),matrix(1,T_net,1)*0.5) - w_diag_i %*% kronecker(matrix(1,V_net-1,1),mu_tk[,k]) ) )
-        x_i <- mvtnorm::rmvnorm( n=1,
-                                 mean=x_i_mean,
-                                 sigma=x_i_cov )
-        x_iht_mat[i,] <- x_i
-      }
-    }
-    rm(k,i,y_i,w_i,w_diag_i,x_tilde_i,x_tilde_i_rm,x_i_cov,x_i_mean)
-    # redefine x_iht with the new sampled values
+    x_iht_mat <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat,
+                                                   x_t_sigma_prior_inv, tau_h,
+                                                   y_ijtk, w_ijtk, s_ijtk, mu_tk )
+    # MCMC chain #
+    x_iht_mat_mcmc <- abind::abind(x_iht_mat_mcmc,x_iht_mat,along=3)
+    
+    # redefine x_iht with the new sampled values in x_iht_mat
     x_iht <- x_iht_mat
     dim(x_iht) <- c(V_net,T_net,H_dim)
     x_iht <- aperm(a=x_iht,perm=c(1,3,2))
     if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
     
-    #write.csv(x_iht_mat,paste(out_dir,"x_iht_mat_iter_",iter_i,".csv",sep=""),row.names=F)
-    
     # Linear predictor and link probabilities
-    for( k in 1:K_net ){
-      for( t in 1:T_net ){
-        s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht[,,t] %*% t(x_iht[,,t])
-      }
-    }
-    s_ijtk[is.na(y_ijtk)]<-NA
-    rm(k,t)
+    s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
+                                  pred_all, layer_all,
+                                  z_tp, z_tkp, z_ijtkp,
+                                  beta_z_global, beta_z_layer, beta_z_edge,
+                                  pred_id_global, pred_id_layer, pred_id_edge )
     pi_ijtk <- plogis(s_ijtk)
     
     
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-    for(h in 2:H_dim) {
-      tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
-      tau_minush_l <- matrix(tau_h, nrow=H_dim, ncol=H_dim )
-      tau_minush_l[upper.tri(tau_minush_l)] <- NA ; tau_minush_l[1,1] <- NA
-      tau_minush_l <- tau_minush_l / matrix(v_dim, nrow=H_dim, ncol=H_dim, byrow=T)
-      aux_1 <- apply(tau_minush_l,2,sum,na.rm=TRUE)
-      aux_2 <- vector(mode="numeric",length=V_net)
-      for( i in 1:V_net ){aux_2[i]<-matrix(x_iht[i,h,],nrow=1) %*% solve(x_t_sigma_prior) %*% matrix(x_iht[i,h,],ncol=1)}
-      if(h==1){
-        v_dim[h,1] <- rgamma( n=1,
-                              shape = a_1+0.5*(V_net*T_net*H_dim),
-                              rate = 1+0.5*aux_1[h]*sum(aux_2) )
-      }
-      if(h>1){
-        v_dim[h,1] <- rgamma( n=1,
-                              shape = a_1+0.5*(V_net*T_net*(H_dim-h+1)),
-                              rate = 1+0.5*aux_1[h]*sum(aux_2) )
-      }
-    }
+    v_dim <- sample_v_dim_DynMultiNet_bin( v_dim, a_1, a_2,
+                                           x_iht,
+                                           x_t_sigma_prior_inv )
     tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
-    rm(h,i,tau_minush_l,aux_1,aux_2)
     
     
-    if(!quiet_mcmc){
-      if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
+    
+    # display MCMC progress #
+    if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
+      if(!is.null(out_file)){
+        DynMultiNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc[,,-1],
+                                  x_iht_mat_mcmc=x_iht_mat_mcmc[,,-1],
+                                  V_net=V_net, T_net=T_net, H_dim=H_dim )
+        save(DynMultiNet_mcmc,file=out_file)
+      }
+      if(!quiet_mcmc){
         cat(round(100*iter_i/n_iter_mcmc),"% ",sep="")
       }
     }
+    
   }
   if(!quiet_mcmc){cat("\nMCMC finished!\n")}
   #### End: MCMC Sampling ####
   
   
   
-  out <- list(NULL)
-  return( out )
+  DynMultiNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc,
+                            x_iht_mat_mcmc=x_iht_mat_mcmc,
+                            V_net=V_net, T_net=T_net, H_dim=H_dim )
+  return( DynMultiNet_mcmc )
   
 }

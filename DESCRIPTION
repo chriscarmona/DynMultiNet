@@ -4,9 +4,10 @@ Title: Bayesian Learning of Dynamic Multilayer Networks
 Version: 0.0.1
 Date: 2018-07-07
 Authors@R : c(person("Christian","Carmona",role=c("aut","cre"),email="carmona@stats.ox.ac.uk"))
-Description: More about what it does (maybe more than one line)
-License: GPL (>=2)
+Description: Bayesian Learning of Dynamic Multilayer Networks
+License: GPL-3
 LazyData: TRUE
+URL: https://github.com/christianu7/DynMultiNet
 Imports: Rcpp (>= 0.12.17)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.0.1
