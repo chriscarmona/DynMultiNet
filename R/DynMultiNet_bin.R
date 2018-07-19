@@ -96,34 +96,12 @@ DynMultiNet_bin <- function( net_data,
   #### End: Global parameters ####
   
   #### Start: Processing data ####
+  
   ### Network data ###
-  cat("Procesing Network data...\n")
-  y_ijtk <- array( data=NA,
-                   dim=c(V_net,V_net,T_net,K_net) )
-  for( k in 1:K_net) {
-    for( t in 1:T_net) {
-      #t<-1;k<-1
-      y_ijtk[,,t,k][lower.tri(y_ijtk[,,t,k])] <- 0
-    }
-  }
-  for( row_i in 1:nrow(net_data) ){
-    # row_i <- 1
-    aux_ij <- match(net_data[row_i,c("source","target")],node_all)
-    i <- max(aux_ij)
-    j <- min(aux_ij)
-    t <- match(net_data[row_i,"time"],time_all)
-    k <- match(net_data[row_i,"layer"],layer_all)
-    if(net_data[row_i,"weight"]>0){
-      y_ijtk[i,j,t,k] <- 1
-    }
-  }
-  for( k in 1:K_net) {
-    for( t in 1:T_net) {
-      #t<-1;k<-1
-      diag(y_ijtk[,,t,k]) <- NA
-    }
-  }
-  cat("done!\n")
+  y_ijtk <- get_y_ijtk_from_edges( edges_data=net_data,
+                                   quiet=FALSE )
+  
+  
   
   ### Predictors data ###
   pred_all <- NULL
@@ -280,17 +258,7 @@ DynMultiNet_bin <- function( net_data,
     
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
-    for( i in 2:V_net) {
-      for( j in 1:(i-1)) {
-        for( t in 1:T_net) {
-          for( k in 1:K_net) {
-            # i<-1;j<-1;t<-1;k<-1
-            w_ijtk[i,j,t,k] <- BayesLogit::rpg.devroye( num=1, n=1, z=s_ijtk[i,j,t,k] )
-          }
-        }
-      }
-    }
-    rm(i,j,t,k)
+    w_ijtk <- sample_w_ijtk_DynMultiNet_bin( s_ijtk )
     
     
     
@@ -327,7 +295,8 @@ DynMultiNet_bin <- function( net_data,
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
     x_iht_mat <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat,
                                                    x_t_sigma_prior_inv, tau_h,
-                                                   y_ijtk, w_ijtk, s_ijtk, mu_tk )
+                                                   y_ijtk, w_ijtk, s_ijtk, mu_tk,
+                                                   use_cpp=TRUE )
     # MCMC chain #
     x_iht_mat_mcmc <- abind::abind(x_iht_mat_mcmc,x_iht_mat,along=3)
     
@@ -358,7 +327,7 @@ DynMultiNet_bin <- function( net_data,
     # display MCMC progress #
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
       if(!is.null(out_file)){
-        DynMultiNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc[,,-1],
+        DynMultiNet_mcmc <- list( mu_tk_mcmc=mu_tk_mcmc[,,-1],
                                   x_iht_mat_mcmc=x_iht_mat_mcmc[,,-1],
                                   V_net=V_net, T_net=T_net, H_dim=H_dim )
         save(DynMultiNet_mcmc,file=out_file)
@@ -374,7 +343,7 @@ DynMultiNet_bin <- function( net_data,
   
   
   
-  DynMultiNet_mcmc <- list( mu_t_mcmc=mu_t_mcmc,
+  DynMultiNet_mcmc <- list( mu_tk_mcmc=mu_tk_mcmc,
                             x_iht_mat_mcmc=x_iht_mat_mcmc,
                             V_net=V_net, T_net=T_net, H_dim=H_dim )
   return( DynMultiNet_mcmc )

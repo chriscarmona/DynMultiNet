@@ -5,7 +5,7 @@
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
 DynMultiNet_bin(net_data, pred_data = NULL, H_dim = 10, k_x = 0.1,
-  k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 100000,
+  k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 1e+05,
   out_file = NULL, log_file = NULL, quiet_mcmc = FALSE)
 }
 \arguments{
