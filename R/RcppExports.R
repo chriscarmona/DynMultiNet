@@ -5,22 +5,6 @@ sample_x_iht_mat_DynMultiNet_bin_cpp <- function(x_iht_mat, x_t_sigma_prior_inv,
     .Call('_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt, mu_t)
 }
 
-rcpparma_hello_world <- function() {
-    .Call('_DynMultiNet_rcpparma_hello_world', PACKAGE = 'DynMultiNet')
-}
-
-rcpparma_outerproduct <- function(x) {
-    .Call('_DynMultiNet_rcpparma_outerproduct', PACKAGE = 'DynMultiNet', x)
-}
-
-rcpparma_innerproduct <- function(x) {
-    .Call('_DynMultiNet_rcpparma_innerproduct', PACKAGE = 'DynMultiNet', x)
-}
-
-rcpparma_bothproducts <- function(x) {
-    .Call('_DynMultiNet_rcpparma_bothproducts', PACKAGE = 'DynMultiNet', x)
-}
-
 # Register entry points for exported C++ functions
 methods::setLoadAction(function(ns) {
     .Call('_DynMultiNet_RcppExport_registerCCallable', PACKAGE = 'DynMultiNet')
