@@ -49,25 +49,29 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk, x_iht,
   
   # Global predictors
   if(!is.null(z_tp) & !is.null(beta_z_tp) & !is.null(pred_id_tp) ){
-    for( row_i in 1:nrow(pred_id_tp)) {
+    for( row_i in 1:nrow(pred_id_tp)) { # row_i<-1
       p <- match(pred_id_tp[row_i,"id"],pred_all)
-      for(t in 1:T_net){
+      for(t in 1:T_net){ # t<-1
         s_ijtk[,,t,] <- s_ijtk[,,t,] + z_tp[t,p] * beta_z_tp[t,row_i]
       }
     }
     rm(row_i,p,t)
   }
+  if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to global predictors)')}
+  
   # Layer specific predictors
   if(!is.null(z_tkp) & !is.null(beta_z_tkp) & !is.null(pred_id_tkp) ){
-    for( row_i in 1:nrow(pred_id_tkp)) {
+    for( row_i in 1:nrow(pred_id_tkp)) { # row_i<-1
       k <- match(pred_id_tkp[row_i,"layer"],layer_all)
       p <- match(pred_id_tkp[row_i,"id"],pred_all)
-      for(t in 1:T_net){
+      for(t in 1:T_net){ # t<-1
         s_ijtk[,,t,k] <- s_ijtk[,,t,k] + z_tkp[t,k,p] * beta_z_tkp[t,row_i]
       }
     }
     rm(row_i,k,p,t)
   }
+  if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to layer predictors)')}
+  
   # Edge specific predictors
   if( !is.null(z_ijtkp) & !is.null(beta_z_ijtkp) & !is.null(pred_id_ijtkp) ){
     for( row_i in 1:nrow(pred_id_ijtkp)) {
@@ -82,7 +86,7 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk, x_iht,
   
   s_ijtk[is.na(y_ijtk)]<-NA
   
-  if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to predictors)')}
+  if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to edge predictors)')}
   
   return(s_ijtk)
 }

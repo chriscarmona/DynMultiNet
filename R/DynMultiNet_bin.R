@@ -63,118 +63,44 @@ DynMultiNet_bin <- function( net_data,
                              quiet_mcmc=FALSE,
                              use_cpp=TRUE ) {
   
-  #### Start: Checking inputs ####
-  colnames_net_data <- c("source","target","time","layer","weight")
-  if( !all(is.element(colnames_net_data,colnames(net_data))) ) {
-    stop('"net_data" must contain the following columns: ',paste(colnames_net_data,collapse=", ") )
-  }
-  net_data <- net_data[,colnames_net_data]
-  rm(colnames_net_data)
-  
-  if(!is.null(pred_data)){
-    colnames_pred_data <- c("source","target","time","layer","id","pred")
-    if( !all(is.element(colnames_pred_data,colnames(pred_data))) ) {
-      stop('"pred_data" must contain the following columns: ',paste(colnames_pred_data,collapse=", ") )
-    }
-    pred_data <- pred_data[,colnames_pred_data]
-    if( any(is.na(pred_data[,c("time","id","pred")])) ) {
-      stop('"pred_data" does NOT allow NAs in columns: ',paste(c("time","id","pred"),collapse=", ") )
-    }
-    
-    rm(colnames_pred_data)
-  }
-  #### End: Checking inputs ####
-  
-  
-  #### Start: Global parameters ####
-  node_all <- sort(unique(unlist(net_data[,c("source","target")])))
-  V_net <- length(node_all)
-  
-  time_all <- sort(unique(unlist(net_data$time)))
-  T_net <- length(time_all)
-  
-  layer_all <- sort(unique(unlist(net_data$layer)))
-  K_net <- length(layer_all)
-  #### End: Global parameters ####
-  
-  #### Start: Processing data ####
-  
-  ### Network data ###
-  y_ijtk <- get_y_ijtk_from_edges( edges_data=net_data,
-                                   quiet=FALSE )
-  
-  
-  
-  ### Predictors data ###
-  pred_all <- NULL
-  pred_id_global<-NULL; pred_id_layer<-NULL; pred_id_edge<-NULL
-  z_tp<-NULL; z_tkp<-NULL; z_ijtkp<-NULL
-  beta_z_global<-NULL; beta_z_layer<-NULL; beta_z_edge<-NULL
   if(!is.null(pred_data)) {
-    #colnames_pred_data <- c("source","target","time","layer","id","pred")
-    
-    if( !all(is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data[,"layer"])))) ) {
+    if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
       stop('Layers in "pred_data" must be one of layers in "net_data"')
     }
-    
-    ## Predictors ##
-    pred_all <- sort(unique(unlist(pred_data$id)))
-    P_pred <- length(pred_all)
-    
-    cat("Procesing predictors data...\n")
-    ## Global ##
-    cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data)), 1, identical, c(F,F,T,F,T,T) )
-    if( any(cond_pred) ) {
-      pred_id_global <- pred_data[cond_pred,c("id","layer")]
-      pred_id_global <- pred_id_global[!duplicated(pred_id_global),]
-      z_tp <- matrix(NA,nrow=T_net,ncol=P_pred)
-      for(row_i in 1:sum(cond_pred)){
-        # row_i <- 1
-        t <- match(pred_data[row_i,"time"],time_all)
-        p <- match(pred_data[row_i,"id"],pred_all)
-        z_tp[t,p] <- pred_data[cond_pred,][row_i,"pred"]
-      }
-      rm(row_i,t,p)
-    }
-    ## Layer specific ##
-    cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data)), 1, identical, c(F,F,T,T,T,T) )
-    if( any(cond_pred) ) {
-      pred_id_layer <- pred_data[cond_pred,c("id","layer")]
-      pred_id_layer <- pred_id_layer[!duplicated(pred_id_layer),]
-      z_tkp <- array( NA, dim=c(T_net,K_net,P_pred) )
-      for(row_i in 1:sum(cond_pred)){
-        # row_i <- 1
-        t <- match(pred_data[row_i,"time"],time_all)
-        k <- match(pred_data[row_i,"layer"],time_all)
-        p <- match(pred_data[row_i,"id"],pred_all)
-        z_tp[t,p] <- pred_data[cond_pred,][row_i,"pred"]
-      }
-      rm(row_i,t,k,p)
-    }
-    ## Edge specific ##
-    # The edge specific predictors MUST specify also the asscociated layer.
-    # there will be one coefficient for each predictor-layer combination
-    cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data)), 1, identical, c(T,T,T,T,T,T) )
-    if( any(cond_pred) ) {
-      pred_id_edge <- pred_data[cond_pred,c("id","layer")]
-      pred_id_edge <- pred_id_edge[!duplicated(pred_id_edge),]
-      z_ijtkp <- array( NA, dim=c(V_net,V_net,T_net,K_net,P_pred) )
-      for(row_i in 1:sum(cond_pred)){
-        # row_i <- 1
-        i <- match(pred_data[row_i,c("source")],node_all)
-        j <- match(pred_data[row_i,c("target")],node_all)
-        t <- match(pred_data[row_i,"time"],time_all)
-        k <- match(pred_data[row_i,"layer"],time_all)
-        p <- match(pred_data[row_i,"id"],pred_all)
-        z_ijtkp[i,j,t,k,p] <- pred_data[cond_pred,][row_i,"pred"]
-      }
-      rm(row_i,i,j,t,k,p)
-    }
-    rm(cond_pred)
-    
-    cat("done!\n")
   }
+  
+  #### Start: Processing data ####
+  ### Network data ###
+  y_ijtk <- get_y_ijtk_from_edges( net_data,
+                                   quiet=FALSE )
+  node_all <- sort(unique(unlist(net_data[,c("source","target")])))
+  V_net <- length(node_all)
+  time_all <- sort(unique(unlist(net_data$time)))
+  T_net <- length(time_all)
+  layer_all <- sort(unique(unlist(net_data$layer)))
+  K_net <- length(layer_all)
+  
+  ### Predictors data ###
+  pred_net <- get_z_pred( pred_data,
+                          node_all, time_all, layer_all,
+                          quiet=FALSE )
+  
+  pred_all <- pred_net$pred_all
+  
+  pred_id_global <- pred_net$pred_id_global
+  pred_id_layer <- pred_net$pred_id_layer
+  pred_id_edge <- pred_net$pred_id_edge
+  
+  z_tp<-pred_net$z_tp
+  z_tkp<-pred_net$z_tkp
+  z_ijtkp<-pred_net$z_ijtkp
+  
+  beta_z_global<-pred_net$beta_z_global
+  beta_z_layer<-pred_net$beta_z_layer
+  beta_z_edge<-pred_net$beta_z_edge
   #### End: Processing data ####
+  
+  
   
   #### Start: MCMC initialization ####
   # Edge between actors i and j at time t in layer k
@@ -294,9 +220,9 @@ DynMultiNet_bin <- function( net_data,
                                       beta_z_global, beta_z_layer, beta_z_edge,
                                       pred_id_global, pred_id_layer, pred_id_edge )
       }
-      if(F&!is.null(beta_z_layer)&!is.null(pred_id_layer)){
+      if(!is.null(beta_z_layer)&!is.null(pred_id_layer)){
         beta_z_layer <- sample_beta_z_layer_DynMultiNet_bin( beta_z_layer,
-                                                             z_tkp, pred_id_layer, pred_all,
+                                                             z_tkp, pred_id_layer, pred_all, layer_all,
                                                              y_ijtk, w_ijtk, s_ijtk,
                                                              beta_t_cov_prior_inv )
         # update linear predictor
@@ -308,7 +234,7 @@ DynMultiNet_bin <- function( net_data,
       }
       if(!is.null(beta_z_edge)&!is.null(pred_id_edge)){
         beta_z_edge <- sample_beta_z_edge_DynMultiNet_bin( beta_z_edge,
-                                                           z_ijtkp, pred_id_edge, pred_all,
+                                                           z_ijtkp, pred_id_edge, pred_all, layer_all,
                                                            y_ijtk, w_ijtk, s_ijtk,
                                                            beta_t_cov_prior_inv )
         # update linear predictor
@@ -373,8 +299,8 @@ DynMultiNet_bin <- function( net_data,
   
   
   
-  DynMultiNet_mcmc <- list( mu_tk_mcmc=mu_tk_mcmc,
-                            x_iht_mat_mcmc=x_iht_mat_mcmc,
+  DynMultiNet_mcmc <- list( mu_tk_mcmc=mu_tk_mcmc[,,-1],
+                            x_iht_mat_mcmc=x_iht_mat_mcmc[,,-1],
                             V_net=V_net, T_net=T_net, H_dim=H_dim )
   return( DynMultiNet_mcmc )
   

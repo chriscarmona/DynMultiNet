@@ -32,7 +32,7 @@ sample_w_ijtk_DynMultiNet_bin <- function( s_ijtk ) {
 sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           y_ijtk, w_ijtk, s_ijtk,
                                           mu_t_cov_prior_inv,
-                                          calc_type=1) {
+                                          calc_method=1) {
   ### Sample mu_t_k from its conditional N-variate Gaussian posterior ###
   
   V_net <- dim(y_ijtk)[1]
@@ -45,7 +45,7 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
   aux_sum_w_tk <- apply(w_ijtk,c(3,4),sum,na.rm=T)
   for( k in 1:K_net ) {
     #k <- 1
-    if(calc_type==1){
+    if(calc_method==1){
       # Option 1: [Durante, 2014]
       aux_mat <- solve( diag(aux_sum_w_tk[,k]) + mu_t_cov_prior_inv )
       if(!isSymmetric(aux_mat)) {aux_mat[upper.tri(aux_mat)] <- t(aux_mat)[upper.tri(aux_mat)]}
@@ -53,10 +53,10 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
       
       mu_tk_aux <- array( rep(as.numeric(mu_tk),each=V_net^2),
                           dim=c(V_net,V_net,T_net) )
-      aux_vec1 <- apply(y_ijtk[,,,k] - 0.5 - w_ijtk[,,,k] * (s_ijtk[,,,k]-mu_tk_aux),3,sum,na.rm=T)
-      aux_vec1 <- matrix(aux_vec1,nrow=T_net,ncol=1)
+      aux_vec_mean <- apply(y_ijtk[,,,k] - 0.5 - w_ijtk[,,,k] * (s_ijtk[,,,k]-mu_tk_aux),3,sum,na.rm=T)
+      aux_vec_mean <- matrix(aux_vec_mean,nrow=T_net,ncol=1)
       
-    } else if(calc_type==2) {
+    } else if(calc_method==2) {
       # Option 2: direct linear model
       X <- kronecker(matrix(1,V_net*(V_net-1)/2,1),diag(T_net))
       Y<-NULL; W<-NULL; S<-NULL
@@ -74,12 +74,12 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
       W_diag <- diag(as.numeric(W))
       Z <- (Y - 0.5)/W-(S-S_minus)
       mu_tk_cov[,,k] <- solve( t(X) %*% W_diag %*%  X + mu_t_cov_prior_inv )
-      aux_vec1 <- t(X) %*% W_diag %*% Z
+      aux_vec_mean <- t(X) %*% W_diag %*% Z
       
     }
     
     mu_tk[,k] <- mvtnorm::rmvnorm( n=1,
-                                   mean=mu_tk_cov[,,k] %*% aux_vec1,
+                                   mean=mu_tk_cov[,,k] %*% aux_vec_mean,
                                    sigma=mu_tk_cov[,,k] )
     
   }
@@ -91,7 +91,7 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
 
 #' @export
 sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
-                                                z_ijtkp, pred_id_edge, pred_all,
+                                                z_ijtkp, pred_id_edge, pred_all, layer_all,
                                                 y_ijtk, w_ijtk, s_ijtk,
                                                 beta_t_cov_prior_inv ) {
   ### Sample beta_z_edge from its conditional N-variate Gaussian posterior ###
@@ -106,8 +106,8 @@ sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
   
   for( row_p in 1:nrow(pred_id_edge) ) {
     
-    p <- match(pred_id_edge[row_p,2],pred_all)
-    k <- pred_id_edge[p,2]
+    p <- match(pred_id_edge[row_p,1],pred_all)
+    k <- match(pred_id_edge[row_p,2],layer_all)
     
     aux_sum_z2w_tk <- apply( z_ijtkp[,,,k,p]^2 * w_ijtk[,,,k], c(3), sum, na.rm=T )
     
@@ -116,11 +116,11 @@ sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
     
     beta_aux <- array( rep(as.numeric(beta_z_edge[,row_p]),each=V_net^2),
                        dim=c(V_net,V_net,T_net) )
-    aux_vec1 <- apply( z_ijtkp[,,,k,p]*(y_ijtk[,,,k] - 0.5 - w_ijtk[,,,k] * (s_ijtk[,,,k]-z_ijtkp[,,,k,p]*beta_aux)),3,sum,na.rm=T)
-    aux_vec1 <- matrix( aux_vec1, nrow=T_net, ncol=1 )
+    aux_vec_mean <- apply( z_ijtkp[,,,k,p]*(y_ijtk[,,,k] - 0.5 - w_ijtk[,,,k] * (s_ijtk[,,,k]-z_ijtkp[,,,k,p]*beta_aux)),3,sum,na.rm=T)
+    aux_vec_mean <- matrix( aux_vec_mean, nrow=T_net, ncol=1 )
     
     beta_z_edge[,row_p] <- mvtnorm::rmvnorm( n=1,
-                                             mean=beta_z_edge_cov %*% aux_vec1,
+                                             mean=beta_z_edge_cov %*% aux_vec_mean,
                                              sigma=beta_z_edge_cov )
   }
   
@@ -131,7 +131,7 @@ sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
 
 #' @export
 sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
-                                                 z_tkp, pred_id_layer, pred_all,
+                                                 z_tkp, pred_id_layer, pred_all, layer_all,
                                                  y_ijtk, w_ijtk, s_ijtk,
                                                  beta_t_cov_prior_inv ) {
   ### Sample beta_z_layer from its conditional N-variate Gaussian posterior ###
@@ -145,22 +145,35 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
   
   for( row_p in 1:nrow(pred_id_layer) ) {
     
-    p <- match(pred_id_layer[row_p,2],pred_all)
-    k <- pred_id_layer[p,2]
+    p <- match(pred_id_layer[row_p,1],pred_all)
+    k <- match(pred_id_layer[row_p,2],layer_all)
     
-    aux_sum_z2w_tk <- apply( z_tkp[,k,p] * w_ijtk[,,,k], c(3), sum, na.rm=T )
+    # method 1: Linear equations
+    # Option 2: direct linear model
+    Y<-NULL; W<-NULL; S<-NULL
+    for(i in 2:V_net) {
+      #i<-3
+      Y <- rbind( Y,
+                  matrix(c(t(matrix(y_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+      W <- rbind( W,
+                  matrix(c(t(matrix(w_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+      S <- rbind( S,
+                  matrix(c(t(matrix(s_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+    }
+    W_diag <- diag(as.numeric(W))
     
-    beta_z_layer_cov <- solve( diag(aux_sum_z2w_tk) + beta_t_cov_prior_inv )
-    if(!isSymmetric(beta_z_layer_cov)) {beta_z_layer_cov[upper.tri(beta_z_layer_cov)] <- t(beta_z_layer_cov)[upper.tri(beta_z_layer_cov)]}
+    X <- kronecker( matrix(1,V_net*(V_net-1)/2,1) ,diag(z_tkp[,k,p]))
     
-    beta_aux <- array( rep(as.numeric(beta_z_layer[,row_p]),each=V_net^2),
-                       dim=c(V_net,V_net,T_net) )
-    aux_vec1 <- apply( z_tkp[,k,p]*(y_ijtk[,,,k] - 0.5 - w_ijtk[,,,k] * (s_ijtk[,,,k]-z_tkp[,k,p]*beta_aux)),3,sum,na.rm=T)
-    aux_vec1 <- matrix( aux_vec1, nrow=T_net, ncol=1 )
+    C = S - X %*% matrix(beta_z_layer[,row_p],T_net,1);
+    Z = (Y-0.5)/W - C;
+    
+    beta_cov_inv <- t(X) %*% W_diag %*%  X + beta_t_cov_prior_inv
+    beta_cov<- solve( beta_cov_inv )
+    aux_vec_mean <- t(X) %*% W_diag %*% Z
     
     beta_z_layer[,row_p] <- mvtnorm::rmvnorm( n=1,
-                                              mean=beta_z_layer_cov %*% aux_vec1,
-                                              sigma=beta_z_layer_cov )
+                                              mean=beta_cov %*% aux_vec_mean,
+                                              sigma=beta_cov )
   }
   
   return(beta_z_layer);
@@ -222,10 +235,10 @@ sample_x_iht_mat_DynMultiNet_bin <- function( x_iht_mat,
         x_i_cov <- chol2inv(chol(x_i_cov_inv))
         #all.equal( solve( x_i_cov_inv ) , chol2inv(chol(x_i_cov_inv)) )
         if(!isSymmetric(x_i_cov)) {x_i_cov[upper.tri(x_i_cov)] <- t(x_i_cov)[upper.tri(x_i_cov)]}
-        aux_vec1 <- t(x_tilde_i) %*% ( y_i - kronecker(matrix(1,V_net-1,1),matrix(1,T_net,1)*0.5) - w_diag_i %*% kronecker(matrix(1,V_net-1,1),mu_tk[,k]) )
+        aux_vec_mean <- t(x_tilde_i) %*% ( y_i - kronecker(matrix(1,V_net-1,1),matrix(1,T_net,1)*0.5) - w_diag_i %*% kronecker(matrix(1,V_net-1,1),mu_tk[,k]) )
         
         x_i <- mvtnorm::rmvnorm( n=1,
-                                 mean=x_i_cov %*% aux_vec1,
+                                 mean=x_i_cov %*% aux_vec_mean,
                                  sigma=x_i_cov )
         x_iht_mat[i,] <- x_i
       }
