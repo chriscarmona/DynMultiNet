@@ -32,56 +32,64 @@ sample_w_ijtk_DynMultiNet_bin <- function( s_ijtk ) {
 sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           y_ijtk, w_ijtk, s_ijtk,
                                           mu_t_cov_prior_inv,
-                                          calc_method=1) {
-  ### Sample mu_t_k from its conditional N-variate Gaussian posterior ###
-  
+                                          use_cpp=TRUE,
+                                          calc_method_R=1 ) {
+  ### Sample mu_t from its conditional N-variate Gaussian posterior ###
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
   K_net <- dim(y_ijtk)[4]
   
-  mu_tk_cov <- array( data=NA,
-                      dim=c(T_net,T_net,K_net) )
-  
-  aux_sum_w_tk <- apply(w_ijtk,c(3,4),sum,na.rm=T)
-  for( k in 1:K_net ) {
-    #k <- 1
-    if(calc_method==1){
-      # Option 1: [Durante, 2014]
-      aux_mat <- solve( diag(aux_sum_w_tk[,k]) + mu_t_cov_prior_inv )
-      if(!isSymmetric(aux_mat)) {aux_mat[upper.tri(aux_mat)] <- t(aux_mat)[upper.tri(aux_mat)]}
-      mu_tk_cov[,,k] <- aux_mat
+  if(use_cpp) {
+    for( k in 1:K_net ){ # k<-1
+      Cpp_out <- sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
+                                                  mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                                  y_ijt=y_ijtk[,,,k],
+                                                  w_ijt=w_ijtk[,,,k],
+                                                  s_ijt=s_ijtk[,,,k] )
+    }
+  } else {
+    for( k in 1:K_net ){ # k<-1
+      mu_t=mu_tk[,k,drop=F]
+      y_ijt=y_ijtk[,,,k]
+      w_ijt=w_ijtk[,,,k]
+      s_ijt=s_ijtk[,,,k]
       
-      mu_tk_aux <- array( rep(as.numeric(mu_tk),each=V_net^2),
-                          dim=c(V_net,V_net,T_net) )
-      aux_vec_mean <- apply(y_ijtk[,,,k] - 0.5 - w_ijtk[,,,k] * (s_ijtk[,,,k]-mu_tk_aux),3,sum,na.rm=T)
-      aux_vec_mean <- matrix(aux_vec_mean,nrow=T_net,ncol=1)
-      
-    } else if(calc_method==2) {
-      # Option 2: direct linear model
-      X <- kronecker(matrix(1,V_net*(V_net-1)/2,1),diag(T_net))
-      Y<-NULL; W<-NULL; S<-NULL
-      for(i in 2:V_net) {
-        #i<-3
-        Y <- rbind( Y,
-                    matrix(c(t(matrix(y_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
-        W <- rbind( W,
-                    matrix(c(t(matrix(w_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
-        S <- rbind( S,
-                    matrix(c(t(matrix(s_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+      if(calc_method_R==1){
+        # Option 1: [Durante, 2014]
+        aux_sum_w_t <- apply(w_ijt,3,sum,na.rm=T)
+        aux_mat <- solve( diag(aux_sum_w_t) + mu_t_cov_prior_inv )
+        if(!isSymmetric(aux_mat)) {aux_mat[upper.tri(aux_mat)] <- t(aux_mat)[upper.tri(aux_mat)]}
+        mu_t_cov <- aux_mat
+        
+        mu_t_aux <- array( rep(as.numeric(mu_t),each=V_net^2),
+                           dim=c(V_net,V_net,T_net) )
+        aux_vec_mean <- apply(y_ijt[,,] - 0.5 - w_ijt[,,] * (s_ijt[,,]-mu_t_aux),3,sum,na.rm=T)
+        aux_vec_mean <- matrix(aux_vec_mean,nrow=T_net,ncol=1)
+      } else if(calc_method_R==2) {
+        # Option 2: direct linear model
+        X <- kronecker(matrix(1,V_net*(V_net-1)/2,1),diag(T_net))
+        Y<-NULL; W<-NULL; S<-NULL
+        for(i in 2:V_net) {
+          #i<-3
+          Y <- rbind( Y,
+                      matrix(c(t(matrix(y_ijt[i,1:i,],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+          W <- rbind( W,
+                      matrix(c(t(matrix(w_ijt[i,1:i,],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+          S <- rbind( S,
+                      matrix(c(t(matrix(s_ijt[i,1:i,],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+        }
+        
+        S_minus <- kronecker(matrix(1,V_net*(V_net-1)/2,1),matrix(mu_t,T_net,1))
+        W_diag <- diag(as.numeric(W))
+        Z <- (Y - 0.5)/W-(S-S_minus)
+        mu_t_cov <- solve( t(X) %*% W_diag %*%  X + mu_t_cov_prior_inv )
+        aux_vec_mean <- t(X) %*% W_diag %*% Z
       }
       
-      S_minus <- kronecker(matrix(1,V_net*(V_net-1)/2,1),matrix(mu_tk[,k],T_net,1))
-      W_diag <- diag(as.numeric(W))
-      Z <- (Y - 0.5)/W-(S-S_minus)
-      mu_tk_cov[,,k] <- solve( t(X) %*% W_diag %*%  X + mu_t_cov_prior_inv )
-      aux_vec_mean <- t(X) %*% W_diag %*% Z
-      
+      mu_tk[,k] <- mvtnorm::rmvnorm( n=1,
+                                     mean=mu_t_cov %*% aux_vec_mean,
+                                     sigma=mu_t_cov )
     }
-    
-    mu_tk[,k] <- mvtnorm::rmvnorm( n=1,
-                                   mean=mu_tk_cov[,,k] %*% aux_vec_mean,
-                                   sigma=mu_tk_cov[,,k] )
-    
   }
   
   return(mu_tk);

@@ -193,7 +193,8 @@ DynMultiNet_bin <- function( net_data,
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
     mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk,
                                            y_ijtk, w_ijtk, s_ijtk,
-                                           mu_t_cov_prior_inv )
+                                           mu_t_cov_prior_inv,
+                                           use_cpp=F )
     # MCMC chain #
     mu_tk_mcmc <- abind::abind(mu_tk_mcmc,mu_tk,along=3)
     

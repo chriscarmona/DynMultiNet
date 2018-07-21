@@ -44,6 +44,25 @@ namespace DynMultiNet {
         return Rcpp::as<arma::mat >(rcpp_result_gen);
     }
 
+    inline arma::mat sample_mu_t_DynMultiNet_bin_cpp(arma::colvec mu_t, const arma::mat mu_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt) {
+        typedef SEXP(*Ptr_sample_mu_t_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_mu_t_DynMultiNet_bin_cpp p_sample_mu_t_DynMultiNet_bin_cpp = NULL;
+        if (p_sample_mu_t_DynMultiNet_bin_cpp == NULL) {
+            validateSignature("arma::mat(*sample_mu_t_DynMultiNet_bin_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube)");
+            p_sample_mu_t_DynMultiNet_bin_cpp = (Ptr_sample_mu_t_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_mu_t_DynMultiNet_bin_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_mu_t_DynMultiNet_bin_cpp(Shield<SEXP>(Rcpp::wrap(mu_t)), Shield<SEXP>(Rcpp::wrap(mu_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(s_ijt)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<arma::mat >(rcpp_result_gen);
+    }
+
 }
 
 #endif // RCPP_DynMultiNet_RCPPEXPORTS_H_GEN_
