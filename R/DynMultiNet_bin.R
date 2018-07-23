@@ -11,8 +11,7 @@
 #' @param out_file Indicates a file (.RData) where the output should be saved
 #' @param log_file Indicates a file (.txt) where the log of the process should be saved
 #' @param quiet_mcmc Silent mode, no progress update
-#' @param use_cpp whether the process is executed in C++ or not
-#'
+#' @param use_cpp Boolean, indicates wheter to use Cpp routines for efficient computation
 #'
 #' @details
 #'    The model assumes a latent variable approach
@@ -48,7 +47,6 @@
 #' 
 #' @import BayesLogit
 #' @import dplyr
-#' @importFrom abind abind
 #' 
 #' @export
 #' 
@@ -87,17 +85,16 @@ DynMultiNet_bin <- function( net_data,
   
   pred_all <- pred_net$pred_all
   
-  pred_id_global <- pred_net$pred_id_global
   pred_id_layer <- pred_net$pred_id_layer
   pred_id_edge <- pred_net$pred_id_edge
   
-  z_tp<-pred_net$z_tp
   z_tkp<-pred_net$z_tkp
   z_ijtkp<-pred_net$z_ijtkp
   
-  beta_z_global<-pred_net$beta_z_global
   beta_z_layer<-pred_net$beta_z_layer
+  beta_z_layer_mcmc<-NULL
   beta_z_edge<-pred_net$beta_z_edge
+  beta_z_edge_mcmc<-NULL
   #### End: Processing data ####
   
   
@@ -115,7 +112,7 @@ DynMultiNet_bin <- function( net_data,
                    data=runif(T_net*K_net),
                    nrow=T_net,
                    ncol=K_net )
-  mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,1) )
+  mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc) )
   
   # Covariance matrix prior for baseline mu_tk
   mu_t_cov_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
@@ -133,7 +130,7 @@ DynMultiNet_bin <- function( net_data,
   x_iht_mat <- aperm(a=x_iht,perm=c(1,3,2))
   dim(x_iht_mat) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
-  x_iht_mat_mcmc <- array(NA,c(V_net,T_net*H_dim,1))
+  x_iht_mat_mcmc <- array(NA,c(V_net,T_net*H_dim,n_iter_mcmc))
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
@@ -146,23 +143,22 @@ DynMultiNet_bin <- function( net_data,
   
   # Predictor coefficients
   if(!is.null(pred_data)) {
-    if(!is.null(pred_id_global)){
-      beta_z_global <- matrix(0,nrow=T_net,ncol=nrow(pred_id_global))
-    }
     if(!is.null(pred_id_layer)){
       beta_z_layer <- matrix(0,nrow=T_net,ncol=nrow(pred_id_layer))
+      beta_z_layer_mcmc <- array(NA, dim=c(T_net,nrow(pred_id_layer),n_iter_mcmc) )
     }
     if(!is.null(pred_id_edge)){
       beta_z_edge <- matrix(0,nrow=T_net,ncol=nrow(pred_id_edge))
+      beta_z_edge_mcmc <- array(NA, dim=c(T_net,nrow(pred_id_edge),n_iter_mcmc) )
     }
   }
   
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
-  s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
-                                pred_all, layer_all,
-                                z_tp, z_tkp, z_ijtkp,
-                                beta_z_global, beta_z_layer, beta_z_edge,
-                                pred_id_global, pred_id_layer, pred_id_edge )
+  s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+                                pred_all=pred_all, layer_all=layer_all,
+                                z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
+                                pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk <- plogis(s_ijtk)
@@ -186,64 +182,58 @@ DynMultiNet_bin <- function( net_data,
     
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
-    w_ijtk <- sample_w_ijtk_DynMultiNet_bin( s_ijtk )
+    w_ijtk <- sample_w_ijtk_DynMultiNet_bin( w_ijtk=w_ijtk,
+                                             s_ijtk=s_ijtk )
     
     
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
-    mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk,
-                                           y_ijtk, w_ijtk, s_ijtk,
-                                           mu_t_cov_prior_inv,
-                                           use_cpp=F )
+    mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
+                                           y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
+                                           mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                           use_cpp=use_cpp )
     # MCMC chain #
-    mu_tk_mcmc <- abind::abind(mu_tk_mcmc,mu_tk,along=3)
+    mu_tk_mcmc[,,iter_i] <- mu_tk
     
     # update linear predictor
-    s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
-                                  pred_all, layer_all,
-                                  z_tp, z_tkp, z_ijtkp,
-                                  beta_z_global, beta_z_layer, beta_z_edge,
-                                  pred_id_global, pred_id_layer, pred_id_edge )
+    s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+                                  pred_all=pred_all, layer_all=layer_all,
+                                  z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                  beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
+                                  pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
     
     
     
-    ### Step 2_beta. Sample beta_z_global, beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###
+    ### Step 2_beta. Sample beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###
     if(!is.null(pred_all)){
-      if(F&!is.null(beta_z_global)&!is.null(pred_id_global)){
-        beta_z_global <- sample_beta_z_layer_DynMultiNet_bin( beta_z_global,
-                                                              z_tp, pred_id_global, pred_all,
-                                                              y_ijtk, w_ijtk, s_ijtk,
-                                                              beta_t_cov_prior_inv )
-        # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
-                                      pred_all, layer_all,
-                                      z_tp, z_tkp, z_ijtkp,
-                                      beta_z_global, beta_z_layer, beta_z_edge,
-                                      pred_id_global, pred_id_layer, pred_id_edge )
-      }
+      # Layer specific
       if(!is.null(beta_z_layer)&!is.null(pred_id_layer)){
         beta_z_layer <- sample_beta_z_layer_DynMultiNet_bin( beta_z_layer,
                                                              z_tkp, pred_id_layer, pred_all, layer_all,
                                                              y_ijtk, w_ijtk, s_ijtk,
-                                                             beta_t_cov_prior_inv )
+                                                             beta_t_cov_prior_inv,
+                                                             use_cpp=use_cpp )
+        beta_z_layer_mcmc[,,iter_i] <- beta_z_layer
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
-                                      pred_all, layer_all,
-                                      z_tp, z_tkp, z_ijtkp,
-                                      beta_z_global, beta_z_layer, beta_z_edge,
-                                      pred_id_global, pred_id_layer, pred_id_edge )
+        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+                                      pred_all=pred_all, layer_all=layer_all,
+                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                      beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
+                                      pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
       }
+      # Edge specific
       if(!is.null(beta_z_edge)&!is.null(pred_id_edge)){
         beta_z_edge <- sample_beta_z_edge_DynMultiNet_bin( beta_z_edge,
                                                            z_ijtkp, pred_id_edge, pred_all, layer_all,
                                                            y_ijtk, w_ijtk, s_ijtk,
                                                            beta_t_cov_prior_inv )
+        beta_z_edge_mcmc[,,iter_i] <- beta_z_edge
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
-                                      pred_all, layer_all,
-                                      z_tp, z_tkp, z_ijtkp,
-                                      beta_z_global, beta_z_layer, beta_z_edge,
-                                      pred_id_global, pred_id_layer, pred_id_edge )
+        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+                                      pred_all=pred_all, layer_all=layer_all,
+                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                      beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
+                                      pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
       }
     }
     
@@ -253,7 +243,7 @@ DynMultiNet_bin <- function( net_data,
                                                    y_ijtk, w_ijtk, s_ijtk, mu_tk,
                                                    use_cpp=use_cpp )
     # MCMC chain #
-    x_iht_mat_mcmc <- abind::abind(x_iht_mat_mcmc,x_iht_mat,along=3)
+    x_iht_mat_mcmc[,,iter_i] <- x_iht_mat
     
     # redefine x_iht with the new sampled values in x_iht_mat
     x_iht <- x_iht_mat
@@ -262,11 +252,11 @@ DynMultiNet_bin <- function( net_data,
     if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
     
     # update linear predictor
-    s_ijtk <- get_linpred_s_ijtk( y_ijtk, mu_tk, x_iht,
-                                  pred_all, layer_all,
-                                  z_tp, z_tkp, z_ijtkp,
-                                  beta_z_global, beta_z_layer, beta_z_edge,
-                                  pred_id_global, pred_id_layer, pred_id_edge )
+    s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+                                  pred_all=pred_all, layer_all=layer_all,
+                                  z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                  beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
+                                  pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
     
     # Edge probabilities
     pi_ijtk <- plogis(s_ijtk)
@@ -282,27 +272,33 @@ DynMultiNet_bin <- function( net_data,
     
     
     # display MCMC progress #
-    if( is.element(iter_i, floor(n_iter_mcmc*seq(0.05,1,0.05)) ) ) {
-      if(!is.null(out_file)){
-        DynMultiNet_mcmc <- list( mu_tk_mcmc=mu_tk_mcmc[,,-1],
-                                  x_iht_mat_mcmc=x_iht_mat_mcmc[,,-1],
-                                  V_net=V_net, T_net=T_net, H_dim=H_dim )
-        save(DynMultiNet_mcmc,file=out_file)
-      }
+    if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.05)[-1]) ) ) {
       if(!quiet_mcmc){
         cat(round(100*iter_i/n_iter_mcmc),"% ",sep="")
       }
     }
-    
+    # save MCMC progress #
+    if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) ) {
+      if(!is.null(out_file)){
+        DynMultiNet_mcmc <- list( node_all=node_all, time_all=time_all, layer_all=layer_all,
+                                  mu_tk_mcmc=mu_tk_mcmc,
+                                  x_iht_mat_mcmc=x_iht_mat_mcmc,
+                                  beta_z_layer_mcmc=beta_z_layer_mcmc,
+                                  beta_z_edge_mcmc=beta_z_edge_mcmc,
+                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+        save(DynMultiNet_mcmc,file=out_file)
+      }
+    }
   }
   if(!quiet_mcmc){cat("\nMCMC finished!\n")}
   #### End: MCMC Sampling ####
   
-  
-  
-  DynMultiNet_mcmc <- list( mu_tk_mcmc=mu_tk_mcmc[,,-1],
-                            x_iht_mat_mcmc=x_iht_mat_mcmc[,,-1],
-                            V_net=V_net, T_net=T_net, H_dim=H_dim )
+  DynMultiNet_mcmc <- list( node_all=node_all, time_all=time_all, layer_all=layer_all,
+                            mu_tk_mcmc=mu_tk_mcmc,
+                            x_iht_mat_mcmc=x_iht_mat_mcmc,
+                            beta_z_layer_mcmc=beta_z_layer_mcmc,
+                            beta_z_edge_mcmc=beta_z_edge_mcmc,
+                            pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
   return( DynMultiNet_mcmc )
   
 }

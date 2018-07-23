@@ -1,26 +1,16 @@
 
 #' @export
-sample_w_ijtk_DynMultiNet_bin <- function( s_ijtk ) {
+sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk, s_ijtk ) {
   
   ### Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
   
-  V_net <- dim(s_ijtk)[1]
-  T_net <- dim(s_ijtk)[3]
-  K_net <- dim(s_ijtk)[4]
+  V_net <- dim(w_ijtk)[1]
+  T_net <- dim(w_ijtk)[3]
+  K_net <- dim(w_ijtk)[4]
   
-  w_ijtk <- array( data=NA,
-                   dim=c(V_net,V_net,T_net,K_net) )
-  
-  for( i in 2:V_net) {
-    for( j in 1:(i-1)) {
-      for( t in 1:T_net) {
-        for( k in 1:K_net) {
-          # i<-1;j<-1;t<-1;k<-1
-          w_ijtk[i,j,t,k] <- BayesLogit::rpg.devroye( num=1, n=1, z=s_ijtk[i,j,t,k] )
-        }
-      }
-    }
-  }
+  s_aux <- c(s_ijtk); s_aux <- s_aux[!is.na(s_aux)]
+  if(length(s_aux)!=T_net*V_net*(V_net-1)/2){ stop("There was an error sampling w_ijtk") }
+  w_ijtk[!is.na(s_ijtk)] <- BayesLogit::rpg.devroye( num=T_net*V_net*(V_net-1)/2, n=1, z=s_aux )
   
   return(w_ijtk)
   
@@ -41,11 +31,12 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
   
   if(use_cpp) {
     for( k in 1:K_net ){ # k<-1
-      Cpp_out <- sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
-                                                  mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                                  y_ijt=y_ijtk[,,,k],
-                                                  w_ijt=w_ijtk[,,,k],
-                                                  s_ijt=s_ijtk[,,,k] )
+      sample_mu_tk_DynMultiNet_bin
+      mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
+                                                    mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                                    y_ijt=y_ijtk[,,,k],
+                                                    w_ijt=w_ijtk[,,,k],
+                                                    s_ijt=s_ijtk[,,,k] )
     }
   } else {
     for( k in 1:K_net ){ # k<-1
@@ -111,7 +102,6 @@ sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
   T_net <- dim(y_ijtk)[3]
   K_net <- dim(y_ijtk)[4]
   
-  
   for( row_p in 1:nrow(pred_id_edge) ) {
     
     p <- match(pred_id_edge[row_p,1],pred_all)
@@ -141,9 +131,9 @@ sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
 sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
                                                  z_tkp, pred_id_layer, pred_all, layer_all,
                                                  y_ijtk, w_ijtk, s_ijtk,
-                                                 beta_t_cov_prior_inv ) {
+                                                 beta_t_cov_prior_inv,
+                                                 use_cpp=TRUE ) {
   ### Sample beta_z_layer from its conditional N-variate Gaussian posterior ###
-  # still working #
   ### output ###
   # beta_z_layer <- matrix(0,nrow=T_net,ncol=nrow(pred_id_layer))
   
@@ -152,38 +142,43 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
   K_net <- dim(y_ijtk)[4]
   
   for( row_p in 1:nrow(pred_id_layer) ) {
-    
     p <- match(pred_id_layer[row_p,1],pred_all)
     k <- match(pred_id_layer[row_p,2],layer_all)
-    
-    # method 1: Linear equations
-    # Option 2: direct linear model
-    Y<-NULL; W<-NULL; S<-NULL
-    for(i in 2:V_net) {
-      #i<-3
-      Y <- rbind( Y,
-                  matrix(c(t(matrix(y_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
-      W <- rbind( W,
-                  matrix(c(t(matrix(w_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
-      S <- rbind( S,
-                  matrix(c(t(matrix(s_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+    if(use_cpp) {
+      beta_z_layer[,row_p] <- sample_beta_z_layer_DynMultiNet_bin_cpp( beta_t=beta_z_layer[,row_p],
+                                                                       z_t=z_tkp[,k,p],
+                                                                       beta_t_cov_prior_inv=beta_t_cov_prior_inv,
+                                                                       y_ijt=y_ijtk[,,,k],
+                                                                       w_ijt=w_ijtk[,,,k],
+                                                                       s_ijt=s_ijtk[,,,k] )
+    } else {
+      # method 1: Linear equations
+      Y<-NULL; W<-NULL; S<-NULL
+      for(i in 2:V_net) {
+        #i<-3
+        Y <- rbind( Y,
+                    matrix(c(t(matrix(y_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+        W <- rbind( W,
+                    matrix(c(t(matrix(w_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+        S <- rbind( S,
+                    matrix(c(t(matrix(s_ijtk[i,1:i,,k],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
+      }
+      W_diag <- diag(as.numeric(W))
+      
+      X <- kronecker( matrix(1,V_net*(V_net-1)/2,1) ,diag(z_tkp[,k,p]))
+      
+      C = S - X %*% matrix(beta_z_layer[,row_p],T_net,1);
+      Z = (Y-0.5)/W - C;
+      
+      beta_cov_inv <- t(X) %*% W_diag %*%  X + beta_t_cov_prior_inv
+      beta_cov<- solve( beta_cov_inv )
+      aux_vec_mean <- t(X) %*% W_diag %*% Z
+      
+      beta_z_layer[,row_p] <- mvtnorm::rmvnorm( n=1,
+                                                mean=beta_cov %*% aux_vec_mean,
+                                                sigma=beta_cov )
     }
-    W_diag <- diag(as.numeric(W))
-    
-    X <- kronecker( matrix(1,V_net*(V_net-1)/2,1) ,diag(z_tkp[,k,p]))
-    
-    C = S - X %*% matrix(beta_z_layer[,row_p],T_net,1);
-    Z = (Y-0.5)/W - C;
-    
-    beta_cov_inv <- t(X) %*% W_diag %*%  X + beta_t_cov_prior_inv
-    beta_cov<- solve( beta_cov_inv )
-    aux_vec_mean <- t(X) %*% W_diag %*% Z
-    
-    beta_z_layer[,row_p] <- mvtnorm::rmvnorm( n=1,
-                                              mean=beta_cov %*% aux_vec_mean,
-                                              sigma=beta_cov )
   }
-  
   return(beta_z_layer);
 }
 

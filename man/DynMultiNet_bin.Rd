@@ -23,7 +23,7 @@ DynMultiNet_bin(net_data, pred_data = NULL, H_dim = 10, k_x = 0.1,
 
 \item{quiet_mcmc}{Silent mode, no progress update}
 
-\item{use_cpp}{whether the process is executed in C++ or not}
+\item{use_cpp}{Boolean, indicates wheter to use Cpp routines for efficient computation}
 }
 \value{
 A list with the following components:

@@ -7,10 +7,8 @@
 #' @param y_ijtk Array of dimension dim(y_ijtk)=c(V_net,V_net,T_net,K_net). Binary undirected links between nodes i and j, at time t, on layer k
 #' @param mu_tk Matrix. Edge specific baseline factor of the linear predictor
 #' @param x_iht Array. Latent coordinates of element i in dimension h
-#' @param z_tp Matrix. Global predictors data, predictor p at time t
 #' @param z_tkp Array. Layer specific predictors data, predictor p at time t for layer k
 #' @param z_ijtkp Array. Edge specific predictors data, predictor p at time t for edge bewtween i and j in layer k
-#' @param beta_z_tp Column Matrix. Coefficients associated with z_tp
 #' @param beta_z_tkp Column Matrix. Coefficients associated with z_tkp
 #' @param beta_z_ijtkp Column Matrix. Coefficients associated with z_ijtkp
 #' @param pred_id_tp Matrix. List of global predictors
@@ -29,9 +27,9 @@
 
 get_linpred_s_ijtk <- function( y_ijtk, mu_tk, x_iht,
                                 pred_all=NULL, layer_all=NULL,
-                                z_tp=NULL, z_tkp=NULL, z_ijtkp=NULL,
-                                beta_z_tp=NULL, beta_z_tkp=NULL, beta_z_ijtkp=NULL,
-                                pred_id_tp=NULL, pred_id_tkp=NULL, pred_id_ijtkp=NULL ) {
+                                z_tkp=NULL, z_ijtkp=NULL,
+                                beta_z_tkp=NULL, beta_z_ijtkp=NULL,
+                                pred_id_tkp=NULL, pred_id_ijtkp=NULL ) {
   
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
@@ -46,18 +44,6 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk, x_iht,
     }
   }
   rm(k,t)
-  
-  # Global predictors
-  if(!is.null(z_tp) & !is.null(beta_z_tp) & !is.null(pred_id_tp) ){
-    for( row_i in 1:nrow(pred_id_tp)) { # row_i<-1
-      p <- match(pred_id_tp[row_i,"id"],pred_all)
-      for(t in 1:T_net){ # t<-1
-        s_ijtk[,,t,] <- s_ijtk[,,t,] + z_tp[t,p] * beta_z_tp[t,row_i]
-      }
-    }
-    rm(row_i,p,t)
-  }
-  if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to global predictors)')}
   
   # Layer specific predictors
   if(!is.null(z_tkp) & !is.null(beta_z_tkp) & !is.null(pred_id_tkp) ){
