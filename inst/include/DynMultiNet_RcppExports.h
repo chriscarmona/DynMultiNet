@@ -67,17 +67,17 @@ namespace DynMultiNet {
         return Rcpp::as<arma::mat >(rcpp_result_gen);
     }
 
-    inline arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp(arma::mat x_iht_mat, const arma::mat x_t_sigma_prior_inv, const arma::mat tau_h, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt, const arma::mat mu_t) {
-        typedef SEXP(*Ptr_sample_x_iht_mat_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp(arma::mat x_iht_mat, const arma::mat x_t_sigma_prior_inv, const arma::mat tau_h, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, const arma::field<arma::cube> s_ijtk) {
+        typedef SEXP(*Ptr_sample_x_iht_mat_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_x_iht_mat_DynMultiNet_bin_cpp p_sample_x_iht_mat_DynMultiNet_bin_cpp = NULL;
         if (p_sample_x_iht_mat_DynMultiNet_bin_cpp == NULL) {
-            validateSignature("arma::mat(*sample_x_iht_mat_DynMultiNet_bin_cpp)(arma::mat,const arma::mat,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const arma::mat)");
+            validateSignature("arma::mat(*sample_x_iht_mat_DynMultiNet_bin_cpp)(arma::mat,const arma::mat,const arma::mat,const arma::field<arma::cube>,const arma::field<arma::cube>,const arma::field<arma::cube>)");
             p_sample_x_iht_mat_DynMultiNet_bin_cpp = (Ptr_sample_x_iht_mat_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_x_iht_mat_DynMultiNet_bin_cpp(Shield<SEXP>(Rcpp::wrap(x_iht_mat)), Shield<SEXP>(Rcpp::wrap(x_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(s_ijt)), Shield<SEXP>(Rcpp::wrap(mu_t)));
+            rcpp_result_gen = p_sample_x_iht_mat_DynMultiNet_bin_cpp(Shield<SEXP>(Rcpp::wrap(x_iht_mat)), Shield<SEXP>(Rcpp::wrap(x_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(w_ijtk)), Shield<SEXP>(Rcpp::wrap(s_ijtk)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

@@ -15,8 +15,7 @@ arma::mat sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
 arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp( arma::mat x_iht_mat,
                                                 const arma::mat x_t_sigma_prior_inv,
                                                 const arma::mat tau_h,
-                                                const arma::cube y_ijt,
-                                                const arma::cube w_ijt,
-                                                const arma::cube s_ijt,
-                                                const arma::mat mu_t );
+                                                const arma::field<arma::cube> y_ijtk,
+                                                const arma::field<arma::cube> w_ijtk,
+                                                const arma::field<arma::cube> s_ijtk );
 

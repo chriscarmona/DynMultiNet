@@ -4,16 +4,23 @@
 \alias{get_linpred_s_ijtk}
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
-get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht, pred_all = NULL, layer_all = NULL,
-  z_tkp = NULL, z_ijtkp = NULL, beta_z_tkp = NULL, beta_z_ijtkp = NULL,
-  pred_id_tkp = NULL, pred_id_ijtkp = NULL)
+get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht_shared, x_ihtk = NULL,
+  pred_all = NULL, layer_all = NULL, z_tkp = NULL, z_ijtkp = NULL,
+  beta_z_tkp = NULL, beta_z_ijtkp = NULL, pred_id_tkp = NULL,
+  pred_id_ijtkp = NULL)
 }
 \arguments{
 \item{y_ijtk}{Array of dimension dim(y_ijtk)=c(V_net,V_net,T_net,K_net). Binary undirected links between nodes i and j, at time t, on layer k}
 
 \item{mu_tk}{Matrix. Edge specific baseline factor of the linear predictor}
 
-\item{x_iht}{Array. Latent coordinates of element i in dimension h}
+\item{x_iht_shared}{Array. Global latent coordinates of element i in dimension h}
+
+\item{x_ihtk}{Array. Layer Specific Latent coordinates of element i in dimension h. Only for multilayer networks.}
+
+\item{pred_all}{Vector. Names of all predictors.}
+
+\item{layer_all}{Vector. Names of all layers.}
 
 \item{z_tkp}{Array. Layer specific predictors data, predictor p at time t for layer k}
 
@@ -26,8 +33,6 @@ get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht, pred_all = NULL, layer_all = NULL,
 \item{pred_id_tkp}{Matrix. List of layer specific predictors}
 
 \item{pred_id_ijtkp}{Matrix. List of edge specific predictors}
-
-\item{pred_id_tp}{Matrix. List of global predictors}
 }
 \value{
 An array s_ijtk of dimension dim(s_ijtk)=c(V_net,V_net,T_net,K_net)

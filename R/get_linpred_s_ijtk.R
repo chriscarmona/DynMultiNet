@@ -6,12 +6,14 @@
 #'
 #' @param y_ijtk Array of dimension dim(y_ijtk)=c(V_net,V_net,T_net,K_net). Binary undirected links between nodes i and j, at time t, on layer k
 #' @param mu_tk Matrix. Edge specific baseline factor of the linear predictor
-#' @param x_iht Array. Latent coordinates of element i in dimension h
+#' @param x_iht_shared Array. Global latent coordinates of element i in dimension h
+#' @param x_ihtk Array. Layer Specific Latent coordinates of element i in dimension h. Only for multilayer networks.
+#' @param pred_all Vector. Names of all predictors.
+#' @param layer_all Vector. Names of all layers.
 #' @param z_tkp Array. Layer specific predictors data, predictor p at time t for layer k
 #' @param z_ijtkp Array. Edge specific predictors data, predictor p at time t for edge bewtween i and j in layer k
 #' @param beta_z_tkp Column Matrix. Coefficients associated with z_tkp
 #' @param beta_z_ijtkp Column Matrix. Coefficients associated with z_ijtkp
-#' @param pred_id_tp Matrix. List of global predictors
 #' @param pred_id_tkp Matrix. List of layer specific predictors
 #' @param pred_id_ijtkp Matrix. List of edge specific predictors
 #' 
@@ -25,7 +27,8 @@
 #' @keywords internal
 #' 
 
-get_linpred_s_ijtk <- function( y_ijtk, mu_tk, x_iht,
+get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
+                                x_iht_shared, x_ihtk=NULL,
                                 pred_all=NULL, layer_all=NULL,
                                 z_tkp=NULL, z_ijtkp=NULL,
                                 beta_z_tkp=NULL, beta_z_ijtkp=NULL,
@@ -38,12 +41,21 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk, x_iht,
   s_ijtk <- array( data=NA,
                    dim=c(V_net,V_net,T_net,K_net) )
   
+  # Global latent coordinates
   for( k in 1:K_net ){
     for( t in 1:T_net ){
-      s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht[,,t] %*% t(x_iht[,,t])
+      s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht_shared[,,t] %*% t(x_iht_shared[,,t])
     }
+  }; rm(k,t)
+  
+  # Layer specific latent coordinates
+  if(!is.null(x_ihtk)) {
+    for( k in 1:K_net ){
+      for( t in 1:T_net ){
+        s_ijtk[,,t,k] <- mu_tk[t,k] + x_ihtk[,,t,k] %*% t(x_ihtk[,,t,k])
+      }
+    }; rm(k,t)
   }
-  rm(k,t)
   
   # Layer specific predictors
   if(!is.null(z_tkp) & !is.null(beta_z_tkp) & !is.null(pred_id_tkp) ){

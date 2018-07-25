@@ -9,8 +9,8 @@ sample_beta_z_layer_DynMultiNet_bin_cpp <- function(beta_t, z_t, beta_t_cov_prio
     .Call('_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', beta_t, z_t, beta_t_cov_prior_inv, y_ijt, w_ijt, s_ijt)
 }
 
-sample_x_iht_mat_DynMultiNet_bin_cpp <- function(x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt, mu_t) {
-    .Call('_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt, mu_t)
+sample_x_iht_mat_DynMultiNet_bin_cpp <- function(x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijtk, w_ijtk, s_ijtk) {
+    .Call('_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijtk, w_ijtk, s_ijtk)
 }
 
 # Register entry points for exported C++ functions

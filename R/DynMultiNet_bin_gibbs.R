@@ -187,67 +187,26 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
 #' @export
 sample_x_iht_mat_DynMultiNet_bin <- function( x_iht_mat,
                                               x_t_sigma_prior_inv, tau_h,
-                                              y_ijtk, w_ijtk, s_ijtk, mu_tk,
-                                              use_cpp=TRUE ) {
+                                              y_ijtk, w_ijtk, s_ijtk ) {
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_iht ###
-  
-  V_net <- dim(y_ijtk)[1]
-  T_net <- dim(y_ijtk)[3]
   K_net <- dim(y_ijtk)[4]
-  H_dim <- dim(x_iht_mat)[2]/T_net
   
-  if(use_cpp) {
-    
-    for( k in 1:K_net ) {
-      # k<-1
-      x_iht_mat <- sample_x_iht_mat_DynMultiNet_bin_cpp( x_iht_mat = x_iht_mat,
-                                                         x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                         tau_h = tau_h,
-                                                         y_ijt = y_ijtk[,,,k],
-                                                         w_ijt = w_ijtk[,,,k],
-                                                         s_ijt = s_ijtk[,,,k],
-                                                         mu_t = mu_tk[,k,drop=F] )
-    }
-  } else {
-    
-    
-    for( k in 1:K_net) {
-      for(i in 1:V_net) {
-        # k<-1; i<-4
-        y_i <- c(t(rbind( matrix(y_ijtk[i,1:i,,k],i,T_net)[-i,],
-                          matrix(y_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
-        y_i <- matrix(y_i)
-        w_i <- c(t(rbind( matrix(w_ijtk[i,1:i,,k],i,T_net)[-i,],
-                          matrix(w_ijtk[i:V_net,i,,k],V_net-i+1,T_net)[-1,] ) ))
-        w_diag_i <- diag(w_i)
-        
-        x_tilde_i <- x_iht_mat[rep((1:V_net)[-i],each=T_net),]
-        
-        x_tilde_i_rm <- matrix(TRUE,T_net,T_net*H_dim)
-        for(t in 1:T_net){
-          x_tilde_i_rm[t,seq(t,T_net*H_dim,by=T_net)] <- F
-        }
-        x_tilde_i_rm <- do.call(rbind, replicate(V_net-1, x_tilde_i_rm, simplify=FALSE))
-        
-        x_tilde_i[x_tilde_i_rm] <- 0
-        
-        x_i_cov_inv <- t(x_tilde_i) %*% w_diag_i %*% x_tilde_i + kronecker( diag(as.numeric(tau_h)), x_t_sigma_prior_inv )
-        
-        # x_i_cov <- solve( x_i_cov_inv )
-        x_i_cov <- chol2inv(chol(x_i_cov_inv))
-        #all.equal( solve( x_i_cov_inv ) , chol2inv(chol(x_i_cov_inv)) )
-        if(!isSymmetric(x_i_cov)) {x_i_cov[upper.tri(x_i_cov)] <- t(x_i_cov)[upper.tri(x_i_cov)]}
-        aux_vec_mean <- t(x_tilde_i) %*% ( y_i - kronecker(matrix(1,V_net-1,1),matrix(1,T_net,1)*0.5) - w_diag_i %*% kronecker(matrix(1,V_net-1,1),mu_tk[,k]) )
-        
-        x_i <- mvtnorm::rmvnorm( n=1,
-                                 mean=x_i_cov %*% aux_vec_mean,
-                                 sigma=x_i_cov )
-        x_iht_mat[i,] <- x_i
-      }
-    }
+  ### SHARED coordinates ###
+  y_ijtk_list <- w_ijtk_list <- s_ijtk_list <- list(NULL)
+  for(k in 1:K_net) {
+    y_ijtk_list[[k]] <- y_ijtk[,,,k]
+    w_ijtk_list[[k]] <- y_ijtk[,,,k]
+    s_ijtk_list[[k]] <- y_ijtk[,,,k]
   }
-  return(x_iht_mat)
+  x_iht_mat <- sample_x_iht_mat_DynMultiNet_bin_cpp( x_iht_mat = x_iht_mat,
+                                                     x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                     tau_h = tau_h,
+                                                     y_ijtk = y_ijtk_list,
+                                                     w_ijtk = w_ijtk_list,
+                                                     s_ijtk = s_ijtk_list )
+  
+  return( x_iht_mat )
 }
 
 

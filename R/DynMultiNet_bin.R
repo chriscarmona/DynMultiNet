@@ -70,7 +70,9 @@ DynMultiNet_bin <- function( net_data,
   #### Start: Processing data ####
   ### Network data ###
   y_ijtk <- get_y_ijtk_from_edges( net_data,
-                                   quiet=FALSE )
+                                   directed=FALSE,
+                                   weighted=FALSE,
+                                   self_edges=FALSE )
   node_all <- sort(unique(unlist(net_data[,c("source","target")])))
   V_net <- length(node_all)
   time_all <- sort(unique(unlist(net_data$time)))
@@ -124,18 +126,28 @@ DynMultiNet_bin <- function( net_data,
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
-  x_iht <- array( #data=0.01,
-                  data=runif(V_net*H_dim*T_net,-1,1),
-                  dim=c(V_net,H_dim,T_net) )
-  x_iht_mat <- aperm(a=x_iht,perm=c(1,3,2))
-  dim(x_iht_mat) <- c(V_net,T_net*H_dim)
-  if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
-  x_iht_mat_mcmc <- array(NA,c(V_net,T_net*H_dim,n_iter_mcmc))
+  x_iht_shared <- array( data=runif(V_net*H_dim*T_net,-1,1),
+                         dim=c(V_net,H_dim,T_net) )
+  x_iht_mat_shared <- aperm(a=x_iht_shared,perm=c(1,3,2))
+  dim(x_iht_mat_shared) <- c(V_net,T_net*H_dim)
+  if( !all(x_iht_mat_shared[1,1:T_net]==x_iht_shared[1,1,]) ){stop("there is a problem arranging x_iht_shared into x_iht_mat_shared")}
+  
+  x_iht_mat_shared_mcmc <- array(NA,c(V_net,T_net*H_dim,n_iter_mcmc))
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
     x_ihtk <- array( data=runif(V_net*H_dim*T_net*K_net),
                      dim=c(V_net,H_dim,T_net,K_net) )
+    for( k in 1:K_net ){
+      x_iht_mat_k_aux <- aperm(a=x_ihtk[,,,k],perm=c(1,3,2))
+      dim(x_iht_mat_k_aux) <- c(V_net,T_net*H_dim)
+      x_iht_mat_k[,,k] <- x_iht_mat_k_aux
+      if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk into x_iht_mat_k")}
+    }
+    rm(x_iht_mat_k_aux)
+  } else {
+    x_ihtk <- NULL
+    x_iht_mat_k <- NULL
   }
   # Covariance matrix prior for coordinates x_t
   x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
@@ -154,7 +166,8 @@ DynMultiNet_bin <- function( net_data,
   }
   
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
-  s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+  s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                 pred_all=pred_all, layer_all=layer_all,
                                 z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                 beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
@@ -196,7 +209,8 @@ DynMultiNet_bin <- function( net_data,
     mu_tk_mcmc[,,iter_i] <- mu_tk
     
     # update linear predictor
-    s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+    s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                  x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                   pred_all=pred_all, layer_all=layer_all,
                                   z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                   beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
@@ -215,7 +229,8 @@ DynMultiNet_bin <- function( net_data,
                                                              use_cpp=use_cpp )
         beta_z_layer_mcmc[,,iter_i] <- beta_z_layer
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                      x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                       pred_all=pred_all, layer_all=layer_all,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                       beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
@@ -229,7 +244,8 @@ DynMultiNet_bin <- function( net_data,
                                                            beta_t_cov_prior_inv )
         beta_z_edge_mcmc[,,iter_i] <- beta_z_edge
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                      x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                       pred_all=pred_all, layer_all=layer_all,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                       beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
@@ -238,27 +254,55 @@ DynMultiNet_bin <- function( net_data,
     }
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
-    x_iht_mat <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat,
-                                                   x_t_sigma_prior_inv, tau_h,
-                                                   y_ijtk, w_ijtk, s_ijtk, mu_tk,
-                                                   use_cpp=use_cpp )
-    # MCMC chain #
-    x_iht_mat_mcmc[,,iter_i] <- x_iht_mat
+    browser()
+    ### SHARED Latent Coordinates ### 
+    x_iht_mat_shared <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_shared,
+                                                          x_t_sigma_prior_inv=x_t_sigma_prior_inv, tau_h=tau_h,
+                                                          y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk )
+    # redefine x_ihtk with the new sampled values in x_iht_mat_k
+    x_iht_k_aux <- x_iht_mat_shared
+    dim(x_iht_k_aux) <- c(V_net,T_net,H_dim)
+    x_iht_shared <- aperm(a=x_iht_k_aux,perm=c(1,3,2))
+    if( !all(x_iht_mat_shared[1,1:T_net]==x_iht_shared[1,1,]) ){stop("there is a problem arranging x_iht_shared from x_iht_mat_shared")}
     
-    # redefine x_iht with the new sampled values in x_iht_mat
-    x_iht <- x_iht_mat
-    dim(x_iht) <- c(V_net,T_net,H_dim)
-    x_iht <- aperm(a=x_iht,perm=c(1,3,2))
-    if( !all(x_iht_mat[1,1:T_net]==x_iht[1,1,]) ){stop("there is a problem arranging x_iht into x_iht_mat")}
+    # MCMC chain #
+    x_iht_mat_shared_mcmc[,,iter_i] <- x_iht_mat_shared
     
     # update linear predictor
-    s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk, x_iht=x_iht,
+    s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                  x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                   pred_all=pred_all, layer_all=layer_all,
                                   z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                   beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
                                   pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
     
-    # Edge probabilities
+    
+    ### LAYER SPECIFIC Latent Coordinates ###
+    if( K_net > 1 ) {
+      ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates x_ihtk ###
+      for(k in 1:K_net) { # k<-1
+        x_iht_mat_k[,,k] <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
+                                                              x_t_sigma_prior_inv=x_t_sigma_prior_inv, tau_h=tau_h,
+                                                              y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
+        # redefine x_ihtk with the new sampled values in x_iht_mat_k
+        x_iht_k_aux <- x_iht_mat_k[,,k]
+        dim(x_iht_k_aux) <- c(V_net,T_net,H_dim)
+        x_ihtk[,,,k] <- aperm(a=x_iht_k_aux,perm=c(1,3,2))
+        if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
+      }; rm(k,x_iht_k_aux)
+      
+      # update linear predictor
+      s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                    x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
+                                    pred_all=pred_all, layer_all=layer_all,
+                                    z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                    beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
+                                    pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+    }
+    
+    
+    
+    # Edge probabilities #
     pi_ijtk <- plogis(s_ijtk)
     
     

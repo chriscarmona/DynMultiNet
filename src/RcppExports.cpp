@@ -87,26 +87,25 @@ RcppExport SEXP _DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp(SEXP beta_t
     return rcpp_result_gen;
 }
 // sample_x_iht_mat_DynMultiNet_bin_cpp
-arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp(arma::mat x_iht_mat, const arma::mat x_t_sigma_prior_inv, const arma::mat tau_h, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt, const arma::mat mu_t);
-static SEXP _DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp_try(SEXP x_iht_matSEXP, SEXP x_t_sigma_prior_invSEXP, SEXP tau_hSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP s_ijtSEXP, SEXP mu_tSEXP) {
+arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp(arma::mat x_iht_mat, const arma::mat x_t_sigma_prior_inv, const arma::mat tau_h, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, const arma::field<arma::cube> s_ijtk);
+static SEXP _DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp_try(SEXP x_iht_matSEXP, SEXP x_t_sigma_prior_invSEXP, SEXP tau_hSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP s_ijtkSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< arma::mat >::type x_iht_mat(x_iht_matSEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type x_t_sigma_prior_inv(x_t_sigma_prior_invSEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type tau_h(tau_hSEXP);
-    Rcpp::traits::input_parameter< const arma::cube >::type y_ijt(y_ijtSEXP);
-    Rcpp::traits::input_parameter< const arma::cube >::type w_ijt(w_ijtSEXP);
-    Rcpp::traits::input_parameter< const arma::cube >::type s_ijt(s_ijtSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type mu_t(mu_tSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_x_iht_mat_DynMultiNet_bin_cpp(x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt, mu_t));
+    Rcpp::traits::input_parameter< const arma::field<arma::cube> >::type y_ijtk(y_ijtkSEXP);
+    Rcpp::traits::input_parameter< const arma::field<arma::cube> >::type w_ijtk(w_ijtkSEXP);
+    Rcpp::traits::input_parameter< const arma::field<arma::cube> >::type s_ijtk(s_ijtkSEXP);
+    rcpp_result_gen = Rcpp::wrap(sample_x_iht_mat_DynMultiNet_bin_cpp(x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijtk, w_ijtk, s_ijtk));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp(SEXP x_iht_matSEXP, SEXP x_t_sigma_prior_invSEXP, SEXP tau_hSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP s_ijtSEXP, SEXP mu_tSEXP) {
+RcppExport SEXP _DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp(SEXP x_iht_matSEXP, SEXP x_t_sigma_prior_invSEXP, SEXP tau_hSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP s_ijtkSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp_try(x_iht_matSEXP, x_t_sigma_prior_invSEXP, tau_hSEXP, y_ijtSEXP, w_ijtSEXP, s_ijtSEXP, mu_tSEXP));
+        rcpp_result_gen = PROTECT(_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp_try(x_iht_matSEXP, x_t_sigma_prior_invSEXP, tau_hSEXP, y_ijtkSEXP, w_ijtkSEXP, s_ijtkSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -133,7 +132,7 @@ static int _DynMultiNet_RcppExport_validate(const char* sig) {
     if (signatures.empty()) {
         signatures.insert("arma::mat(*sample_mu_t_DynMultiNet_bin_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube)");
         signatures.insert("arma::mat(*sample_beta_z_layer_DynMultiNet_bin_cpp)(arma::colvec,arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube)");
-        signatures.insert("arma::mat(*sample_x_iht_mat_DynMultiNet_bin_cpp)(arma::mat,const arma::mat,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const arma::mat)");
+        signatures.insert("arma::mat(*sample_x_iht_mat_DynMultiNet_bin_cpp)(arma::mat,const arma::mat,const arma::mat,const arma::field<arma::cube>,const arma::field<arma::cube>,const arma::field<arma::cube>)");
     }
     return signatures.find(sig) != signatures.end();
 }
@@ -150,7 +149,7 @@ RcppExport SEXP _DynMultiNet_RcppExport_registerCCallable() {
 static const R_CallMethodDef CallEntries[] = {
     {"_DynMultiNet_sample_mu_t_DynMultiNet_bin_cpp", (DL_FUNC) &_DynMultiNet_sample_mu_t_DynMultiNet_bin_cpp, 5},
     {"_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp", (DL_FUNC) &_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp, 6},
-    {"_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp", (DL_FUNC) &_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp, 7},
+    {"_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp", (DL_FUNC) &_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp, 6},
     {"_DynMultiNet_RcppExport_registerCCallable", (DL_FUNC) &_DynMultiNet_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };
