@@ -192,13 +192,13 @@ sample_x_iht_mat_DynMultiNet_bin <- function( x_iht_mat,
   ### For each unit, block-sample the set of time-varying latent coordinates x_iht ###
   K_net <- dim(y_ijtk)[4]
   
-  ### SHARED coordinates ###
   y_ijtk_list <- w_ijtk_list <- s_ijtk_list <- list(NULL)
   for(k in 1:K_net) {
     y_ijtk_list[[k]] <- y_ijtk[,,,k]
     w_ijtk_list[[k]] <- y_ijtk[,,,k]
     s_ijtk_list[[k]] <- y_ijtk[,,,k]
   }
+  
   x_iht_mat <- sample_x_iht_mat_DynMultiNet_bin_cpp( x_iht_mat = x_iht_mat,
                                                      x_t_sigma_prior_inv = x_t_sigma_prior_inv,
                                                      tau_h = tau_h,

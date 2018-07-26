@@ -179,10 +179,18 @@ DynMultiNet_bin <- function( net_data,
   # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
   
   # Shrinkage Parameters
-  v_dim <- matrix( NA, nrow=H_dim, ncol=1 )
-  v_dim[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
-  tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
+  v_dim_shared <- matrix( NA, nrow=H_dim, ncol=1 )
+  v_dim_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
   # 1/tau_h
+  if( K_net>1 ){
+    v_dim_k <- matrix( NA, nrow=H_dim, ncol=K_net )
+    v_dim_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_dim_k[-1,] <- rgamma(n=K_net*(H_dim-1),shape=a_2,rate=1)
+    tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
+  } else {
+    v_dim_k <- NULL
+    tau_h_k <- NULL
+  }
   #### End: MCMC initialization ####
   
   
@@ -207,6 +215,14 @@ DynMultiNet_bin <- function( net_data,
                                            use_cpp=use_cpp )
     # MCMC chain #
     mu_tk_mcmc[,,iter_i] <- mu_tk
+    
+    if(F){
+      k<-1
+      plot( y=mu_tk_mcmc[,k,iter_i], x=time_all, col="red", ylim=range(mu_tk_mcmc[,k,],na.rm=T),type="l",
+            main="mu(t)",ylab="mu(t)",xlab="t" )
+      lines( y=mu_tk_mcmc[,k,iter_i-1], x=time_all, col="blue" )
+      legend("topright",legend=paste("iter ",c(iter_i,iter_i-1),sep=""),lty=1,col=c("red","blue"),bty="n")
+    }
     
     # update linear predictor
     s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -254,10 +270,11 @@ DynMultiNet_bin <- function( net_data,
     }
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
-    browser()
+    # browser()
     ### SHARED Latent Coordinates ### 
     x_iht_mat_shared <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_shared,
-                                                          x_t_sigma_prior_inv=x_t_sigma_prior_inv, tau_h=tau_h,
+                                                          x_t_sigma_prior_inv=x_t_sigma_prior_inv,
+                                                          tau_h=tau_h_shared,
                                                           y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk )
     # redefine x_ihtk with the new sampled values in x_iht_mat_k
     x_iht_k_aux <- x_iht_mat_shared
@@ -282,7 +299,8 @@ DynMultiNet_bin <- function( net_data,
       ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates x_ihtk ###
       for(k in 1:K_net) { # k<-1
         x_iht_mat_k[,,k] <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
-                                                              x_t_sigma_prior_inv=x_t_sigma_prior_inv, tau_h=tau_h,
+                                                              x_t_sigma_prior_inv=x_t_sigma_prior_inv,
+                                                              tau_h=tau_h_k[,k,drop=F],
                                                               y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
         # redefine x_ihtk with the new sampled values in x_iht_mat_k
         x_iht_k_aux <- x_iht_mat_k[,,k]
@@ -308,10 +326,18 @@ DynMultiNet_bin <- function( net_data,
     
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-    v_dim <- sample_v_dim_DynMultiNet_bin( v_dim, a_1, a_2,
-                                           x_iht,
-                                           x_t_sigma_prior_inv )
-    tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
+    v_dim_shared <- sample_v_dim_DynMultiNet_bin( v_dim_shared, a_1, a_2,
+                                                  x_iht_shared,
+                                                  x_t_sigma_prior_inv )
+    tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
+    if(K_net>1){
+      for(k in 1:K_net) {
+        v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin( v_dim_k[,k], a_1, a_2,
+                                                     x_ihtk[,,,k],
+                                                     x_t_sigma_prior_inv )
+      }
+      tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
+    }
     
     
     

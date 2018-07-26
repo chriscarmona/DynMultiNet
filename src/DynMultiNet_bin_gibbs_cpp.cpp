@@ -245,7 +245,7 @@ arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp( arma::mat x_iht_mat,
     
     x_i_cov_inv = X_sp.t() * Omega_sp * X_sp;
     x_i_cov_inv = x_i_cov_inv + x_i_cov_prior ;
-    
+    // return x_i_cov_inv;
     x_i_cov = arma::inv_sympd(x_i_cov_inv);
     
     C = S - X_sp * trans(x_iht_mat.row(i));
