@@ -352,7 +352,7 @@ DynMultiNet_bin <- function( net_data,
       if(!is.null(out_file)){
         DynMultiNet_mcmc <- list( node_all=node_all, time_all=time_all, layer_all=layer_all,
                                   mu_tk_mcmc=mu_tk_mcmc,
-                                  x_iht_mat_mcmc=x_iht_mat_mcmc,
+                                  x_iht_mat_shared_mcmc=x_iht_mat_shared_mcmc,
                                   beta_z_layer_mcmc=beta_z_layer_mcmc,
                                   beta_z_edge_mcmc=beta_z_edge_mcmc,
                                   pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
@@ -365,7 +365,7 @@ DynMultiNet_bin <- function( net_data,
   
   DynMultiNet_mcmc <- list( node_all=node_all, time_all=time_all, layer_all=layer_all,
                             mu_tk_mcmc=mu_tk_mcmc,
-                            x_iht_mat_mcmc=x_iht_mat_mcmc,
+                            x_iht_mat_shared_mcmc=x_iht_mat_shared_mcmc,
                             beta_z_layer_mcmc=beta_z_layer_mcmc,
                             beta_z_edge_mcmc=beta_z_edge_mcmc,
                             pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )

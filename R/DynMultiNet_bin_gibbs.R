@@ -195,8 +195,8 @@ sample_x_iht_mat_DynMultiNet_bin <- function( x_iht_mat,
   y_ijtk_list <- w_ijtk_list <- s_ijtk_list <- list(NULL)
   for(k in 1:K_net) {
     y_ijtk_list[[k]] <- y_ijtk[,,,k]
-    w_ijtk_list[[k]] <- y_ijtk[,,,k]
-    s_ijtk_list[[k]] <- y_ijtk[,,,k]
+    w_ijtk_list[[k]] <- w_ijtk[,,,k]
+    s_ijtk_list[[k]] <- s_ijtk[,,,k]
   }
   
   x_iht_mat <- sample_x_iht_mat_DynMultiNet_bin_cpp( x_iht_mat = x_iht_mat,

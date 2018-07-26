@@ -172,8 +172,8 @@ arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp( arma::mat x_iht_mat,
   arma::uvec aux_uvec_3;
   
   arma::cube y_ijt = y_ijtk(0);
-  arma::cube w_ijt = y_ijtk(0);
-  arma::cube s_ijt = y_ijtk(0);
+  arma::cube w_ijt = w_ijtk(0);
+  arma::cube s_ijt = s_ijtk(0);
   
   // Network and latent space dimensions
   unsigned int V_net = y_ijt.n_rows;
@@ -212,6 +212,8 @@ arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp( arma::mat x_iht_mat,
   
   for( i=0; i<V_net; i++ ) {
     for( k=0; k<K_net; k++ ) {
+      
+      y_ijt = y_ijtk(k);
       aux_mat_1 = y_ijt.subcube(i,0,0, i,i,T_net-1);
       aux_mat_2 = y_ijt.subcube(i,i,0, V_net-1,i,T_net-1);
       aux_mat_1.insert_rows(aux_mat_1.n_rows,aux_mat_2);
@@ -220,6 +222,7 @@ arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp( arma::mat x_iht_mat,
       aux_mat_1.reshape((V_net-1)*T_net,1);
       Y.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
       
+      w_ijt = w_ijtk(k);
       aux_mat_1 = w_ijt.subcube(i,0,0, i,i,T_net-1);
       aux_mat_2 = w_ijt.subcube(i,i,0, V_net-1,i,T_net-1);
       aux_mat_1.insert_rows(aux_mat_1.n_rows,aux_mat_2);
@@ -228,6 +231,7 @@ arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp( arma::mat x_iht_mat,
       aux_mat_1.reshape((V_net-1)*T_net,1);
       W.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
       
+      s_ijt = s_ijtk(k);
       aux_mat_1 = s_ijt.subcube(i,0,0, i,i,T_net-1);
       aux_mat_2 = s_ijt.subcube(i,i,0, V_net-1,i,T_net-1);
       aux_mat_1.insert_rows(aux_mat_1.n_rows,aux_mat_2);
@@ -245,7 +249,6 @@ arma::mat sample_x_iht_mat_DynMultiNet_bin_cpp( arma::mat x_iht_mat,
     
     x_i_cov_inv = X_sp.t() * Omega_sp * X_sp;
     x_i_cov_inv = x_i_cov_inv + x_i_cov_prior ;
-    // return x_i_cov_inv;
     x_i_cov = arma::inv_sympd(x_i_cov_inv);
     
     C = S - X_sp * trans(x_iht_mat.row(i));
