@@ -11,7 +11,6 @@
 #' @param out_file Indicates a file (.RData) where the output should be saved
 #' @param log_file Indicates a file (.txt) where the log of the process should be saved
 #' @param quiet_mcmc Silent mode, no progress update
-#' @param use_cpp Boolean, indicates wheter to use Cpp routines for efficient computation
 #'
 #' @details
 #'    The model assumes a latent variable approach
@@ -58,8 +57,7 @@ DynMultiNet_bin <- function( net_data,
                              a_1=2, a_2=2.5,
                              n_iter_mcmc=100000,
                              out_file=NULL, log_file=NULL,
-                             quiet_mcmc=FALSE,
-                             use_cpp=TRUE ) {
+                             quiet_mcmc=FALSE ) {
   
   if(!is.null(pred_data)) {
     if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
@@ -214,7 +212,7 @@ DynMultiNet_bin <- function( net_data,
     mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                            mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                           use_cpp=use_cpp )
+                                           use_cpp=TRUE )
     # MCMC chain #
     mu_tk_mcmc[,,iter_i] <- mu_tk
     
@@ -244,7 +242,7 @@ DynMultiNet_bin <- function( net_data,
                                                              z_tkp, pred_id_layer, pred_all, layer_all,
                                                              y_ijtk, w_ijtk, s_ijtk,
                                                              beta_t_cov_prior_inv,
-                                                             use_cpp=use_cpp )
+                                                             use_cpp=TRUE )
         beta_z_layer_mcmc[,,iter_i] <- beta_z_layer
         # update linear predictor
         s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
