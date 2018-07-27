@@ -6,22 +6,25 @@
 \usage{
 DynMultiNet_bin(net_data, pred_data = NULL, H_dim = 10, k_x = 0.1,
   k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 1e+05,
-  out_file = NULL, log_file = NULL, quiet_mcmc = FALSE)
+  out_file = NULL, log_file = NULL, quiet_mcmc = FALSE,
+  parallel_mcmc = FALSE)
 }
 \arguments{
-\item{net_data}{Data frame with network information}
+\item{net_data}{Data frame.Network information.}
 
-\item{pred_data}{Data frame with linked predictors information}
+\item{pred_data}{Data frame. Linked predictors information.}
 
-\item{H_dim}{Latent space dimension}
+\item{H_dim}{Integer. Latent space dimension.}
 
-\item{n_iter_mcmc}{number of iterations for the MCMC}
+\item{n_iter_mcmc}{Integer. number of iterations for the MCMC.}
 
-\item{out_file}{Indicates a file (.RData) where the output should be saved}
+\item{out_file}{String. Indicates a file (.RData) where the output should be saved.}
 
-\item{log_file}{Indicates a file (.txt) where the log of the process should be saved}
+\item{log_file}{String. Indicates a file (.txt) where the log of the process should be saved.}
 
-\item{quiet_mcmc}{Silent mode, no progress update}
+\item{quiet_mcmc}{Boolean. indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.}
+
+\item{parallel_mcmc}{Boolean. indicates if some steps in the mcmc would be processed in parallel.}
 }
 \value{
 A list with the following components:
@@ -53,6 +56,7 @@ The model assumes a latent variable approach
                     a_1=2, a_2=2.5,
                     n_iter_mcmc=100000,
                     out_file=NULL, log_file=NULL,
-                    quiet_mcmc=FALSE )
+                    quiet_mcmc=FALSE,
+                    parallel_mcmc=FALSE )
 
 }

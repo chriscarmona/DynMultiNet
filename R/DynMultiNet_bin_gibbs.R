@@ -23,6 +23,7 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           y_ijtk, w_ijtk, s_ijtk,
                                           mu_t_cov_prior_inv,
                                           use_cpp=TRUE,
+                                          parallel_mcmc=FALSE,
                                           calc_method_R=1 ) {
   ### Sample mu_t from its conditional N-variate Gaussian posterior ###
   V_net <- dim(y_ijtk)[1]
@@ -30,15 +31,25 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
   K_net <- dim(y_ijtk)[4]
   
   if(use_cpp) {
-    mu_tk <- foreach::foreach( k = 1:K_net, .combine=cbind, .inorder=TRUE ) %dopar% { # k<-1
-      sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
-                                       mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                       y_ijt=y_ijtk[,,,k],
-                                       w_ijt=w_ijtk[,,,k],
-                                       s_ijt=s_ijtk[,,,k] )
+    if(parallel_mcmc) {
+      mu_tk <- foreach( k=1:K_net, .combine=cbind, .inorder=TRUE ) %dopar% { # k<-1
+        sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
+                                         mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                         y_ijt=y_ijtk[,,,k],
+                                         w_ijt=w_ijtk[,,,k],
+                                         s_ijt=s_ijtk[,,,k] )
+      }
+    } else {
+      for( k in 1:K_net ) { # k<-1
+        mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
+                                                      mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                                      y_ijt=y_ijtk[,,,k],
+                                                      w_ijt=w_ijtk[,,,k],
+                                                      s_ijt=s_ijtk[,,,k] )
+      }
     }
   } else {
-    mu_tk <- foreach::foreach( k = 1:K_net, .combine=cbind ) %dopar% { # k<-1
+    for( k in 1:K_net ) { # k<-1
       mu_t=mu_tk[,k,drop=F]
       y_ijt=y_ijtk[,,,k]
       w_ijt=w_ijtk[,,,k]
@@ -76,9 +87,9 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
         aux_vec_mean <- t(X) %*% W_diag %*% Z
       }
       
-      mvtnorm::rmvnorm( n=1,
-                        mean=mu_t_cov %*% aux_vec_mean,
-                        sigma=mu_t_cov )
+      mu_tk[,k] <- mvtnorm::rmvnorm( n=1,
+                                     mean=mu_t_cov %*% aux_vec_mean,
+                                     sigma=mu_t_cov )
     }
   }
   

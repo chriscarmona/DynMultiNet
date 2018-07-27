@@ -4,13 +4,14 @@
 #' @description
 #'    \code{DynMultiNet_bin} Implements model from Durante and Dunson, 2018
 #'
-#' @param net_data Data frame with network information
-#' @param pred_data Data frame with linked predictors information
-#' @param H_dim Latent space dimension
-#' @param n_iter_mcmc number of iterations for the MCMC
-#' @param out_file Indicates a file (.RData) where the output should be saved
-#' @param log_file Indicates a file (.txt) where the log of the process should be saved
-#' @param quiet_mcmc Silent mode, no progress update
+#' @param net_data Data frame.Network information.
+#' @param pred_data Data frame. Linked predictors information.
+#' @param H_dim Integer. Latent space dimension.
+#' @param n_iter_mcmc Integer. number of iterations for the MCMC.
+#' @param out_file String. Indicates a file (.RData) where the output should be saved.
+#' @param log_file String. Indicates a file (.txt) where the log of the process should be saved.
+#' @param quiet_mcmc Boolean. indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
+#' @param parallel_mcmc Boolean. indicates if some steps in the mcmc would be processed in parallel.
 #'
 #' @details
 #'    The model assumes a latent variable approach
@@ -40,12 +41,13 @@
 #'                     a_1=2, a_2=2.5,
 #'                     n_iter_mcmc=100000,
 #'                     out_file=NULL, log_file=NULL,
-#'                     quiet_mcmc=FALSE )
+#'                     quiet_mcmc=FALSE,
+#'                     parallel_mcmc=FALSE )
 #' 
 #' @useDynLib DynMultiNet
 #' 
-#' @import BayesLogit
 #' @import foreach
+#' @import BayesLogit
 #' @import dplyr
 #' 
 #' @export
@@ -58,7 +60,8 @@ DynMultiNet_bin <- function( net_data,
                              a_1=2, a_2=2.5,
                              n_iter_mcmc=100000,
                              out_file=NULL, log_file=NULL,
-                             quiet_mcmc=FALSE ) {
+                             quiet_mcmc=FALSE,
+                             parallel_mcmc=FALSE ) {
   
   if(!is.null(pred_data)) {
     if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
@@ -220,7 +223,8 @@ DynMultiNet_bin <- function( net_data,
     mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                            mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                           use_cpp=TRUE )
+                                           use_cpp=TRUE,
+                                           parallel_mcmc=parallel_mcmc )
     # MCMC chain #
     mu_tk_mcmc[,,iter_i] <- mu_tk
     
@@ -298,23 +302,40 @@ DynMultiNet_bin <- function( net_data,
     ### LAYER SPECIFIC Latent Coordinates ###
     if( K_net>1 ) {
       ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates x_ihtk ###
-      x_iht_mat_k_aux <- foreach( k=1:K_net, .combine=list, .inorder=TRUE ) %dopar% { # k<-1
-        sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
-                                          x_t_sigma_prior_inv=x_t_sigma_prior_inv,
-                                          # tau_h=tau_h_shared,
-                                          tau_h=tau_h_k[,k,drop=F],
-                                          y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
+      if(parallel_mcmc) {
+        x_iht_mat_k_aux <- foreach( k = 1:K_net, .combine=list, .inorder=TRUE ) %dopar% {
+          sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
+                                            x_t_sigma_prior_inv=x_t_sigma_prior_inv,
+                                            # tau_h=tau_h_shared,
+                                            tau_h=tau_h_k[,k,drop=F],
+                                            y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
+        }
+        for( k in 1:K_net ) {
+          x_iht_mat_k[,,k] <- x_iht_mat_k_aux[[k]]
+          # redefine x_ihtk with the new sampled values in x_iht_mat_k
+          x_iht_aux <- x_iht_mat_k[,,k]
+          dim(x_iht_aux) <- c(V_net,T_net,H_dim)
+          x_ihtk[,,,k] <- aperm(a=x_iht_aux,perm=c(1,3,2))
+          rm(x_iht_aux)
+          if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
+        }; rm(k)
+      } else {
+        for( k in 1:K_net ) {
+          x_iht_mat_k[,,k] <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
+                                                                x_t_sigma_prior_inv=x_t_sigma_prior_inv,
+                                                                # tau_h=tau_h_shared,
+                                                                tau_h=tau_h_k[,k,drop=F],
+                                                                y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
+          
+          # redefine x_ihtk with the new sampled values in x_iht_mat_k
+          x_iht_aux <- x_iht_mat_k[,,k]
+          dim(x_iht_aux) <- c(V_net,T_net,H_dim)
+          x_ihtk[,,,k] <- aperm(a=x_iht_aux,perm=c(1,3,2))
+          rm(x_iht_aux)
+          if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
+        }; rm(k)
       }
-      for( k in 1:K_net ) {
-        x_iht_mat_k[,,k] <- x_iht_mat_k_aux[[k]]
-        # redefine x_ihtk with the new sampled values in x_iht_mat_k
-        x_iht_aux <- x_iht_mat_k[,,k]
-        dim(x_iht_aux) <- c(V_net,T_net,H_dim)
-        x_ihtk[,,,k] <- aperm(a=x_iht_aux,perm=c(1,3,2))
-        rm(x_iht_aux)
-        if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
-        x_ihtk_mcmc[,,,,iter_i] <- x_ihtk
-      }; rm(k)
+      x_ihtk_mcmc[,,,,iter_i] <- x_ihtk
       
       # update linear predictor
       s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
