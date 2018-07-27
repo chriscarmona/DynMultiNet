@@ -50,7 +50,7 @@
 #' @export
 #' 
 
-DynMultiNet_bin <- function( net_data,
+DynMultiNet_bin_test <- function( net_data,
                              pred_data=NULL,
                              H_dim=10,
                              k_x=0.10, k_mu=0.10, k_p=0.10,
@@ -133,7 +133,7 @@ DynMultiNet_bin <- function( net_data,
   
   x_iht_shared_mcmc <- array(NA,c(V_net,H_dim,T_net,n_iter_mcmc))
   
-  if( K_net>1 ){
+  if( K_net>=1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
     x_ihtk <- array( data=0,
                      # data=runif(V_net*H_dim*T_net*K_net),
@@ -187,7 +187,7 @@ DynMultiNet_bin <- function( net_data,
   v_dim_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
   tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
   # 1/tau_h
-  if( K_net>1 ){
+  if( K_net>=1 ){
     v_dim_k <- matrix( NA, nrow=H_dim, ncol=K_net )
     v_dim_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_dim_k[-1,] <- rgamma(n=K_net*(H_dim-1),shape=a_2,rate=1)
     tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
@@ -275,11 +275,13 @@ DynMultiNet_bin <- function( net_data,
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
     ### SHARED Latent Coordinates ###
+    if(F){
     x_iht_mat_shared <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_shared,
                                                           x_t_sigma_prior_inv=x_t_sigma_prior_inv,
                                                           tau_h=tau_h_shared,
                                                           y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk )
-    
+    # write.csv(x_iht_mat_shared,"x_iht_mat_shared.csv",row.names=F)
+    }
     # redefine x_iht_shared with the new sampled values in x_iht_mat_shared
     x_iht_aux <- x_iht_mat_shared
     dim(x_iht_aux) <- c(V_net,T_net,H_dim)
@@ -300,7 +302,7 @@ DynMultiNet_bin <- function( net_data,
     
     
     ### LAYER SPECIFIC Latent Coordinates ###
-    if( K_net>1 ) {
+    if( K_net>=1 ) {
       ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates x_ihtk ###
       for(k in 1:K_net) { # k<-1
         x_iht_mat_k[,,k] <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
@@ -308,7 +310,7 @@ DynMultiNet_bin <- function( net_data,
                                                               # tau_h=tau_h_shared,
                                                               tau_h=tau_h_k[,k,drop=F],
                                                               y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
-        
+        # write.csv(x_iht_mat_k[,,k],"x_iht_mat_k.csv",row.names=F)
         # redefine x_ihtk with the new sampled values in x_iht_mat_k
         x_iht_aux <- x_iht_mat_k[,,k]
         dim(x_iht_aux) <- c(V_net,T_net,H_dim)
@@ -335,11 +337,13 @@ DynMultiNet_bin <- function( net_data,
     
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
+    if(F){
     v_dim_shared <- sample_v_dim_DynMultiNet_bin( v_dim_shared, a_1, a_2,
                                                   x_iht_shared,
                                                   x_t_sigma_prior_inv )
     tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
-    if(K_net>1){
+    }
+    if(K_net>=1){
       for(k in 1:K_net) {
         v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin( v_dim_k[,k,drop=F], a_1, a_2,
                                                      x_ihtk[,,,k],
