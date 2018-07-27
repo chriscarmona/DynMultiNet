@@ -10,14 +10,14 @@ sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk, s_ijtk ) {
   
   s_aux <- c(s_ijtk); s_aux <- s_aux[!is.na(s_aux)]
   if( length(s_aux)!=K_net*T_net*V_net*(V_net-1)/2 ){ stop("There was an error sampling w_ijtk") }
-  w_ijtk[!is.na(s_ijtk)] <- BayesLogit::rpg.devroye( num=T_net*V_net*(V_net-1)/2, n=1, z=s_aux )
+  w_ijtk[!is.na(s_ijtk)] <- BayesLogit::rpg.devroye( num=length(s_aux), n=1, z=s_aux )
   
   return(w_ijtk)
   
 }
 
 
-
+#' @import foreach
 #' @export
 sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           y_ijtk, w_ijtk, s_ijtk,
@@ -30,16 +30,15 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
   K_net <- dim(y_ijtk)[4]
   
   if(use_cpp) {
-    for( k in 1:K_net ){ # k<-1
-      sample_mu_tk_DynMultiNet_bin
-      mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
-                                                    mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                                    y_ijt=y_ijtk[,,,k],
-                                                    w_ijt=w_ijtk[,,,k],
-                                                    s_ijt=s_ijtk[,,,k] )
+    mu_tk <- foreach::foreach( k = 1:K_net, .combine=cbind, .inorder=TRUE ) %dopar% { # k<-1
+      sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
+                                       mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                       y_ijt=y_ijtk[,,,k],
+                                       w_ijt=w_ijtk[,,,k],
+                                       s_ijt=s_ijtk[,,,k] )
     }
   } else {
-    for( k in 1:K_net ){ # k<-1
+    mu_tk <- foreach::foreach( k = 1:K_net, .combine=cbind ) %dopar% { # k<-1
       mu_t=mu_tk[,k,drop=F]
       y_ijt=y_ijtk[,,,k]
       w_ijt=w_ijtk[,,,k]
@@ -77,9 +76,9 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
         aux_vec_mean <- t(X) %*% W_diag %*% Z
       }
       
-      mu_tk[,k] <- mvtnorm::rmvnorm( n=1,
-                                     mean=mu_t_cov %*% aux_vec_mean,
-                                     sigma=mu_t_cov )
+      mvtnorm::rmvnorm( n=1,
+                        mean=mu_t_cov %*% aux_vec_mean,
+                        sigma=mu_t_cov )
     }
   }
   

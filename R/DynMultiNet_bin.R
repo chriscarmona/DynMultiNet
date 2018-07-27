@@ -45,6 +45,7 @@
 #' @useDynLib DynMultiNet
 #' 
 #' @import BayesLogit
+#' @import foreach
 #' @import dplyr
 #' 
 #' @export
@@ -183,17 +184,20 @@ DynMultiNet_bin <- function( net_data,
   # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
   
   # Shrinkage Parameters
-  v_dim_shared <- matrix( NA, nrow=H_dim, ncol=1 )
+  v_dim_shared <- matrix(NA, nrow=H_dim, ncol=1 )
   v_dim_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
   tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
+  tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc )
   # 1/tau_h
   if( K_net>1 ){
-    v_dim_k <- matrix( NA, nrow=H_dim, ncol=K_net )
+    v_dim_k <- matrix(NA, nrow=H_dim, ncol=K_net )
     v_dim_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_dim_k[-1,] <- rgamma(n=K_net*(H_dim-1),shape=a_2,rate=1)
     tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
+    tau_h_k_mcmc <- array( NA, dim=c(H_dim,K_net,n_iter_mcmc) )
   } else {
     v_dim_k <- NULL
     tau_h_k <- NULL
+    tau_h_k_mcmc <- NULL
   }
   #### End: MCMC initialization ####
   
@@ -219,14 +223,6 @@ DynMultiNet_bin <- function( net_data,
                                            use_cpp=TRUE )
     # MCMC chain #
     mu_tk_mcmc[,,iter_i] <- mu_tk
-    
-    if(F){
-      k<-1
-      plot( y=mu_tk_mcmc[,k,iter_i], x=time_all, col="red", ylim=range(mu_tk_mcmc[,k,],na.rm=T),type="l",
-            main="mu(t)",ylab="mu(t)",xlab="t" )
-      lines( y=mu_tk_mcmc[,k,iter_i-1], x=time_all, col="blue" )
-      legend("topright",legend=paste("iter ",c(iter_i,iter_i-1),sep=""),lty=1,col=c("red","blue"),bty="n")
-    }
     
     # update linear predictor
     s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -302,13 +298,15 @@ DynMultiNet_bin <- function( net_data,
     ### LAYER SPECIFIC Latent Coordinates ###
     if( K_net>1 ) {
       ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates x_ihtk ###
-      for(k in 1:K_net) { # k<-1
-        x_iht_mat_k[,,k] <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
-                                                              x_t_sigma_prior_inv=x_t_sigma_prior_inv,
-                                                              # tau_h=tau_h_shared,
-                                                              tau_h=tau_h_k[,k,drop=F],
-                                                              y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
-        
+      x_iht_mat_k_aux <- foreach( k=1:K_net, .combine=list, .inorder=TRUE ) %dopar% { # k<-1
+        sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_k[,,k],
+                                          x_t_sigma_prior_inv=x_t_sigma_prior_inv,
+                                          # tau_h=tau_h_shared,
+                                          tau_h=tau_h_k[,k,drop=F],
+                                          y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
+      }
+      for( k in 1:K_net ) {
+        x_iht_mat_k[,,k] <- x_iht_mat_k_aux[[k]]
         # redefine x_ihtk with the new sampled values in x_iht_mat_k
         x_iht_aux <- x_iht_mat_k[,,k]
         dim(x_iht_aux) <- c(V_net,T_net,H_dim)
@@ -339,6 +337,7 @@ DynMultiNet_bin <- function( net_data,
                                                   x_iht_shared,
                                                   x_t_sigma_prior_inv )
     tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
+    tau_h_shared_mcmc[,iter_i] <- tau_h_shared
     if(K_net>1){
       for(k in 1:K_net) {
         v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin( v_dim_k[,k,drop=F], a_1, a_2,
@@ -346,6 +345,7 @@ DynMultiNet_bin <- function( net_data,
                                                      x_t_sigma_prior_inv )
       }
       tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
+      tau_h_k_mcmc[,,iter_i] <- tau_h_k
     }
     
     
@@ -365,9 +365,11 @@ DynMultiNet_bin <- function( net_data,
                                   mu_tk_mcmc=mu_tk_mcmc,
                                   x_iht_shared_mcmc=x_iht_shared_mcmc,
                                   x_ihtk_mcmc=x_ihtk_mcmc,
+                                  tau_h_shared_mcmc=tau_h_shared_mcmc,
+                                  tau_h_k_mcmc=tau_h_k_mcmc,
+                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
                                   beta_z_layer_mcmc=beta_z_layer_mcmc,
-                                  beta_z_edge_mcmc=beta_z_edge_mcmc,
-                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+                                  beta_z_edge_mcmc=beta_z_edge_mcmc )
         save(DynMultiNet_mcmc,file=out_file)
       }
     }
@@ -381,9 +383,11 @@ DynMultiNet_bin <- function( net_data,
                             mu_tk_mcmc=mu_tk_mcmc,
                             x_iht_shared_mcmc=x_iht_shared_mcmc,
                             x_ihtk_mcmc=x_ihtk_mcmc,
+                            tau_h_shared_mcmc=tau_h_shared_mcmc,
+                            tau_h_k_mcmc=tau_h_k_mcmc,
+                            pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
                             beta_z_layer_mcmc=beta_z_layer_mcmc,
-                            beta_z_edge_mcmc=beta_z_edge_mcmc,
-                            pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+                            beta_z_edge_mcmc=beta_z_edge_mcmc )
   return( DynMultiNet_mcmc )
   
 }
