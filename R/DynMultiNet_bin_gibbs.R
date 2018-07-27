@@ -9,7 +9,7 @@ sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk, s_ijtk ) {
   K_net <- dim(w_ijtk)[4]
   
   s_aux <- c(s_ijtk); s_aux <- s_aux[!is.na(s_aux)]
-  if(length(s_aux)!=T_net*V_net*(V_net-1)/2){ stop("There was an error sampling w_ijtk") }
+  if( length(s_aux)!=K_net*T_net*V_net*(V_net-1)/2 ){ stop("There was an error sampling w_ijtk") }
   w_ijtk[!is.na(s_ijtk)] <- BayesLogit::rpg.devroye( num=T_net*V_net*(V_net-1)/2, n=1, z=s_aux )
   
   return(w_ijtk)

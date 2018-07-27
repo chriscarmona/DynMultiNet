@@ -132,12 +132,13 @@ DynMultiNet_bin <- function( net_data,
   dim(x_iht_mat_shared) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat_shared[1,1:T_net]==x_iht_shared[1,1,]) ){stop("there is a problem arranging x_iht_shared into x_iht_mat_shared")}
   
-  x_iht_mat_shared_mcmc <- array(NA,c(V_net,T_net*H_dim,n_iter_mcmc))
+  x_iht_shared_mcmc <- array(NA,c(V_net,T_net,H_dim,n_iter_mcmc))
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
     x_ihtk <- array( data=runif(V_net*H_dim*T_net*K_net),
                      dim=c(V_net,H_dim,T_net,K_net) )
+    x_iht_mat_k <- array(NA,dim=c(V_net,H_dim*T_net,K_net))
     for( k in 1:K_net ){
       x_iht_mat_k_aux <- aperm(a=x_ihtk[,,,k],perm=c(1,3,2))
       dim(x_iht_mat_k_aux) <- c(V_net,T_net*H_dim)
@@ -174,7 +175,8 @@ DynMultiNet_bin <- function( net_data,
                                 pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
   
   # Probability of an edge between actors i and j at time t in layer k
-  pi_ijtk <- plogis(s_ijtk)
+  pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc))
+  
   #pi_ijt[,,1]
   # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
   
@@ -270,20 +272,21 @@ DynMultiNet_bin <- function( net_data,
     }
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_iht ###
-    # browser()
     ### SHARED Latent Coordinates ### 
+    #if(iter_i==47){browser()}
     x_iht_mat_shared <- sample_x_iht_mat_DynMultiNet_bin( x_iht_mat=x_iht_mat_shared,
                                                           x_t_sigma_prior_inv=x_t_sigma_prior_inv,
                                                           tau_h=tau_h_shared,
                                                           y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk )
-    # redefine x_ihtk with the new sampled values in x_iht_mat_k
-    x_iht_k_aux <- x_iht_mat_shared
-    dim(x_iht_k_aux) <- c(V_net,T_net,H_dim)
-    x_iht_shared <- aperm(a=x_iht_k_aux,perm=c(1,3,2))
+    # redefine x_ihtk with the new sampled values in x_iht_mat_shared
+    x_iht_aux <- x_iht_mat_shared
+    dim(x_iht_aux) <- c(V_net,T_net,H_dim)
+    x_iht_shared <- aperm(a=x_iht_aux,perm=c(1,3,2))
+    rm(x_iht_aux)
     if( !all(x_iht_mat_shared[1,1:T_net]==x_iht_shared[1,1,]) ){stop("there is a problem arranging x_iht_shared from x_iht_mat_shared")}
     
     # MCMC chain #
-    x_iht_mat_shared_mcmc[,,iter_i] <- x_iht_mat_shared
+    x_iht_shared_mcmc[,,,iter_i] <- x_iht_shared
     
     # update linear predictor
     s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -303,11 +306,12 @@ DynMultiNet_bin <- function( net_data,
                                                               tau_h=tau_h_k[,k,drop=F],
                                                               y_ijtk=y_ijtk[,,,k,drop=F], w_ijtk=w_ijtk[,,,k,drop=F], s_ijtk=s_ijtk[,,,k,drop=F] )
         # redefine x_ihtk with the new sampled values in x_iht_mat_k
-        x_iht_k_aux <- x_iht_mat_k[,,k]
-        dim(x_iht_k_aux) <- c(V_net,T_net,H_dim)
-        x_ihtk[,,,k] <- aperm(a=x_iht_k_aux,perm=c(1,3,2))
+        x_iht_aux <- x_iht_mat_k[,,k]
+        dim(x_iht_aux) <- c(V_net,T_net,H_dim)
+        x_ihtk[,,,k] <- aperm(a=x_iht_aux,perm=c(1,3,2))
+        rm(x_iht_aux)
         if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
-      }; rm(k,x_iht_k_aux)
+      }; rm(k)
       
       # update linear predictor
       s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -321,7 +325,7 @@ DynMultiNet_bin <- function( net_data,
     
     
     # Edge probabilities #
-    pi_ijtk <- plogis(s_ijtk)
+    pi_ijtk_mcmc[,,,,iter_i] <- plogis(s_ijtk)
     
     
     
@@ -332,7 +336,7 @@ DynMultiNet_bin <- function( net_data,
     tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
     if(K_net>1){
       for(k in 1:K_net) {
-        v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin( v_dim_k[,k], a_1, a_2,
+        v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin( v_dim_k[,k,drop=F], a_1, a_2,
                                                      x_ihtk[,,,k],
                                                      x_t_sigma_prior_inv )
       }
@@ -350,9 +354,11 @@ DynMultiNet_bin <- function( net_data,
     # save MCMC progress #
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) ) {
       if(!is.null(out_file)){
-        DynMultiNet_mcmc <- list( node_all=node_all, time_all=time_all, layer_all=layer_all,
+        DynMultiNet_mcmc <- list( y_ijtk=y_ijtk,
+                                  pi_ijtk_mcmc=pi_ijtk_mcmc,
+                                  node_all=node_all, time_all=time_all, layer_all=layer_all,
                                   mu_tk_mcmc=mu_tk_mcmc,
-                                  x_iht_mat_shared_mcmc=x_iht_mat_shared_mcmc,
+                                  x_iht_shared_mcmc=x_iht_shared_mcmc,
                                   beta_z_layer_mcmc=beta_z_layer_mcmc,
                                   beta_z_edge_mcmc=beta_z_edge_mcmc,
                                   pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
@@ -363,9 +369,11 @@ DynMultiNet_bin <- function( net_data,
   if(!quiet_mcmc){cat("\nMCMC finished!\n")}
   #### End: MCMC Sampling ####
   
-  DynMultiNet_mcmc <- list( node_all=node_all, time_all=time_all, layer_all=layer_all,
+  DynMultiNet_mcmc <- list( y_ijtk=y_ijtk,
+                            pi_ijtk_mcmc=pi_ijtk_mcmc,
+                            node_all=node_all, time_all=time_all, layer_all=layer_all,
                             mu_tk_mcmc=mu_tk_mcmc,
-                            x_iht_mat_shared_mcmc=x_iht_mat_shared_mcmc,
+                            x_iht_shared_mcmc=x_iht_shared_mcmc,
                             beta_z_layer_mcmc=beta_z_layer_mcmc,
                             beta_z_edge_mcmc=beta_z_edge_mcmc,
                             pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
