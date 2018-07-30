@@ -112,8 +112,8 @@ DynMultiNet_bin <- function( net_data,
   
   # Baseline parameter #
   # at time t for layer k
-  mu_tk <- matrix( data=0,
-                   # data=runif(T_net*K_net),
+  mu_tk <- matrix( #data=0,
+                   data=runif(T_net*K_net),
                    nrow=T_net,
                    ncol=K_net )
   mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc) )
@@ -128,8 +128,8 @@ DynMultiNet_bin <- function( net_data,
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
-  x_iht_shared <- array( data=0,
-                         # data=runif(V_net*H_dim*T_net,-1,1),
+  x_iht_shared <- array( #data=0,
+                         data=runif(V_net*H_dim*T_net,-1,1),
                          dim=c(V_net,H_dim,T_net) )
   x_iht_mat_shared <- aperm(a=x_iht_shared,perm=c(1,3,2))
   dim(x_iht_mat_shared) <- c(V_net,T_net*H_dim)
@@ -139,8 +139,8 @@ DynMultiNet_bin <- function( net_data,
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
-    x_ihtk <- array( data=0,
-                     # data=runif(V_net*H_dim*T_net*K_net),
+    x_ihtk <- array( #data=0,
+                     data=runif(V_net*H_dim*T_net*K_net),
                      dim=c(V_net,H_dim,T_net,K_net) )
     x_iht_mat_k <- array(NA,dim=c(V_net,H_dim*T_net,K_net))
     for( k in 1:K_net ){
