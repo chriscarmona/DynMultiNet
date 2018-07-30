@@ -231,7 +231,7 @@ sample_v_dim_DynMultiNet_bin <- function( v_dim, a_1, a_2,
   T_net <- dim(x_iht)[3]
   H_dim <- nrow(v_dim)
   
-  for(h in 2:H_dim) {
+  for(h in 1:H_dim) {
     tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
     tau_minush_l <- matrix(tau_h, nrow=H_dim, ncol=H_dim )
     tau_minush_l[upper.tri(tau_minush_l)] <- NA ; tau_minush_l[1,1] <- NA
