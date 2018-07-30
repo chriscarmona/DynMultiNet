@@ -119,7 +119,6 @@ get_y_ijtk_from_edges <- function( net_data,
     }; rm(k,t)
   }
   
-  y_ijtk_orig <- y_ijtk
   if(!directed){
     for( k in 1:K_net) {
       for( t in 1:T_net) { #t<-1;k<-1
