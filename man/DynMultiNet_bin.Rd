@@ -5,9 +5,9 @@
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
 DynMultiNet_bin(net_data, pred_data = NULL, H_dim = 10, k_x = 0.1,
-  k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 1e+05,
-  out_file = NULL, log_file = NULL, quiet_mcmc = FALSE,
-  parallel_mcmc = FALSE)
+  k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 10000,
+  n_burn = n_iter_mcmc/2, n_thin = 3, out_file = NULL, log_file = NULL,
+  quiet_mcmc = FALSE, parallel_mcmc = FALSE)
 }
 \arguments{
 \item{net_data}{Data frame.Network information.}
@@ -16,7 +16,11 @@ DynMultiNet_bin(net_data, pred_data = NULL, H_dim = 10, k_x = 0.1,
 
 \item{H_dim}{Integer. Latent space dimension.}
 
-\item{n_iter_mcmc}{Integer. number of iterations for the MCMC.}
+\item{n_iter_mcmc}{Integer. Number of iterations for the MCMC.}
+
+\item{n_burn}{Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.}
+
+\item{n_thin}{Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.}
 
 \item{out_file}{String. Indicates a file (.RData) where the output should be saved.}
 
@@ -54,7 +58,7 @@ The model assumes a latent variable approach
                     H_dim=10,
                     k_x=0.10, k_mu=0.10, k_p=0.10,
                     a_1=2, a_2=2.5,
-                    n_iter_mcmc=100000,
+                    n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
                     out_file=NULL, log_file=NULL,
                     quiet_mcmc=FALSE,
                     parallel_mcmc=FALSE )

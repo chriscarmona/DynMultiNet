@@ -7,7 +7,9 @@
 #' @param net_data Data frame.Network information.
 #' @param pred_data Data frame. Linked predictors information.
 #' @param H_dim Integer. Latent space dimension.
-#' @param n_iter_mcmc Integer. number of iterations for the MCMC.
+#' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
+#' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
+#' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
 #' @param out_file String. Indicates a file (.RData) where the output should be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process should be saved.
 #' @param quiet_mcmc Boolean. indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
@@ -39,7 +41,7 @@
 #'                     H_dim=10,
 #'                     k_x=0.10, k_mu=0.10, k_p=0.10,
 #'                     a_1=2, a_2=2.5,
-#'                     n_iter_mcmc=100000,
+#'                     n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
 #'                     out_file=NULL, log_file=NULL,
 #'                     quiet_mcmc=FALSE,
 #'                     parallel_mcmc=FALSE )
@@ -58,10 +60,15 @@ DynMultiNet_bin <- function( net_data,
                              H_dim=10,
                              k_x=0.10, k_mu=0.10, k_p=0.10,
                              a_1=2, a_2=2.5,
-                             n_iter_mcmc=100000,
+                             n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
                              out_file=NULL, log_file=NULL,
                              quiet_mcmc=FALSE,
                              parallel_mcmc=FALSE ) {
+  
+  ### iterations that will be reported ###
+  # after burn-in period and thinning
+  iter_out_mcmc <- seq(from=n_burn+1,to=n_iter_mcmc,by=n_thin)
+  n_iter_mcmc_out <- length(iter_out_mcmc)
   
   if(!is.null(pred_data)) {
     if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
@@ -116,7 +123,7 @@ DynMultiNet_bin <- function( net_data,
                    data=runif(T_net*K_net),
                    nrow=T_net,
                    ncol=K_net )
-  mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc) )
+  mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
   
   # Covariance matrix prior for baseline mu_tk
   mu_t_cov_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
@@ -135,7 +142,7 @@ DynMultiNet_bin <- function( net_data,
   dim(x_iht_mat_shared) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat_shared[1,1:T_net]==x_iht_shared[1,1,]) ){stop("there is a problem arranging x_iht_shared into x_iht_mat_shared")}
   
-  x_iht_shared_mcmc <- array(NA,c(V_net,H_dim,T_net,n_iter_mcmc))
+  x_iht_shared_mcmc <- array(NA,c(V_net,H_dim,T_net,n_iter_mcmc_out))
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
@@ -150,7 +157,7 @@ DynMultiNet_bin <- function( net_data,
       if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk into x_iht_mat_k")}
     }
     rm(x_iht_mat_k_aux)
-    x_ihtk_mcmc <- array(NA,c(V_net,H_dim,T_net,K_net,n_iter_mcmc))
+    x_ihtk_mcmc <- array(NA,c(V_net,H_dim,T_net,K_net,n_iter_mcmc_out))
   } else {
     x_ihtk <- NULL
     x_iht_mat_k <- NULL
@@ -164,11 +171,11 @@ DynMultiNet_bin <- function( net_data,
   if(!is.null(pred_data)) {
     if(!is.null(pred_id_layer)){
       beta_z_layer <- matrix(0,nrow=T_net,ncol=nrow(pred_id_layer))
-      beta_z_layer_mcmc <- array(NA, dim=c(T_net,nrow(pred_id_layer),n_iter_mcmc) )
+      beta_z_layer_mcmc <- array(NA, dim=c(T_net,nrow(pred_id_layer),n_iter_mcmc_out) )
     }
     if(!is.null(pred_id_edge)){
       beta_z_edge <- matrix(0,nrow=T_net,ncol=nrow(pred_id_edge))
-      beta_z_edge_mcmc <- array(NA, dim=c(T_net,nrow(pred_id_edge),n_iter_mcmc) )
+      beta_z_edge_mcmc <- array(NA, dim=c(T_net,nrow(pred_id_edge),n_iter_mcmc_out) )
     }
   }
   
@@ -181,7 +188,7 @@ DynMultiNet_bin <- function( net_data,
                                 pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
   
   # Probability of an edge between actors i and j at time t in layer k
-  pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc))
+  pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
   
   #pi_ijt[,,1]
   # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
@@ -190,13 +197,13 @@ DynMultiNet_bin <- function( net_data,
   v_dim_shared <- matrix(NA, nrow=H_dim, ncol=1 )
   v_dim_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
   tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
-  tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc )
+  tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
   # 1/tau_h
   if( K_net>1 ){
     v_dim_k <- matrix(NA, nrow=H_dim, ncol=K_net )
     v_dim_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_dim_k[-1,] <- rgamma(n=K_net*(H_dim-1),shape=a_2,rate=1)
     tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
-    tau_h_k_mcmc <- array( NA, dim=c(H_dim,K_net,n_iter_mcmc) )
+    tau_h_k_mcmc <- array( NA, dim=c(H_dim,K_net,n_iter_mcmc_out) )
   } else {
     v_dim_k <- NULL
     tau_h_k <- NULL
@@ -226,7 +233,9 @@ DynMultiNet_bin <- function( net_data,
                                            use_cpp=TRUE,
                                            parallel_mcmc=parallel_mcmc )
     # MCMC chain #
-    mu_tk_mcmc[,,iter_i] <- mu_tk
+    if(is.element(iter_i,iter_out_mcmc)){
+      mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
+    }
     
     # update linear predictor
     s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -247,7 +256,10 @@ DynMultiNet_bin <- function( net_data,
                                                              y_ijtk, w_ijtk, s_ijtk,
                                                              beta_t_cov_prior_inv,
                                                              use_cpp=TRUE )
-        beta_z_layer_mcmc[,,iter_i] <- beta_z_layer
+        if(is.element(iter_i,iter_out_mcmc)){
+          beta_z_layer_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_z_layer
+        }
+        
         # update linear predictor
         s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
                                       x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
@@ -262,7 +274,9 @@ DynMultiNet_bin <- function( net_data,
                                                            z_ijtkp, pred_id_edge, pred_all, layer_all,
                                                            y_ijtk, w_ijtk, s_ijtk,
                                                            beta_t_cov_prior_inv )
-        beta_z_edge_mcmc[,,iter_i] <- beta_z_edge
+        if(is.element(iter_i,iter_out_mcmc)){
+          beta_z_edge_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_z_edge
+        }
         # update linear predictor
         s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
                                       x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
@@ -288,7 +302,9 @@ DynMultiNet_bin <- function( net_data,
     if( !all(x_iht_mat_shared[1,1:T_net]==x_iht_shared[1,1,]) ){stop("there is a problem arranging x_iht_shared from x_iht_mat_shared")}
     
     # MCMC chain #
-    x_iht_shared_mcmc[,,,iter_i] <- x_iht_shared
+    if(is.element(iter_i,iter_out_mcmc)){
+      x_iht_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- x_iht_shared
+    }
     
     # update linear predictor
     s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -335,7 +351,9 @@ DynMultiNet_bin <- function( net_data,
           if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
         }; rm(k)
       }
-      x_ihtk_mcmc[,,,,iter_i] <- x_ihtk
+      if(is.element(iter_i,iter_out_mcmc)){
+        x_ihtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- x_ihtk
+      }
       
       # update linear predictor
       s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -349,7 +367,9 @@ DynMultiNet_bin <- function( net_data,
     
     
     # Edge probabilities #
-    pi_ijtk_mcmc[,,,,iter_i] <- plogis(s_ijtk)
+    if(is.element(iter_i,iter_out_mcmc)){
+      pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(s_ijtk)
+    }
     
     
     
@@ -358,7 +378,10 @@ DynMultiNet_bin <- function( net_data,
                                                   x_iht_shared,
                                                   x_t_sigma_prior_inv )
     tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
-    tau_h_shared_mcmc[,iter_i] <- tau_h_shared
+    if(is.element(iter_i,iter_out_mcmc)){
+      tau_h_shared_mcmc[,match(iter_i,iter_out_mcmc)] <- tau_h_shared
+    }
+    
     if(K_net>1){
       for(k in 1:K_net) {
         v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin( v_dim_k[,k,drop=F], a_1, a_2,
@@ -366,10 +389,10 @@ DynMultiNet_bin <- function( net_data,
                                                      x_t_sigma_prior_inv )
       }
       tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
-      tau_h_k_mcmc[,,iter_i] <- tau_h_k
+      if(is.element(iter_i,iter_out_mcmc)){
+        tau_h_k_mcmc[,,match(iter_i,iter_out_mcmc)] <- tau_h_k
+      }
     }
-    
-    
     
     # display MCMC progress #
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.05)[-1]) ) ) {
@@ -378,7 +401,7 @@ DynMultiNet_bin <- function( net_data,
       }
     }
     # save MCMC progress #
-    if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) ) {
+    if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) & iter_i>min(iter_out_mcmc,na.rm=T) ) {
       if(!is.null(out_file)){
         DynMultiNet_mcmc <- list( y_ijtk=y_ijtk,
                                   pi_ijtk_mcmc=pi_ijtk_mcmc,
