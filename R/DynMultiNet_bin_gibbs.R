@@ -254,3 +254,37 @@ sample_v_dim_DynMultiNet_bin <- function( v_dim, a_1, a_2,
   }
   return(v_dim)
 }
+
+sample_v_dim_DynMultiNet_bin_new <- function( v_dim, a_1, a_2,
+                                              x_iht,
+                                              x_t_sigma_prior_inv ){
+  ### Sample the global shrinkage hyperparameters from conditional gamma distributions ###
+  
+  V_net <- dim(x_iht)[1]
+  T_net <- dim(x_iht)[3]
+  H_dim <- nrow(v_dim)
+  
+  for(h in 1:H_dim) { # h <- 3
+    aux_tau_x <- vector(mode="numeric",length=H_dim)
+    for( l in h:H_dim ) { # l <- 4
+      aux_tau <- prod(v_dim[setdiff(1:l,h),])
+      aux_x <- vector(mode="numeric",length=V_net)
+      for( i in 1:V_net ) { # l <- 1
+        aux_x[i] <- matrix(x_iht[i,l,],nrow=1) %*% x_t_sigma_prior_inv %*% matrix(x_iht[i,l,],ncol=1)
+      }
+      aux_tau_x[l] <- aux_tau * sum(aux_x)
+    }
+    
+    if(h==1){
+      v_dim[h,1] <- rgamma( n=1,
+                            shape = a_1+0.5*(V_net*T_net*H_dim),
+                            rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
+    }
+    if(h>1){
+      v_dim[h,1] <- rgamma( n=1,
+                            shape = a_2+0.5*(V_net*T_net*(H_dim-h+1)),
+                            rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
+    }
+  }
+  return(v_dim)
+}

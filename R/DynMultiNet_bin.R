@@ -372,10 +372,10 @@ DynMultiNet_bin <- function( net_data,
     
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-    v_dim_shared <- sample_v_dim_DynMultiNet_bin( v_dim_shared,
-                                                  a_1, a_2,
-                                                  x_iht_shared,
-                                                  x_t_sigma_prior_inv )
+    v_dim_shared <- sample_v_dim_DynMultiNet_bin_new( v_dim_shared,
+                                                      a_1, a_2,
+                                                      x_iht_shared,
+                                                      x_t_sigma_prior_inv )
     tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
     if(is.element(iter_i,iter_out_mcmc)){
       tau_h_shared_mcmc[,match(iter_i,iter_out_mcmc)] <- tau_h_shared
@@ -383,9 +383,9 @@ DynMultiNet_bin <- function( net_data,
     
     if(K_net>1){
       for(k in 1:K_net) {
-        v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin( v_dim_k[,k,drop=F], a_1, a_2,
-                                                     x_ihtk[,,,k],
-                                                     x_t_sigma_prior_inv )
+        v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin_new( v_dim_k[,k,drop=F], a_1, a_2,
+                                                         x_ihtk[,,,k],
+                                                         x_t_sigma_prior_inv )
       }
       tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
       if(is.element(iter_i,iter_out_mcmc)){
