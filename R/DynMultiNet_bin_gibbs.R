@@ -267,7 +267,11 @@ sample_v_dim_DynMultiNet_bin_new <- function( v_dim, a_1, a_2,
   for(h in 1:H_dim) { # h <- 3
     aux_tau_x <- vector(mode="numeric",length=H_dim)
     for( l in h:H_dim ) { # l <- 4
-      aux_tau <- prod(v_dim[setdiff(1:l,h),])
+      if((l==1)&(h==1)){
+        aux_tau <- 0 
+      } else {
+        aux_tau <- prod(v_dim[setdiff(1:l,h),])
+      }
       aux_x <- vector(mode="numeric",length=V_net)
       for( i in 1:V_net ) { # l <- 1
         aux_x[i] <- matrix(x_iht[i,l,],nrow=1) %*% x_t_sigma_prior_inv %*% matrix(x_iht[i,l,],ncol=1)
