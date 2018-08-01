@@ -12,10 +12,10 @@
 #' @param layer_all Vector. Names of all layers.
 #' @param z_tkp Array. Layer specific predictors data, predictor p at time t for layer k
 #' @param z_ijtkp Array. Edge specific predictors data, predictor p at time t for edge bewtween i and j in layer k
-#' @param beta_z_tkp Column Matrix. Coefficients associated with z_tkp
-#' @param beta_z_ijtkp Column Matrix. Coefficients associated with z_ijtkp
-#' @param pred_id_tkp Matrix. List of layer specific predictors
-#' @param pred_id_ijtkp Matrix. List of edge specific predictors
+#' @param beta_z_layer Column Matrix. Coefficients associated with z_tkp
+#' @param beta_z_edge Column Matrix. Coefficients associated with z_ijtkp
+#' @param pred_id_layer Matrix. List of layer specific predictors
+#' @param pred_id_edge Matrix. List of edge specific predictors
 #' 
 #' @details
 #'    Linear predictor of response variable y_ijtk under a logistic link,
@@ -31,8 +31,8 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
                                 x_iht_shared, x_ihtk=NULL,
                                 pred_all=NULL, layer_all=NULL,
                                 z_tkp=NULL, z_ijtkp=NULL,
-                                beta_z_tkp=NULL, beta_z_ijtkp=NULL,
-                                pred_id_tkp=NULL, pred_id_ijtkp=NULL ) {
+                                beta_z_layer=NULL, beta_z_edge=NULL,
+                                pred_id_layer=NULL, pred_id_edge=NULL ) {
   
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
@@ -58,12 +58,12 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
   }
   
   # Layer specific predictors
-  if(!is.null(z_tkp) & !is.null(beta_z_tkp) & !is.null(pred_id_tkp) ){
-    for( row_i in 1:nrow(pred_id_tkp)) { # row_i<-1
-      k <- match(pred_id_tkp[row_i,"layer"],layer_all)
-      p <- match(pred_id_tkp[row_i,"id"],pred_all)
+  if(!is.null(z_tkp) & !is.null(beta_z_layer) & !is.null(pred_id_layer) ){
+    for( row_i in 1:nrow(pred_id_layer)) { # row_i<-1
+      k <- match(pred_id_layer[row_i,"layer"],layer_all)
+      p <- match(pred_id_layer[row_i,"id"],pred_all)
       for(t in 1:T_net){ # t<-1
-        s_ijtk[,,t,k] <- s_ijtk[,,t,k] + z_tkp[t,k,p] * beta_z_tkp[t,row_i]
+        s_ijtk[,,t,k] <- s_ijtk[,,t,k] + z_tkp[t,k,p] * beta_z_layer[t,row_i]
       }
     }
     rm(row_i,k,p,t)
@@ -71,12 +71,12 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
   if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to layer predictors)')}
   
   # Edge specific predictors
-  if( !is.null(z_ijtkp) & !is.null(beta_z_ijtkp) & !is.null(pred_id_ijtkp) ){
-    for( row_i in 1:nrow(pred_id_ijtkp)) {
-      k <- match(pred_id_ijtkp[row_i,"layer"],layer_all)
-      p <- match(pred_id_ijtkp[row_i,"id"],pred_all)
+  if( !is.null(z_ijtkp) & !is.null(beta_z_edge) & !is.null(pred_id_edge) ){
+    for( row_i in 1:nrow(pred_id_edge)) {
+      k <- match(pred_id_edge[row_i,"layer"],layer_all)
+      p <- match(pred_id_edge[row_i,"id"],pred_all)
       for(t in 1:T_net){
-        s_ijtk[,,t,k] <- s_ijtk[,,t,k] + z_ijtkp[,,t,k,p] * beta_z_ijtkp[t,row_i]
+        s_ijtk[,,t,k] <- s_ijtk[,,t,k] + z_ijtkp[,,t,k,p] * beta_z_edge[t,row_i]
       }
     }
     rm(row_i,k,p,t)

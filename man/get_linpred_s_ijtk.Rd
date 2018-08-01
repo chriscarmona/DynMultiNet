@@ -6,8 +6,8 @@
 \usage{
 get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht_shared, x_ihtk = NULL,
   pred_all = NULL, layer_all = NULL, z_tkp = NULL, z_ijtkp = NULL,
-  beta_z_tkp = NULL, beta_z_ijtkp = NULL, pred_id_tkp = NULL,
-  pred_id_ijtkp = NULL)
+  beta_z_layer = NULL, beta_z_edge = NULL, pred_id_layer = NULL,
+  pred_id_edge = NULL)
 }
 \arguments{
 \item{y_ijtk}{Array of dimension dim(y_ijtk)=c(V_net,V_net,T_net,K_net). Binary undirected links between nodes i and j, at time t, on layer k}
@@ -26,13 +26,13 @@ get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht_shared, x_ihtk = NULL,
 
 \item{z_ijtkp}{Array. Edge specific predictors data, predictor p at time t for edge bewtween i and j in layer k}
 
-\item{beta_z_tkp}{Column Matrix. Coefficients associated with z_tkp}
+\item{beta_z_layer}{Column Matrix. Coefficients associated with z_tkp}
 
-\item{beta_z_ijtkp}{Column Matrix. Coefficients associated with z_ijtkp}
+\item{beta_z_edge}{Column Matrix. Coefficients associated with z_ijtkp}
 
-\item{pred_id_tkp}{Matrix. List of layer specific predictors}
+\item{pred_id_layer}{Matrix. List of layer specific predictors}
 
-\item{pred_id_ijtkp}{Matrix. List of edge specific predictors}
+\item{pred_id_edge}{Matrix. List of edge specific predictors}
 }
 \value{
 An array s_ijtk of dimension dim(s_ijtk)=c(V_net,V_net,T_net,K_net)

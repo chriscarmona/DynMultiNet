@@ -222,47 +222,14 @@ sample_x_iht_mat_DynMultiNet_bin <- function( x_iht_mat,
 
 
 #' @export
-sample_v_dim_DynMultiNet_bin <- function( v_dim, a_1, a_2,
-                                          x_iht,
-                                          x_t_sigma_prior_inv ){
+sample_v_shrink_DynMultiNet_bin <- function( v_shrink, a_1, a_2,
+                                             x_iht,
+                                             x_t_sigma_prior_inv ){
   ### Sample the global shrinkage hyperparameters from conditional gamma distributions ###
   
   V_net <- dim(x_iht)[1]
   T_net <- dim(x_iht)[3]
-  H_dim <- nrow(v_dim)
-  
-  for(h in 1:H_dim) {
-    tau_h <- matrix(cumprod(v_dim), nrow=H_dim, ncol=1 )
-    tau_minush_l <- matrix(tau_h, nrow=H_dim, ncol=H_dim )
-    tau_minush_l[upper.tri(tau_minush_l)] <- NA ; tau_minush_l[1,1] <- NA
-    tau_minush_l <- tau_minush_l / matrix(v_dim, nrow=H_dim, ncol=H_dim, byrow=T)
-    aux_1 <- apply(tau_minush_l,2,sum,na.rm=TRUE)
-    aux_2 <- vector(mode="numeric",length=V_net)
-    for( i in 1:V_net ){
-      aux_2[i]<-matrix(x_iht[i,h,],nrow=1) %*% x_t_sigma_prior_inv %*% matrix(x_iht[i,h,],ncol=1)
-    }
-    if(h==1){
-      v_dim[h,1] <- rgamma( n=1,
-                            shape = a_1+0.5*(V_net*T_net*H_dim),
-                            rate = 1+0.5*aux_1[h]*sum(aux_2) )
-    }
-    if(h>1){
-      v_dim[h,1] <- rgamma( n=1,
-                            shape = a_2+0.5*(V_net*T_net*(H_dim-h+1)),
-                            rate = 1+0.5*aux_1[h]*sum(aux_2) )
-    }
-  }
-  return(v_dim)
-}
-
-sample_v_dim_DynMultiNet_bin_new <- function( v_dim, a_1, a_2,
-                                              x_iht,
-                                              x_t_sigma_prior_inv ){
-  ### Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-  
-  V_net <- dim(x_iht)[1]
-  T_net <- dim(x_iht)[3]
-  H_dim <- nrow(v_dim)
+  H_dim <- nrow(v_shrink)
   
   for(h in 1:H_dim) { # h <- 3
     aux_tau_x <- vector(mode="numeric",length=H_dim)
@@ -270,7 +237,7 @@ sample_v_dim_DynMultiNet_bin_new <- function( v_dim, a_1, a_2,
       if((l==1)&(h==1)){
         aux_tau <- 0 
       } else {
-        aux_tau <- prod(v_dim[setdiff(1:l,h),])
+        aux_tau <- prod(v_shrink[setdiff(1:l,h),])
       }
       aux_x <- vector(mode="numeric",length=V_net)
       for( i in 1:V_net ) { # l <- 1
@@ -280,15 +247,15 @@ sample_v_dim_DynMultiNet_bin_new <- function( v_dim, a_1, a_2,
     }
     
     if(h==1){
-      v_dim[h,1] <- rgamma( n=1,
-                            shape = a_1+0.5*(V_net*T_net*H_dim),
-                            rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
+      v_shrink[h,1] <- rgamma( n=1,
+                               shape = a_1+0.5*(V_net*T_net*H_dim),
+                               rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
     }
     if(h>1){
-      v_dim[h,1] <- rgamma( n=1,
-                            shape = a_2+0.5*(V_net*T_net*(H_dim-h+1)),
-                            rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
+      v_shrink[h,1] <- rgamma( n=1,
+                               shape = a_2+0.5*(V_net*T_net*(H_dim-h+1)),
+                               rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
     }
   }
-  return(v_dim)
+  return(v_shrink)
 }

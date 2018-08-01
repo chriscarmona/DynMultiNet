@@ -7,6 +7,7 @@
 #' @param net_data Data frame.Network information.
 #' @param pred_data Data frame. Linked predictors information.
 #' @param H_dim Integer. Latent space dimension.
+#' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
@@ -38,7 +39,7 @@
 #' 
 #'    DynMultiNet_bin( net_data,
 #'                     pred_data=NULL,
-#'                     H_dim=10,
+#'                     H_dim=10, R_dim=10,
 #'                     k_x=0.10, k_mu=0.10, k_p=0.10,
 #'                     a_1=2, a_2=2.5,
 #'                     n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
@@ -57,7 +58,7 @@
 
 DynMultiNet_bin <- function( net_data,
                              pred_data=NULL,
-                             H_dim=10,
+                             H_dim=10, R_dim=10,
                              k_x=0.10, k_mu=0.10, k_p=0.10,
                              a_1=2, a_2=2.5,
                              n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
@@ -120,9 +121,9 @@ DynMultiNet_bin <- function( net_data,
   # Baseline parameter #
   # at time t for layer k
   mu_tk <- matrix( #data=0,
-                   data=runif(T_net*K_net),
-                   nrow=T_net,
-                   ncol=K_net )
+    data=runif(T_net*K_net),
+    nrow=T_net,
+    ncol=K_net )
   mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
   
   # Covariance matrix prior for baseline mu_tk
@@ -136,8 +137,8 @@ DynMultiNet_bin <- function( net_data,
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
   x_iht_shared <- array( #data=0,
-                         data=runif(V_net*H_dim*T_net,-1,1),
-                         dim=c(V_net,H_dim,T_net) )
+    data=runif(V_net*H_dim*T_net,-1,1),
+    dim=c(V_net,H_dim,T_net) )
   x_iht_mat_shared <- aperm(a=x_iht_shared,perm=c(1,3,2))
   dim(x_iht_mat_shared) <- c(V_net,T_net*H_dim)
   if( !all(x_iht_mat_shared[1,1:T_net]==x_iht_shared[1,1,]) ){stop("there is a problem arranging x_iht_shared into x_iht_mat_shared")}
@@ -147,17 +148,17 @@ DynMultiNet_bin <- function( net_data,
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
     x_ihtk <- array( #data=0,
-                     data=runif(V_net*H_dim*T_net*K_net),
-                     dim=c(V_net,H_dim,T_net,K_net) )
-    x_iht_mat_k <- array(NA,dim=c(V_net,H_dim*T_net,K_net))
+      data=runif(V_net*R_dim*T_net*K_net),
+      dim=c(V_net,R_dim,T_net,K_net) )
+    x_iht_mat_k <- array(NA,dim=c(V_net,R_dim*T_net,K_net))
     for( k in 1:K_net ){
       x_iht_mat_k_aux <- aperm(a=x_ihtk[,,,k],perm=c(1,3,2))
-      dim(x_iht_mat_k_aux) <- c(V_net,T_net*H_dim)
+      dim(x_iht_mat_k_aux) <- c(V_net,T_net*R_dim)
       x_iht_mat_k[,,k] <- x_iht_mat_k_aux
       if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk into x_iht_mat_k")}
     }
     rm(x_iht_mat_k_aux)
-    x_ihtk_mcmc <- array(NA,c(V_net,H_dim,T_net,K_net,n_iter_mcmc_out))
+    x_ihtk_mcmc <- array(NA,c(V_net,R_dim,T_net,K_net,n_iter_mcmc_out))
   } else {
     x_ihtk <- NULL
     x_iht_mat_k <- NULL
@@ -184,8 +185,8 @@ DynMultiNet_bin <- function( net_data,
                                 x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                 pred_all=pred_all, layer_all=layer_all,
                                 z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
-                                pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
@@ -194,18 +195,18 @@ DynMultiNet_bin <- function( net_data,
   # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
   
   # Shrinkage Parameters
-  v_dim_shared <- matrix(NA, nrow=H_dim, ncol=1 )
-  v_dim_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
-  tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
+  v_shrink_shared <- matrix(NA, nrow=H_dim, ncol=1 )
+  v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
   tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
   # 1/tau_h
   if( K_net>1 ){
-    v_dim_k <- matrix(NA, nrow=H_dim, ncol=K_net )
-    v_dim_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_dim_k[-1,] <- rgamma(n=K_net*(H_dim-1),shape=a_2,rate=1)
-    tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
-    tau_h_k_mcmc <- array( NA, dim=c(H_dim,K_net,n_iter_mcmc_out) )
+    v_shrink_k <- matrix(NA, nrow=R_dim, ncol=K_net )
+    v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+    tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
+    tau_h_k_mcmc <- array( NA, dim=c(R_dim,K_net,n_iter_mcmc_out) )
   } else {
-    v_dim_k <- NULL
+    v_shrink_k <- NULL
     tau_h_k <- NULL
     tau_h_k_mcmc <- NULL
   }
@@ -242,8 +243,8 @@ DynMultiNet_bin <- function( net_data,
                                   x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                   pred_all=pred_all, layer_all=layer_all,
                                   z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                  beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
-                                  pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                  beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                  pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
     
     
     
@@ -265,8 +266,8 @@ DynMultiNet_bin <- function( net_data,
                                       x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                       pred_all=pred_all, layer_all=layer_all,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
-                                      pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                      pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
       }
       # Edge specific
       if(!is.null(beta_z_edge)&!is.null(pred_id_edge)){
@@ -282,8 +283,8 @@ DynMultiNet_bin <- function( net_data,
                                       x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                       pred_all=pred_all, layer_all=layer_all,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
-                                      pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                      pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
       }
     }
     
@@ -311,8 +312,8 @@ DynMultiNet_bin <- function( net_data,
                                   x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                   pred_all=pred_all, layer_all=layer_all,
                                   z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                  beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
-                                  pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                  beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                  pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
     
     
     ### LAYER SPECIFIC Latent Coordinates ###
@@ -329,7 +330,7 @@ DynMultiNet_bin <- function( net_data,
           x_iht_mat_k[,,k] <- x_iht_mat_k_aux[[k]]
           # redefine x_ihtk with the new sampled values in x_iht_mat_k
           x_iht_aux <- x_iht_mat_k[,,k]
-          dim(x_iht_aux) <- c(V_net,T_net,H_dim)
+          dim(x_iht_aux) <- c(V_net,T_net,R_dim)
           x_ihtk[,,,k] <- aperm(a=x_iht_aux,perm=c(1,3,2))
           rm(x_iht_aux)
           if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
@@ -343,7 +344,7 @@ DynMultiNet_bin <- function( net_data,
           
           # redefine x_ihtk with the new sampled values in x_iht_mat_k
           x_iht_aux <- x_iht_mat_k[,,k]
-          dim(x_iht_aux) <- c(V_net,T_net,H_dim)
+          dim(x_iht_aux) <- c(V_net,T_net,R_dim)
           x_ihtk[,,,k] <- aperm(a=x_iht_aux,perm=c(1,3,2))
           rm(x_iht_aux)
           if( !all(x_iht_mat_k[1,1:T_net,k]==x_ihtk[1,1,,k]) ){stop("there is a problem arranging x_ihtk from x_iht_mat_k, k=",k)}
@@ -358,8 +359,8 @@ DynMultiNet_bin <- function( net_data,
                                     x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                     pred_all=pred_all, layer_all=layer_all,
                                     z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                    beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
-                                    pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                    beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                    pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
     }
     
     
@@ -372,22 +373,22 @@ DynMultiNet_bin <- function( net_data,
     
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-    v_dim_shared <- sample_v_dim_DynMultiNet_bin_new( v_dim_shared,
-                                                      a_1, a_2,
-                                                      x_iht_shared,
-                                                      x_t_sigma_prior_inv )
-    tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
+    v_shrink_shared <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared,
+                                                        a_1, a_2,
+                                                        x_iht_shared,
+                                                        x_t_sigma_prior_inv )
+    tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
     if(is.element(iter_i,iter_out_mcmc)){
       tau_h_shared_mcmc[,match(iter_i,iter_out_mcmc)] <- tau_h_shared
     }
     
     if(K_net>1){
       for(k in 1:K_net) {
-        v_dim_k[,k] <- sample_v_dim_DynMultiNet_bin_new( v_dim_k[,k,drop=F], a_1, a_2,
-                                                         x_ihtk[,,,k],
-                                                         x_t_sigma_prior_inv )
+        v_shrink_k[,k] <- sample_v_shrink_DynMultiNet_bin_new( v_shrink_k[,k,drop=F], a_1, a_2,
+                                                               x_ihtk[,,,k],
+                                                               x_t_sigma_prior_inv )
       }
-      tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
+      tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
       if(is.element(iter_i,iter_out_mcmc)){
         tau_h_k_mcmc[,,match(iter_i,iter_out_mcmc)] <- tau_h_k
       }
