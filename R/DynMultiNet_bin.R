@@ -435,7 +435,7 @@ DynMultiNet_bin <- function( net_data,
         cat(round(100*iter_i/n_iter_mcmc),"% ",sep="")
       }
       if( !is.null(log_file) ) {
-        cat(iter_i," , ", as.numeric(difftime(mcmc_clock,Sys.time(),units="mins"))," , ", as.character(Sys.time()),"\n",
+        cat(iter_i," , ", as.numeric(difftime(Sys.time(),mcmc_clock,units="mins"))," , ", as.character(Sys.time()),"\n",
             file=log_file,append=TRUE )
       }
     }
