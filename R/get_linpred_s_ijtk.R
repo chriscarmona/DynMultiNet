@@ -16,6 +16,7 @@
 #' @param beta_z_edge Column Matrix. Coefficients associated with z_ijtkp
 #' @param pred_id_layer Matrix. List of layer specific predictors
 #' @param pred_id_edge Matrix. List of edge specific predictors
+#' @param directed Boolean. Indicates if the provided network is directed, i.e. the adjacency matrix is assymetrical.
 #' 
 #' @details
 #'    Linear predictor of response variable y_ijtk under a logistic link,
@@ -32,7 +33,8 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
                                 pred_all=NULL, layer_all=NULL,
                                 z_tkp=NULL, z_ijtkp=NULL,
                                 beta_z_layer=NULL, beta_z_edge=NULL,
-                                pred_id_layer=NULL, pred_id_edge=NULL ) {
+                                pred_id_layer=NULL, pred_id_edge=NULL,
+                                directed=FALSE ) {
   
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
@@ -42,19 +44,35 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
                    dim=c(V_net,V_net,T_net,K_net) )
   
   # Global latent coordinates
-  for( k in 1:K_net ){
-    for( t in 1:T_net ){
-      s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht_shared[,,t] %*% t(x_iht_shared[,,t])
-    }
-  }; rm(k,t)
+  if( directed ) {
+    for( k in 1:K_net ){
+      for( t in 1:T_net ){
+        s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht_shared[[1]][,,t] %*% t(x_iht_shared[[2]][,,t])
+      }
+    }; rm(k,t)
+  } else {
+    for( k in 1:K_net ){
+      for( t in 1:T_net ){
+        s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht_shared[,,t] %*% t(x_iht_shared[,,t])
+      }
+    }; rm(k,t)
+  }
   
   # Layer specific latent coordinates
   if(!is.null(x_ihtk)) {
-    for( k in 1:K_net ){
-      for( t in 1:T_net ){
-        s_ijtk[,,t,k] <- mu_tk[t,k] + x_ihtk[,,t,k] %*% t(x_ihtk[,,t,k])
-      }
-    }; rm(k,t)
+    if( directed ) {
+      for( k in 1:K_net ){
+        for( t in 1:T_net ){
+          s_ijtk[,,t,k] <- mu_tk[t,k] + x_ihtk[[1]][,,t,k] %*% t(x_ihtk[[2]][,,t,k])
+        }
+      }; rm(k,t)
+    } else {
+      for( k in 1:K_net ){
+        for( t in 1:T_net ){
+          s_ijtk[,,t,k] <- mu_tk[t,k] + x_ihtk[,,t,k] %*% t(x_ihtk[,,t,k])
+        }
+      }; rm(k,t)
+    }
   }
   
   # Layer specific predictors

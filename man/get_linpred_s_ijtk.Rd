@@ -7,7 +7,7 @@
 get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht_shared, x_ihtk = NULL,
   pred_all = NULL, layer_all = NULL, z_tkp = NULL, z_ijtkp = NULL,
   beta_z_layer = NULL, beta_z_edge = NULL, pred_id_layer = NULL,
-  pred_id_edge = NULL)
+  pred_id_edge = NULL, directed = FALSE)
 }
 \arguments{
 \item{y_ijtk}{Array of dimension dim(y_ijtk)=c(V_net,V_net,T_net,K_net). Binary undirected links between nodes i and j, at time t, on layer k}
@@ -33,6 +33,8 @@ get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht_shared, x_ihtk = NULL,
 \item{pred_id_layer}{Matrix. List of layer specific predictors}
 
 \item{pred_id_edge}{Matrix. List of edge specific predictors}
+
+\item{directed}{Boolean. Indicates if the provided network is directed, i.e. the adjacency matrix is assymetrical.}
 }
 \value{
 An array s_ijtk of dimension dim(s_ijtk)=c(V_net,V_net,T_net,K_net)

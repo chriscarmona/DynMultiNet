@@ -46,6 +46,7 @@
 gen_synth_net <- function( node_all=seq(1,10),
                            time_all=seq(1,30),
                            layer_all=seq(1,3),
+                           directed=FALSE,
                            H_dim=3, R_dim=3,
                            k_x=0.10, k_mu=0.10, k_p=0.10,
                            a_1=2, a_2=2.5,
@@ -81,16 +82,37 @@ gen_synth_net <- function( node_all=seq(1,10),
   v_shrink_shared <- matrix(NA, nrow=H_dim, ncol=1 )
   v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
   tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
-  # 1/tau_h
+  if(directed){
+    v_shrink_shared <- list( sender=v_shrink_shared,
+                             receiver=v_shrink_shared)
+    v_shrink_shared[[2]][1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[[2]][-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+    tau_h_shared <- list( sender=tau_h_shared,
+                          receiver=tau_h_shared )
+    tau_h_shared[[2]] <- matrix(cumprod(v_shrink_shared[[2]]), nrow=H_dim, ncol=1 )
+  }
+  
   if( K_net>1 ){
     v_shrink_k <- matrix(NA, nrow=R_dim, ncol=K_net )
     v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
     tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
+    if(directed){
+      v_shrink_k <- list( sender=v_shrink_k,
+                          receiver=v_shrink_k)
+      v_shrink_k[[2]][1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[[2]][-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+      tau_h_k <- list( sender=tau_h_k,
+                       receiver=tau_h_k )
+      tau_h_k[[2]] <- matrix(apply(v_shrink_k[[2]],2,cumprod), nrow=R_dim, ncol=K_net )
+    }
   } else {
     v_shrink_k <- NULL
     tau_h_k <- NULL
+    if(directed){
+      v_shrink_k <- list( sender=v_shrink_k,
+                          receiver=v_shrink_k)
+      tau_h_k <- list( sender=tau_h_k,
+                       receiver=tau_h_k )
+    }
   }
-  
   
   
   ### Latent coordinates ###
@@ -99,30 +121,61 @@ gen_synth_net <- function( node_all=seq(1,10),
   # shared: hth coordinate of actor v at time t shared across the different layers
   x_iht_shared <- array( NA,
                          dim=c(V_net,H_dim,T_net) )
-  for( i in 1:V_net){
-    for( h in 1:H_dim){
-      x_iht_shared[i,h,] <- mvtnorm::rmvnorm( n = 1,
-                                              mean = matrix(0,T_net,1),
-                                              sigma = (1/tau_h_shared[h,1]) * x_t_sigma_prior )
-    }
-  }; rm(i,h)
   # i<-1;h<-1;plot(y=x_iht_shared[i,h,],x=time_all,type="l")
+  if(directed){
+    x_iht_shared <- list( sender=x_iht_shared,
+                          receiver=x_iht_shared )
+    for( dir_i in 1:2 ) {
+      for( i in 1:V_net){
+        for( h in 1:H_dim){
+          x_iht_shared[[dir_i]][i,h,] <- mvtnorm::rmvnorm( n = 1,
+                                                           mean = matrix(0,T_net,1),
+                                                           sigma = (1/tau_h_shared[[dir_i]][h,1]) * x_t_sigma_prior )
+        }
+      }
+    }; rm(dir_i,i,h)
+  } else {
+    for( i in 1:V_net){
+      for( h in 1:H_dim){
+        x_iht_shared[i,h,] <- mvtnorm::rmvnorm( n = 1,
+                                                mean = matrix(0,T_net,1),
+                                                sigma = (1/tau_h_shared[h,1]) * x_t_sigma_prior )
+      }
+    }; rm(i,h)
+  }
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
     x_ihtk <- array( NA,
                      dim=c(V_net,R_dim,T_net,K_net) )
-    for( i in 1:V_net){
-      for( h in 1:R_dim){
-        for( k in 1:K_net){
-          
-          x_ihtk[i,h,,k] <- mvtnorm::rmvnorm( n = 1,
-                                              mean = matrix(0,T_net,1),
-                                              sigma = (1/tau_h_k[h,k]) * x_t_sigma_prior )
-        }
-      }
-    }; rm(i,h,k)
+    
     # i<-1;h<-1;k<-1;plot(y=x_ihtk[i,h,,k],x=time_all,type="l")
+    if(directed){
+      x_ihtk <- list( sender=x_ihtk,
+                      receiver=x_ihtk )
+      for( dir_i in 1:2){
+        for( k in 1:K_net){
+          for( i in 1:V_net){
+            for( h in 1:H_dim){
+              x_ihtk[[dir_i]][i,h,,k] <- mvtnorm::rmvnorm( n = 1,
+                                                           mean = matrix(0,T_net,1),
+                                                           sigma = (1/tau_h_k[[dir_i]][h,k]) * x_t_sigma_prior )
+            }
+          }
+        }
+      }; rm(dir_i,i,h)
+    } else {
+      for( k in 1:K_net){
+        for( i in 1:V_net){
+          for( h in 1:R_dim){
+            
+            x_ihtk[i,h,,k] <- mvtnorm::rmvnorm( n = 1,
+                                                mean = matrix(0,T_net,1),
+                                                sigma = (1/tau_h_k[h,k]) * x_t_sigma_prior )
+          }
+        }
+      }; rm(i,h,k)
+    }
   } else {
     x_ihtk <- NULL
   }
@@ -136,11 +189,13 @@ gen_synth_net <- function( node_all=seq(1,10),
       diag(y_ijtk[,,t,k]) <- NA
     }
   }; rm(k,t)
-  for( k in 1:K_net) {
-    for( t in 1:T_net) { #t<-1;k<-1
-      y_ijtk[,,t,k][upper.tri(y_ijtk[,,t,k])] <- NA
-    }
-  }; rm(k,t)
+  if(!directed){
+    for( k in 1:K_net) {
+      for( t in 1:T_net) { #t<-1;k<-1
+        y_ijtk[,,t,k][upper.tri(y_ijtk[,,t,k])] <- NA
+      }
+    }; rm(k,t)
+  }
   
   ### Linear Predictor ###
   s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
@@ -148,7 +203,8 @@ gen_synth_net <- function( node_all=seq(1,10),
                                 pred_all=pred_all, layer_all=layer_all,
                                 z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                 beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+                                pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                                directed=directed )
   
   ### Edges probabilities ###
   pi_ijtk <- plogis(s_ijtk)
@@ -164,17 +220,19 @@ gen_synth_net <- function( node_all=seq(1,10),
                            layer=NA,
                            weight=NA )
   
-  for(i in 2:V_net) {
-    for(j in 1:(i-1)) {
-      for(t in 1:T_net) {
-        for(k in 1:K_net) {
-          if(y_ijtk[i,j,t,k]==1){
-            edge_data_aux <- data.frame( source=node_all[i],
-                                         target=node_all[j],
-                                         time=time_all[t],
-                                         layer=layer_all[k],
-                                         weight=1 )
-            edge_data <- rbind(edge_data,edge_data_aux)
+  for(t in 1:T_net) {
+    for(k in 1:K_net) {
+      for(i in 1:V_net) {
+        for(j in 1:V_net) {
+          if(!is.na(y_ijtk[i,j,t,k])){
+            if(y_ijtk[i,j,t,k]!=0){
+              edge_data_aux <- data.frame( source=node_all[i],
+                                           target=node_all[j],
+                                           time=time_all[t],
+                                           layer=layer_all[k],
+                                           weight=1 )
+              edge_data <- rbind(edge_data,edge_data_aux)
+            }
           }
         }
       }
@@ -183,14 +241,14 @@ gen_synth_net <- function( node_all=seq(1,10),
   edge_data <- edge_data[-1,]
   
   synth_net <- list( edge_data=edge_data,
-                      y_ijtk = y_ijtk,
-                      pi_ijtk = pi_ijtk,
-                      s_ijtk = s_ijtk,
-                      mu_tk = mu_tk,
-                      x_iht_shared=x_iht_shared,
-                      x_ihtk=x_ihtk,
-                      tau_h_shared=tau_h_shared,
-                      tau_h_k=tau_h_k )
+                     y_ijtk = y_ijtk,
+                     pi_ijtk = pi_ijtk,
+                     s_ijtk = s_ijtk,
+                     mu_tk = mu_tk,
+                     x_iht_shared=x_iht_shared,
+                     x_ihtk=x_ihtk,
+                     tau_h_shared=tau_h_shared,
+                     tau_h_k=tau_h_k )
   if(!is.null(out_file)){
     save( synth_net, file=out_file )
   }

@@ -5,11 +5,11 @@
 \title{Generates Synthetic Data of a Network with a latent space characterization.}
 \usage{
 gen_synth_net(node_all = seq(1, 10), time_all = seq(1, 30),
-  layer_all = seq(1, 3), H_dim = 3, R_dim = 3, k_x = 0.1, k_mu = 0.1,
-  k_p = 0.1, a_1 = 2, a_2 = 2.5, pred_all = NULL, z_tkp = NULL,
-  z_ijtkp = NULL, beta_z_layer = NULL, beta_z_edge = NULL,
-  pred_id_layer = NULL, pred_id_edge = NULL, out_file = NULL,
-  log_file = NULL)
+  layer_all = seq(1, 3), directed = FALSE, H_dim = 3, R_dim = 3,
+  k_x = 0.1, k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5,
+  pred_all = NULL, z_tkp = NULL, z_ijtkp = NULL, beta_z_layer = NULL,
+  beta_z_edge = NULL, pred_id_layer = NULL, pred_id_edge = NULL,
+  out_file = NULL, log_file = NULL)
 }
 \arguments{
 \item{node_all}{Vector. Id's of nodes in the network.}
