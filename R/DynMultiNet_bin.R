@@ -66,6 +66,7 @@ DynMultiNet_bin <- function( net_data,
                              quiet_mcmc=FALSE,
                              parallel_mcmc=FALSE ) {
   
+  mcmc_clock <- Sys.time()
   ### iterations that will be reported ###
   # after burn-in period and thinning
   iter_out_mcmc <- seq(from=n_burn+1,to=n_iter_mcmc,by=n_thin)
@@ -212,6 +213,40 @@ DynMultiNet_bin <- function( net_data,
   }
   #### End: MCMC initialization ####
   
+  
+  
+  if( !is.null(log_file) ) {
+    if(K_net==1) {
+      model_des <- "Dynamic single-layer network, undirected unweighted edges"
+    } else if(K_net>1) {
+      model_des <- "Dynamic multi-layer network, undirected unweighted edges"
+    }
+    cat("**** DynMultiNet_bin *****\n\n",
+        "----- Inferential parameters -----\n",
+        "H_dim = ",H_dim,"\n",
+        "R_dim = ",R_dim,"\n",
+        "k_x = ",k_x,"\n",
+        "k_mu = ",k_mu,"\n",
+        "k_p = ",k_p,"\n",
+        "a_1 = ",a_1,"\n",
+        "a_2 = ",a_2,"\n",
+        "----- MCMC parameters -----\n",
+        "n_iter_mcmc = ",n_iter_mcmc,"\n",
+        "n_burn = ",n_burn,"\n",
+        "n_thin = ",n_thin,"\n",
+        "----- Storage and processing -----\n",
+        "out_file = ",out_file,"\n",
+        "log_file = ",log_file,"\n",
+        "parallel_mcmc = ",parallel_mcmc,"\n",
+        "---------------------------\n\n",
+        "Process starting time:\n",as.character(mcmc_clock),"\n\n",
+        "---------------------------\n\n",
+        "MCMC Starting time:\n",as.character(Sys.time()),"\n\n",
+        "---------------------------\n\n\n",
+        "iter_i , mcmc_acum_minutes , Sys.time \n",
+        file=log_file )
+  }
+  mcmc_clock <- Sys.time()
   
   
   #### Start: MCMC Sampling ####
@@ -399,6 +434,10 @@ DynMultiNet_bin <- function( net_data,
       if(!quiet_mcmc){
         cat(round(100*iter_i/n_iter_mcmc),"% ",sep="")
       }
+      if( !is.null(log_file) ) {
+        cat(iter_i," , ", as.numeric(difftime(mcmc_clock,Sys.time(),units="mins"))," , ", as.character(Sys.time()),"\n",
+            file=log_file,append=TRUE )
+      }
     }
     # save MCMC progress #
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) & iter_i>min(iter_out_mcmc,na.rm=T) ) {
@@ -420,6 +459,11 @@ DynMultiNet_bin <- function( net_data,
   }
   if(!quiet_mcmc){cat("\nMCMC finished!\n")}
   #### End: MCMC Sampling ####
+  if( !is.null(log_file) ) {
+    cat("\n\n---------------------------\n\n",
+        "Finishing time:\n",as.character(Sys.time()),"\n\n",
+        file=log_file, append=TRUE)
+  }
   
   DynMultiNet_mcmc <- list( y_ijtk=y_ijtk,
                             pi_ijtk_mcmc=pi_ijtk_mcmc,
