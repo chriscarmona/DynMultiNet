@@ -5,10 +5,11 @@
 \title{Generates Synthetic Data of a Network with a latent space characterization.}
 \usage{
 gen_synth_net(node_all = seq(1, 10), time_all = seq(1, 30),
-  layer_all = seq(1, 3), H_dim = 3, k_x = 0.1, k_mu = 0.1, k_p = 0.1,
-  a_1 = 2, a_2 = 2.5, pred_all = NULL, z_tkp = NULL, z_ijtkp = NULL,
-  beta_z_layer = NULL, beta_z_edge = NULL, pred_id_layer = NULL,
-  pred_id_edge = NULL, out_file = NULL, log_file = NULL)
+  layer_all = seq(1, 3), H_dim = 3, R_dim = 3, k_x = 0.1, k_mu = 0.1,
+  k_p = 0.1, a_1 = 2, a_2 = 2.5, pred_all = NULL, z_tkp = NULL,
+  z_ijtkp = NULL, beta_z_layer = NULL, beta_z_edge = NULL,
+  pred_id_layer = NULL, pred_id_edge = NULL, out_file = NULL,
+  log_file = NULL)
 }
 \arguments{
 \item{node_all}{Vector. Id's of nodes in the network.}
@@ -35,14 +36,14 @@ The model assumes a latent variable approach
    gen_synth_net( node_all=seq(1,10),
                   time_all=seq(1,30),
                   layer_all=seq(1,3),
-                  H_dim=3,
+                  H_dim=3, R_dim=3,
                   k_x=0.10, k_mu=0.10, k_p=0.10,
                   a_1=2, a_2=2.5,
                   
                   pred_all=NULL,
                   z_tkp=NULL, z_ijtkp=NULL,
-                  beta_z_tkp=NULL, beta_z_ijtkp=NULL,
-                  pred_id_tkp=NULL, pred_id_ijtkp=NULL,
+                  beta_z_layer=NULL, beta_z_edge=NULL,
+                  pred_id_layer=NULL, pred_id_edge=NULL,
                   
                   out_file=NULL, log_file=NULL )
 

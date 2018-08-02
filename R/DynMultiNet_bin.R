@@ -186,7 +186,7 @@ DynMultiNet_bin <- function( net_data,
                                 pred_all=pred_all, layer_all=layer_all,
                                 z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                 beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
@@ -244,7 +244,7 @@ DynMultiNet_bin <- function( net_data,
                                   pred_all=pred_all, layer_all=layer_all,
                                   z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                   beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                  pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
     
     
     
@@ -267,7 +267,7 @@ DynMultiNet_bin <- function( net_data,
                                       pred_all=pred_all, layer_all=layer_all,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                       beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                      pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
       }
       # Edge specific
       if(!is.null(beta_z_edge)&!is.null(pred_id_edge)){
@@ -284,7 +284,7 @@ DynMultiNet_bin <- function( net_data,
                                       pred_all=pred_all, layer_all=layer_all,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                       beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                      pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
       }
     }
     
@@ -313,7 +313,7 @@ DynMultiNet_bin <- function( net_data,
                                   pred_all=pred_all, layer_all=layer_all,
                                   z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                   beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                  pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
     
     
     ### LAYER SPECIFIC Latent Coordinates ###
@@ -360,7 +360,7 @@ DynMultiNet_bin <- function( net_data,
                                     pred_all=pred_all, layer_all=layer_all,
                                     z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                     beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                    pred_id_layer=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                    pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
     }
     
     
@@ -384,9 +384,9 @@ DynMultiNet_bin <- function( net_data,
     
     if(K_net>1){
       for(k in 1:K_net) {
-        v_shrink_k[,k] <- sample_v_shrink_DynMultiNet_bin_new( v_shrink_k[,k,drop=F], a_1, a_2,
-                                                               x_ihtk[,,,k],
-                                                               x_t_sigma_prior_inv )
+        v_shrink_k[,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[,k,drop=F], a_1, a_2,
+                                                           x_ihtk[,,,k],
+                                                           x_t_sigma_prior_inv )
       }
       tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
       if(is.element(iter_i,iter_out_mcmc)){

@@ -26,14 +26,14 @@
 #'    gen_synth_net( node_all=seq(1,10),
 #'                   time_all=seq(1,30),
 #'                   layer_all=seq(1,3),
-#'                   H_dim=3,
+#'                   H_dim=3, R_dim=3,
 #'                   k_x=0.10, k_mu=0.10, k_p=0.10,
 #'                   a_1=2, a_2=2.5,
 #'                   
 #'                   pred_all=NULL,
 #'                   z_tkp=NULL, z_ijtkp=NULL,
-#'                   beta_z_tkp=NULL, beta_z_ijtkp=NULL,
-#'                   pred_id_tkp=NULL, pred_id_ijtkp=NULL,
+#'                   beta_z_layer=NULL, beta_z_edge=NULL,
+#'                   pred_id_layer=NULL, pred_id_edge=NULL,
 #'                   
 #'                   out_file=NULL, log_file=NULL )
 #' 
@@ -46,7 +46,7 @@
 gen_synth_net <- function( node_all=seq(1,10),
                            time_all=seq(1,30),
                            layer_all=seq(1,3),
-                           H_dim=3,
+                           H_dim=3, R_dim=3,
                            k_x=0.10, k_mu=0.10, k_p=0.10,
                            a_1=2, a_2=2.5,
                            
@@ -78,16 +78,16 @@ gen_synth_net <- function( node_all=seq(1,10),
   }
   
   # Shrinkage Parameters for latent Coordinates
-  v_dim_shared <- matrix(NA, nrow=H_dim, ncol=1 )
-  v_dim_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_dim_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
-  tau_h_shared <- matrix(cumprod(v_dim_shared), nrow=H_dim, ncol=1 )
+  v_shrink_shared <- matrix(NA, nrow=H_dim, ncol=1 )
+  v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
   # 1/tau_h
   if( K_net>1 ){
-    v_dim_k <- matrix(NA, nrow=H_dim, ncol=K_net )
-    v_dim_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_dim_k[-1,] <- rgamma(n=K_net*(H_dim-1),shape=a_2,rate=1)
-    tau_h_k <- matrix(apply(v_dim_k,2,cumprod), nrow=H_dim, ncol=K_net )
+    v_shrink_k <- matrix(NA, nrow=R_dim, ncol=K_net )
+    v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+    tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
   } else {
-    v_dim_k <- NULL
+    v_shrink_k <- NULL
     tau_h_k <- NULL
   }
   
@@ -111,9 +111,9 @@ gen_synth_net <- function( node_all=seq(1,10),
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
     x_ihtk <- array( NA,
-                     dim=c(V_net,H_dim,T_net,K_net) )
+                     dim=c(V_net,R_dim,T_net,K_net) )
     for( i in 1:V_net){
-      for( h in 1:H_dim){
+      for( h in 1:R_dim){
         for( k in 1:K_net){
           
           x_ihtk[i,h,,k] <- mvtnorm::rmvnorm( n = 1,
@@ -147,8 +147,8 @@ gen_synth_net <- function( node_all=seq(1,10),
                                 x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
                                 pred_all=pred_all, layer_all=layer_all,
                                 z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                beta_z_tkp=beta_z_layer, beta_z_ijtkp=beta_z_edge,
-                                pred_id_tkp=pred_id_layer, pred_id_ijtkp=pred_id_edge )
+                                beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
   
   ### Edges probabilities ###
   pi_ijtk <- plogis(s_ijtk)
