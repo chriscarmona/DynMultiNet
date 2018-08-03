@@ -167,9 +167,8 @@ get_z_pred <- function( pred_data,
   #### End: Checking inputs ####
   
   pred_all <- NULL
-  pred_id_global<-NULL; pred_id_layer<-NULL; pred_id_edge<-NULL
+  pred_id_layer<-NULL; pred_id_edge<-NULL
   z_tp<-NULL; z_tkp<-NULL; z_ijtkp<-NULL
-  beta_z_global<-NULL; beta_z_layer<-NULL; beta_z_edge<-NULL
   
   if(!is.null(pred_data)) {
     #colnames_pred_data <- c("source","target","time","layer","id","pred")
@@ -179,19 +178,7 @@ get_z_pred <- function( pred_data,
     P_pred <- length(pred_all)
     
     cat("Procesing predictors data...\n")
-    ## Global ##
-    cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data),ncol=6), 1, identical, c(F,F,T,F,T,T) )
-    if( any(cond_pred) ) {
-      pred_id_global <- pred_data[cond_pred,c("id","layer")]
-      pred_id_global <- pred_id_global[!duplicated(pred_id_global),]
-      z_tp <- matrix(NA,nrow=T_net,ncol=P_pred)
-      for(row_i in which(cond_pred)){ # row_i <- which(cond_pred)[1]
-        t <- match(pred_data[row_i,"time"],time_all)
-        p <- match(pred_data[row_i,"id"],pred_all)
-        z_tp[t,p] <- pred_data[cond_pred,][row_i,"pred"]
-      }
-      rm(row_i,t,p)
-    }
+    
     ## Layer specific ##
     cond_pred <- apply( matrix(!is.na(pred_data),nrow=nrow(pred_data),ncol=6), 1, identical, c(F,F,T,T,T,T) )
     if( any(cond_pred) ) {
@@ -230,9 +217,8 @@ get_z_pred <- function( pred_data,
   }
   
   pred_net <- list( pred_all=pred_all,
-                    pred_id_global=pred_id_global, pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                    z_tp=z_tp, z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                    beta_z_global=beta_z_global, beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge )
+                    pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                    z_tp=z_tp, z_tkp=z_tkp, z_ijtkp=z_ijtkp )
   
   return(pred_net)
   
