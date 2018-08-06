@@ -39,9 +39,9 @@ mcmc_d_1_w_0 <- function( y_ijtk,
   # Baseline parameter #
   # at time t for layer k
   mu_tk <- matrix( #data=0,
-    data=runif(T_net*K_net),
-    nrow=T_net,
-    ncol=K_net )
+                   data=runif(T_net*K_net),
+                   nrow=T_net,
+                   ncol=K_net )
   mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
   
   # Covariance matrix prior for baseline mu_tk

@@ -43,10 +43,10 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
   s_ijtk <- array( data=NA,
                    dim=c(V_net,V_net,T_net,K_net) )
   
-  # Global latent coordinates
+  # Baseline Process and Global latent coordinates
   if( directed ) {
-    for( k in 1:K_net ){
-      for( t in 1:T_net ){
+    for( k in 1:K_net ){ # k<-1
+      for( t in 1:T_net ){ # t<-1
         s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht_shared[[1]][,,t] %*% t(x_iht_shared[[2]][,,t])
       }
     }; rm(k,t)
@@ -58,18 +58,18 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
     }; rm(k,t)
   }
   
-  # Layer specific latent coordinates
+  # Layer-specific latent coordinates
   if(!is.null(x_ihtk)) {
     if( directed ) {
       for( k in 1:K_net ){
         for( t in 1:T_net ){
-          s_ijtk[,,t,k] <- mu_tk[t,k] + x_ihtk[[1]][,,t,k] %*% t(x_ihtk[[2]][,,t,k])
+          s_ijtk[,,t,k] <- s_ijtk[,,t,k] + x_ihtk[[1]][,,t,k] %*% t(x_ihtk[[2]][,,t,k])
         }
       }; rm(k,t)
     } else {
       for( k in 1:K_net ){
         for( t in 1:T_net ){
-          s_ijtk[,,t,k] <- mu_tk[t,k] + x_ihtk[,,t,k] %*% t(x_ihtk[,,t,k])
+          s_ijtk[,,t,k] <- s_ijtk[,,t,k] + x_ihtk[,,t,k] %*% t(x_ihtk[,,t,k])
         }
       }; rm(k,t)
     }

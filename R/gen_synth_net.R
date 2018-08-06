@@ -186,7 +186,6 @@ gen_synth_net <- function( node_all,
       for( k in 1:K_net){
         for( i in 1:V_net){
           for( h in 1:R_dim){
-            
             x_ihtk[i,h,,k] <- mvtnorm::rmvnorm( n = 1,
                                                 mean = matrix(0,T_net,1),
                                                 sigma = (1/tau_h_k[h,k]) * x_t_sigma_prior )
@@ -228,10 +227,19 @@ gen_synth_net <- function( node_all,
   pi_ijtk <- plogis(s_ijtk)
   
   ### Edges ###
-  if(any(is.na(pi_ijtk[!is.na(y_ijtk)]))) {stop("There's a problem generating pi_ijtk.")}
-  y_ijtk[!is.na(y_ijtk)] <- rbinom(n=K_net*T_net*V_net*(V_net-1)/2,size=1,prob=pi_ijtk[!is.na(pi_ijtk)])
+  probs <- pi_ijtk[!is.na(y_ijtk)]
+  if(any(is.na(probs))) {stop("There's a problem generating pi_ijtk.")}
+  if( directed ){
+    if(length(probs)!=K_net*T_net*V_net*(V_net-1)) {stop("There's a problem generating y_ijtk")}
+    y_ijtk[!is.na(y_ijtk)] <- rbinom(n=length(probs),size=1,prob=probs)
+  } else {
+    if(length(probs)!=K_net*T_net*V_net*(V_net-1)/2) {stop("There's a problem generating y_ijtk")}
+    y_ijtk[!is.na(y_ijtk)] <- rbinom(n=length(probs),size=1,prob=probs)
+  }
   # sum(y_ijtk,na.rm=T)
   
+  
+  # Edge list data frame #
   edge_data <- data.frame( source=NA,
                            target=NA,
                            time=NA,
