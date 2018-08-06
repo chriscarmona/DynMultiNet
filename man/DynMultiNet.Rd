@@ -5,10 +5,10 @@
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
 DynMultiNet(net_data, pred_data = NULL, directed = FALSE,
-  weighted = FALSE, H_dim = 10, R_dim = 10, k_x = 0.1, k_mu = 0.1,
-  k_p = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 10000,
-  n_burn = n_iter_mcmc/2, n_thin = 3, out_file = NULL, log_file = NULL,
-  quiet_mcmc = FALSE, parallel_mcmc = FALSE)
+  weighted = FALSE, H_dim = 10, R_dim = 10, k_x = 0.1,
+  k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_iter_mcmc = 10000,
+  n_burn = n_iter_mcmc/2, n_thin = 3, out_file = NULL,
+  log_file = NULL, quiet_mcmc = FALSE, parallel_mcmc = FALSE)
 }
 \arguments{
 \item{net_data}{Data frame.Network information.}
@@ -23,15 +23,25 @@ DynMultiNet(net_data, pred_data = NULL, directed = FALSE,
 
 \item{R_dim}{Integer. Latent space dimension, for layer specific latent vectors.}
 
+\item{k_x}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.}
+
+\item{k_mu}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.}
+
+\item{k_p}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.}
+
+\item{a_1}{Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.}
+
+\item{a_2}{Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.}
+
 \item{n_iter_mcmc}{Integer. Number of iterations for the MCMC.}
 
 \item{n_burn}{Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.}
 
 \item{n_thin}{Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.}
 
-\item{out_file}{String. Indicates a file (.RData) where the output should be saved.}
+\item{out_file}{String. Indicates a file (.RData) where the output will be saved.}
 
-\item{log_file}{String. Indicates a file (.txt) where the log of the process should be saved.}
+\item{log_file}{String. Indicates a file (.txt) where the log of the process will be saved.}
 
 \item{quiet_mcmc}{Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.}
 
@@ -60,14 +70,22 @@ The model assumes a latent variable approach
 }
 \examples{
 
-   DynMultiNet( net_data,
-                    pred_data=NULL,
-                    H_dim=10, R_dim=10,
-                    k_x=0.10, k_mu=0.10, k_p=0.10,
-                    a_1=2, a_2=2.5,
-                    n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
-                    out_file=NULL, log_file=NULL,
-                    quiet_mcmc=FALSE,
-                    parallel_mcmc=FALSE )
+\dontrun{
+synth_net <- gen_synth_net( node_all = seq(1,10),
+                            time_all = seq(1,15),
+                            layer_all = seq(1,3),
+                            directed = FALSE,
+                            H_dim = 3, R_dim = 3,
+                            k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+                            a_1 = 1.5, a_2 = 2.5 )
+                            
+DynMultiNet_mcmc <- DynMultiNet( net_data = synth_net$edge_data,
+                                 pred_data = NULL,
+                                 directed = FALSE,
+                                 H_dim = 10, R_dim = 5,
+                                 k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+                                 a_1 = 2, a_2 = 2,
+                                 n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
+}
 
 }

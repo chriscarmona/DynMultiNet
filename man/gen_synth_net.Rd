@@ -4,25 +4,63 @@
 \alias{gen_synth_net}
 \title{Generates Synthetic Data of a Network with a latent space characterization.}
 \usage{
-gen_synth_net(node_all = seq(1, 10), time_all = seq(1, 30),
-  layer_all = seq(1, 3), directed = FALSE, H_dim = 3, R_dim = 3,
-  k_x = 0.1, k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5,
-  pred_all = NULL, z_tkp = NULL, z_ijtkp = NULL, beta_z_layer = NULL,
-  beta_z_edge = NULL, pred_id_layer = NULL, pred_id_edge = NULL,
-  out_file = NULL, log_file = NULL)
+gen_synth_net(node_all, time_all, layer_all, directed = FALSE,
+  H_dim = 3, R_dim = 3, k_x = 0.1, k_mu = 0.1, k_p = 0.1,
+  a_1 = 2, a_2 = 2.5, pred_all = NULL, pred_id_layer = NULL,
+  pred_id_edge = NULL, z_tkp = NULL, z_ijtkp = NULL,
+  beta_z_layer = NULL, beta_z_edge = NULL, out_file = NULL)
 }
 \arguments{
 \item{node_all}{Vector. Id's of nodes in the network.}
+
+\item{time_all}{Vector. Timestamps of network's observations.}
+
+\item{layer_all}{Vector. Id's of layers in the network.}
+
+\item{directed}{Boolean. Indicates if the generated network must be directed, i.e. assymetric adjacency matrix.}
+
+\item{H_dim}{Integer. Latent space dimension.}
+
+\item{R_dim}{Integer. Latent space dimension, for layer specific latent vectors.}
+
+\item{k_x}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.}
+
+\item{k_mu}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.}
+
+\item{k_p}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.}
+
+\item{a_1}{Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.}
+
+\item{a_2}{Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.}
+
+\item{pred_all}{Vector. Id's of predictors.}
+
+\item{pred_id_layer}{Data Frame. Catalogue matching predictors id's and layers, for layer-specific predictors.}
+
+\item{pred_id_edge}{Data Frame. Catalogue matching predictors id's and layers, for edge-specific predictors.}
+
+\item{z_tkp}{Numeric array. Data for layer-specific predictor p, for time t and layer k.}
+
+\item{z_ijtkp}{Numeric array. Data for edge-specific predictor p, for edge i-j at time t and layer k.}
+
+\item{beta_z_layer}{Numeric array. Layer specific predictor p, for edge i-j at time t and layer k.}
+
+\item{beta_z_edge}{Numeric array. Layer specific predictor p, for edge i-j at time t and layer k.}
+
+\item{out_file}{String. Indicates a file (.RData) where the output will be saved.}
 }
 \value{
 A list with the following components:
 \describe{
-    \item{\code{y_ijtk}}{Array. Edges in the net.}
-    \item{\code{p_ijtk}}{Array. Associated probabilities for edge occurence.}
-    \item{\code{s_ijtk}}{Array. Associated linear predictor.}
-    \item{\code{mu_tk}}{Matrix. Baseline parameter.}
-    \item{\code{x_iht_shared}}{Array. Shared latent coordinates.}
-    \item{\code{x_ihtk}}{Array. Layer specific latent coordinates.}
+    \item{\code{edge_data}}{}
+    \item{\code{y_ijtk}}{Numeric array. Network data, weight of edge between nodes i and j at time t in layer k.}
+    \item{\code{pi_ijtk}}{Numeric array. Underlying probability of edge existence.}
+    \item{\code{s_ijtk}}{Numeric array. Associated linear predictor in the logit model.}
+    \item{\code{mu_tk}}{Numeric matrix. Baseline process at time t for layer k.}
+    \item{\code{x_iht_shared}}{Numeric array. Global latent coordinates.}
+    \item{\code{x_ihtk}}{Numeric array. Latent specific latent coordinates.}
+    \item{\code{tau_h_shared}}{Numeric matrix. Shrinkage parameter for global latent coordinates.}
+    \item{\code{tau_h_k}}{Numeric matrix. Shrinkage parameter for layer-specific latent coordinates.}
 }
 }
 \description{
@@ -33,18 +71,13 @@ The model assumes a latent variable approach
 }
 \examples{
 
-   gen_synth_net( node_all=seq(1,10),
-                  time_all=seq(1,30),
-                  layer_all=seq(1,3),
-                  H_dim=3, R_dim=3,
-                  k_x=0.10, k_mu=0.10, k_p=0.10,
-                  a_1=2, a_2=2.5,
-                  
-                  pred_all=NULL,
-                  z_tkp=NULL, z_ijtkp=NULL,
-                  beta_z_layer=NULL, beta_z_edge=NULL,
-                  pred_id_layer=NULL, pred_id_edge=NULL,
-                  
-                  out_file=NULL, log_file=NULL )
+synth_net <- gen_synth_net( node_all=seq(1,5),
+                            time_all=seq(1,10),
+                            layer_all=seq(1,3),
+                            H_dim=3, R_dim=3,
+                            k_x=0.10, k_mu=0.10, k_p=0.10,
+                            a_1=2, a_2=2.5 )
+
+head(synth_net$edge_data)
 
 }

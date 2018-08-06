@@ -1,7 +1,5 @@
 
-#' @import foreach
-#' @import BayesLogit
-#' @export
+#' @keywords internal
 mcmc_d_1_w_0 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           

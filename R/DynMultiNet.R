@@ -10,11 +10,16 @@
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
+#' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
+#' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
+#' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
+#' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
+#' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
-#' @param out_file String. Indicates a file (.RData) where the output should be saved.
-#' @param log_file String. Indicates a file (.txt) where the log of the process should be saved.
+#' @param out_file String. Indicates a file (.RData) where the output will be saved.
+#' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
 #' @param parallel_mcmc Boolean. Indicates if some steps in the mcmc would be processed in parallel.
 #'
@@ -39,15 +44,23 @@
 #'
 #' @examples
 #' 
-#'    DynMultiNet( net_data,
-#'                     pred_data=NULL,
-#'                     H_dim=10, R_dim=10,
-#'                     k_x=0.10, k_mu=0.10, k_p=0.10,
-#'                     a_1=2, a_2=2.5,
-#'                     n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
-#'                     out_file=NULL, log_file=NULL,
-#'                     quiet_mcmc=FALSE,
-#'                     parallel_mcmc=FALSE )
+#' \dontrun{
+#' synth_net <- gen_synth_net( node_all = seq(1,10),
+#'                             time_all = seq(1,15),
+#'                             layer_all = seq(1,3),
+#'                             directed = FALSE,
+#'                             H_dim = 3, R_dim = 3,
+#'                             k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                             a_1 = 1.5, a_2 = 2.5 )
+#'                             
+#' DynMultiNet_mcmc <- DynMultiNet( net_data = synth_net$edge_data,
+#'                                  pred_data = NULL,
+#'                                  directed = FALSE,
+#'                                  H_dim = 10, R_dim = 5,
+#'                                  k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                                  a_1 = 2, a_2 = 2,
+#'                                  n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
+#' }
 #' 
 #' @useDynLib DynMultiNet
 #' 

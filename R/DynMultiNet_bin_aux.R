@@ -1,5 +1,6 @@
 
 #' @importFrom stats var
+#' @keywords internal
 R_hat.mcmc <- function(x,m) {
   # Computes the Potential Scale Reduction Coefficient
   # Gelman et al. (2014) sec. 11.4 page 285
@@ -17,7 +18,7 @@ R_hat.mcmc <- function(x,m) {
 
 
 
-#' @export
+#' @keywords internal
 bounce_limit <- function(x,a,b){
   while( (x<a) || (x>b) ) {
     if(x < a) {
@@ -32,39 +33,7 @@ bounce_limit <- function(x,a,b){
 
 
 
-#' @import grid
-#' @import Matrix
-#' @export
-multiplot <- function(..., plotlist=NULL, cols) {
-  require(grid)
-  
-  # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
-  
-  numPlots = length(plots)
-  
-  # Make the panel
-  plotCols = cols                          # Number of columns of plots
-  plotRows = ceiling(numPlots/plotCols) # Number of rows needed, calculated from # of cols
-  
-  # Set up the page
-  grid::grid.newpage()
-  grid::pushViewport(grid::viewport(layout = grid::grid.layout(plotRows, plotCols)))
-  vplayout <- function(x, y)
-    grid::viewport(layout.pos.row = x, layout.pos.col = y)
-  
-  # Make each plot, in the correct location
-  for (i in 1:numPlots) {
-    curRow = ceiling(i/plotCols)
-    curCol = (i-1) %% plotCols + 1
-    print(plots[[i]], vp = vplayout(curRow, curCol ))
-  }
-  
-}
-
-
-
-#' @export
+#' @keywords internal
 get_y_ijtk_from_edges <- function( net_data,
                                    directed=TRUE,
                                    weighted=TRUE,
@@ -142,7 +111,7 @@ get_y_ijtk_from_edges <- function( net_data,
 }
 
 
-#' @export
+#' @keywords internal
 get_z_pred <- function( pred_data,
                         node_all, time_all, layer_all,
                         quiet=FALSE ) {

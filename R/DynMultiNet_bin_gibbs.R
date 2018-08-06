@@ -1,5 +1,6 @@
 
-#' @export
+#' @import BayesLogit
+#' @keywords internal
 sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk,
                                            s_ijtk,
                                            directed=FALSE ) {
@@ -26,7 +27,7 @@ sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk,
 
 
 #' @import foreach
-#' @export
+#' @keywords internal
 sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           y_ijtk, w_ijtk, s_ijtk,
                                           mu_t_cov_prior_inv,
@@ -112,8 +113,7 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
 }
 
 
-
-#' @export
+#' @keywords internal
 sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
                                                 z_ijtkp, pred_id_edge, pred_all, layer_all,
                                                 y_ijtk, w_ijtk, s_ijtk,
@@ -151,8 +151,7 @@ sample_beta_z_edge_DynMultiNet_bin <- function( beta_z_edge,
 }
 
 
-
-#' @export
+#' @keywords internal
 sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
                                                  z_tkp, pred_id_layer, pred_all, layer_all,
                                                  y_ijtk, w_ijtk, s_ijtk,
@@ -214,8 +213,7 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
 }
 
 
-
-#' @export
+#' @keywords internal
 sample_x_iht_mat_DynMultiNet_bin <- function( x_iht_mat,
                                               x_t_sigma_prior_inv, tau_h,
                                               y_ijtk, w_ijtk, s_ijtk,
@@ -254,8 +252,7 @@ sample_x_iht_mat_DynMultiNet_bin <- function( x_iht_mat,
 }
 
 
-
-#' @export
+#' @keywords internal
 sample_v_shrink_DynMultiNet_bin <- function( v_shrink,
                                              a_1, a_2,
                                              x_iht,
