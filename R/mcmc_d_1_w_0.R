@@ -378,17 +378,21 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     # save MCMC progress #
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) & iter_i>min(iter_out_mcmc,na.rm=T) ) {
       if(!is.null(out_file)){
-        DynMultiNet_mcmc <- list( y_ijtk=y_ijtk,
-                                  pi_ijtk_mcmc=pi_ijtk_mcmc,
-                                  node_all=node_all, time_all=time_all, layer_all=layer_all,
-                                  mu_tk_mcmc=mu_tk_mcmc,
-                                  x_iht_shared_mcmc=x_iht_shared_mcmc,
-                                  x_ihtk_mcmc=x_ihtk_mcmc,
-                                  tau_h_shared_mcmc=tau_h_shared_mcmc,
-                                  tau_h_k_mcmc=tau_h_k_mcmc,
-                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                  beta_z_layer_mcmc=beta_z_layer_mcmc,
-                                  beta_z_edge_mcmc=beta_z_edge_mcmc )
+        DynMultiNet_mcmc <- structure( list( y_ijtk=y_ijtk,
+                                             directed=TRUE,
+                                             weighted=FALSE,
+                                             n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                                             pi_ijtk_mcmc=pi_ijtk_mcmc,
+                                             node_all=node_all, time_all=time_all, layer_all=layer_all,
+                                             mu_tk_mcmc=mu_tk_mcmc,
+                                             x_iht_shared_mcmc=x_iht_shared_mcmc,
+                                             x_ihtk_mcmc=x_ihtk_mcmc,
+                                             tau_h_shared_mcmc=tau_h_shared_mcmc,
+                                             tau_h_k_mcmc=tau_h_k_mcmc,
+                                             pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                                             beta_z_layer_mcmc=beta_z_layer_mcmc,
+                                             beta_z_edge_mcmc=beta_z_edge_mcmc ),
+                                       , class="DynMultiNet_mcmc" )
         save(DynMultiNet_mcmc,file=out_file)
       }
     }

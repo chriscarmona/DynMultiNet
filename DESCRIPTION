@@ -9,7 +9,7 @@ Description: Bayesian Learning of Dynamic Multilayer Networks.
 License: GPL-3 + file LICENSE
 LazyData: TRUE
 URL: https://github.com/christianu7/DynMultiNet
-Imports: BayesLogit, dplyr, foreach, mvtnorm, Rcpp (>= 0.12.17)
+Imports: BayesLogit, coda, dplyr, foreach, mvtnorm, Rcpp (>= 0.12.17)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.0
 Encoding: UTF-8
