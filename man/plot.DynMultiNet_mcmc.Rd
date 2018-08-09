@@ -4,14 +4,14 @@
 \alias{plot.DynMultiNet_mcmc}
 \title{Plotting MCMC results for the function \code{DynMultiNet}}
 \usage{
-\method{plot}{DynMultiNet_mcmc}(x, param = c("pi_ijtk", "mu_tk",
-  "x_iht_shared", "x_ihtk", "tau_h_shared", "tau_h_k", "beta")[1],
+\method{plot}{DynMultiNet_mcmc}(DynMultiNet_mcmc, param = c("pi_ijtk",
+  "mu_tk", "x_iht_shared", "x_ihtk", "tau_h_shared", "tau_h_k", "beta")[1],
   node_i = NULL, node_j = NULL, layer_k = NULL, h = NULL,
   pred_p = NULL, lat_space = NULL, cred_int_type = c("empirical",
   "norm")[1], n_burn = 0, n_thin = 1)
 }
 \arguments{
-\item{x}{an object of class "\code{DynMultiNet_mcmc}"}
+\item{DynMultiNet_mcmc}{an object of class "\code{DynMultiNet_mcmc}"}
 
 \item{param}{Character. Specifies the parameter that will be plotted. Possible parameters are:
 \describe{

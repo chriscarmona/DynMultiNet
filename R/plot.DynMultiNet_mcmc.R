@@ -6,7 +6,7 @@
 #' @description
 #'     Plotting method for objects inheriting from class "\code{DynMultiNet_mcmc}".
 #'
-#' @param x an object of class "\code{DynMultiNet_mcmc}"
+#' @param DynMultiNet_mcmc an object of class "\code{DynMultiNet_mcmc}"
 #' @param param Character. Specifies the parameter that will be plotted. Possible parameters are:
 #'        \describe{
 #'            \item{\code{"pi_ijtk"}}{Edge probabilities between node_i and node_j at layer_k.}
@@ -31,7 +31,7 @@
 #' @export
 #' 
 
-plot.DynMultiNet_mcmc <- function( x,
+plot.DynMultiNet_mcmc <- function( DynMultiNet_mcmc,
                                    param = c( "pi_ijtk",
                                               "mu_tk", "x_iht_shared","x_ihtk",
                                               "tau_h_shared","tau_h_k",
