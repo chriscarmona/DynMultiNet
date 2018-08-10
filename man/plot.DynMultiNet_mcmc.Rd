@@ -2,23 +2,23 @@
 % Please edit documentation in R/plot.DynMultiNet_mcmc.R
 \name{plot.DynMultiNet_mcmc}
 \alias{plot.DynMultiNet_mcmc}
-\title{Plotting MCMC results for the function \code{DynMultiNet}}
+\title{Plotting posterior MCMC results for the function \code{DynMultiNet}}
 \usage{
-\method{plot}{DynMultiNet_mcmc}(DynMultiNet_mcmc, param = c("pi_ijtk",
-  "mu_tk", "x_iht_shared", "x_ihtk", "tau_h_shared", "tau_h_k", "beta")[1],
+\method{plot}{DynMultiNet_mcmc}(x, param = c("pi_ijtk", "mu_tk",
+  "x_ith_shared", "x_ithk", "tau_h_shared", "tau_h_k", "beta")[1],
   node_i = NULL, node_j = NULL, layer_k = NULL, h = NULL,
   pred_p = NULL, lat_space = NULL, cred_int_type = c("empirical",
   "norm")[1], n_burn = 0, n_thin = 1)
 }
 \arguments{
-\item{DynMultiNet_mcmc}{an object of class "\code{DynMultiNet_mcmc}"}
+\item{x}{an object of class "\code{DynMultiNet_mcmc}"}
 
 \item{param}{Character. Specifies the parameter that will be plotted. Possible parameters are:
 \describe{
     \item{\code{"pi_ijtk"}}{Edge probabilities between node_i and node_j at layer_k.}
     \item{\code{"mu_tk"}}{Baseline process for layer_k.}
-    \item{\code{"x_iht_shared"}}{Global (shared) latent coordinates for node_i in dimension h.}
-    \item{\code{"x_ihtk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h.}
+    \item{\code{"x_ith_shared"}}{Global (shared) latent coordinates for node_i in dimension h.}
+    \item{\code{"x_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h.}
     \item{\code{"tau_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h.}
     \item{\code{"tau_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h.}
     }}

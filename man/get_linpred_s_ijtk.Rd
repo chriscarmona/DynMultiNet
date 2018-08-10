@@ -4,7 +4,7 @@
 \alias{get_linpred_s_ijtk}
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
-get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht_shared, x_ihtk = NULL,
+get_linpred_s_ijtk(y_ijtk, mu_tk, x_ith_shared, x_ithk = NULL,
   pred_all = NULL, layer_all = NULL, z_tkp = NULL, z_ijtkp = NULL,
   beta_z_layer = NULL, beta_z_edge = NULL, pred_id_layer = NULL,
   pred_id_edge = NULL, directed = FALSE)
@@ -14,9 +14,9 @@ get_linpred_s_ijtk(y_ijtk, mu_tk, x_iht_shared, x_ihtk = NULL,
 
 \item{mu_tk}{Matrix. Edge specific baseline factor of the linear predictor}
 
-\item{x_iht_shared}{Array. Global latent coordinates of element i in dimension h}
+\item{x_ith_shared}{Array. Global latent coordinates of element i in dimension h}
 
-\item{x_ihtk}{Array. Layer Specific Latent coordinates of element i in dimension h. Only for multilayer networks.}
+\item{x_ithk}{Array. Layer Specific Latent coordinates of element i in dimension h. Only for multilayer networks.}
 
 \item{pred_all}{Vector. Names of all predictors.}
 

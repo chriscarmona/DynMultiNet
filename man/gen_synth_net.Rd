@@ -57,8 +57,8 @@ A list with the following components:
     \item{\code{pi_ijtk}}{Numeric array. Underlying probability of edge existence.}
     \item{\code{s_ijtk}}{Numeric array. Associated linear predictor in the logit model.}
     \item{\code{mu_tk}}{Numeric matrix. Baseline process at time t for layer k.}
-    \item{\code{x_iht_shared}}{Numeric array. Global latent coordinates.}
-    \item{\code{x_ihtk}}{Numeric array. Latent specific latent coordinates.}
+    \item{\code{x_ith_shared}}{Numeric array. Global latent coordinates.}
+    \item{\code{x_ithk}}{Numeric array. Latent specific latent coordinates.}
     \item{\code{tau_h_shared}}{Numeric matrix. Shrinkage parameter for global latent coordinates.}
     \item{\code{tau_h_k}}{Numeric matrix. Shrinkage parameter for layer-specific latent coordinates.}
 }

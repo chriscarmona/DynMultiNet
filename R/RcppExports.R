@@ -9,12 +9,20 @@ sample_beta_z_layer_DynMultiNet_bin_cpp <- function(beta_t, z_t, beta_t_cov_prio
     .Call('_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', beta_t, z_t, beta_t_cov_prior_inv, y_ijt, w_ijt, s_ijt, directed)
 }
 
-sample_x_iht_mat_DynMultiNet_bin_cpp <- function(x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijtk, w_ijtk, s_ijtk) {
-    .Call('_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', x_iht_mat, x_t_sigma_prior_inv, tau_h, y_ijtk, w_ijtk, s_ijtk)
+sample_x_ith_DynMultiNet_bin_cpp <- function(x_ith, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt) {
+    .Call('_DynMultiNet_sample_x_ith_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', x_ith, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt)
 }
 
-sample_x_iht_mat_DynMultiNet_bin_dir_cpp <- function(x_iht_send_mat, x_iht_receive_mat, x_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijtk, w_ijtk, s_ijtk) {
-    .Call('_DynMultiNet_sample_x_iht_mat_DynMultiNet_bin_dir_cpp', PACKAGE = 'DynMultiNet', x_iht_send_mat, x_iht_receive_mat, x_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijtk, w_ijtk, s_ijtk)
+sample_x_ith_shared_DynMultiNet_bin_cpp <- function(x_ith_shared, x_t_sigma_prior_inv, tau_h, y_ijtk, w_ijtk, s_ijtk) {
+    .Call('_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_cpp', PACKAGE = 'DynMultiNet', x_ith_shared, x_t_sigma_prior_inv, tau_h, y_ijtk, w_ijtk, s_ijtk)
+}
+
+sample_x_ith_DynMultiNet_bin_dir_cpp <- function(x_ith_send, x_ith_receive, x_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijt, w_ijt, s_ijt) {
+    .Call('_DynMultiNet_sample_x_ith_DynMultiNet_bin_dir_cpp', PACKAGE = 'DynMultiNet', x_ith_send, x_ith_receive, x_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijt, w_ijt, s_ijt)
+}
+
+sample_x_ith_shared_DynMultiNet_bin_dir_cpp <- function(x_ith_shared_send, x_ith_shared_receive, x_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, w_ijtk, s_ijtk) {
+    .Call('_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_dir_cpp', PACKAGE = 'DynMultiNet', x_ith_shared_send, x_ith_shared_receive, x_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, w_ijtk, s_ijtk)
 }
 
 # Register entry points for exported C++ functions

@@ -6,8 +6,8 @@
 #'
 #' @param y_ijtk Array of dimension dim(y_ijtk)=c(V_net,V_net,T_net,K_net). Binary undirected links between nodes i and j, at time t, on layer k
 #' @param mu_tk Matrix. Edge specific baseline factor of the linear predictor
-#' @param x_iht_shared Array. Global latent coordinates of element i in dimension h
-#' @param x_ihtk Array. Layer Specific Latent coordinates of element i in dimension h. Only for multilayer networks.
+#' @param x_ith_shared Array. Global latent coordinates of element i in dimension h
+#' @param x_ithk Array. Layer Specific Latent coordinates of element i in dimension h. Only for multilayer networks.
 #' @param pred_all Vector. Names of all predictors.
 #' @param layer_all Vector. Names of all layers.
 #' @param z_tkp Array. Layer specific predictors data, predictor p at time t for layer k
@@ -29,7 +29,7 @@
 #' 
 
 get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
-                                x_iht_shared, x_ihtk=NULL,
+                                x_ith_shared, x_ithk=NULL,
                                 pred_all=NULL, layer_all=NULL,
                                 z_tkp=NULL, z_ijtkp=NULL,
                                 beta_z_layer=NULL, beta_z_edge=NULL,
@@ -47,29 +47,29 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
   if( directed ) {
     for( k in 1:K_net ){ # k<-1
       for( t in 1:T_net ){ # t<-1
-        s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht_shared[[1]][,,t] %*% t(x_iht_shared[[2]][,,t])
+        s_ijtk[,,t,k] <- mu_tk[t,k] + x_ith_shared[[1]][,t,] %*% t(x_ith_shared[[2]][,t,])
       }
     }; rm(k,t)
   } else {
     for( k in 1:K_net ){
       for( t in 1:T_net ){
-        s_ijtk[,,t,k] <- mu_tk[t,k] + x_iht_shared[,,t] %*% t(x_iht_shared[,,t])
+        s_ijtk[,,t,k] <- mu_tk[t,k] + x_ith_shared[,t,] %*% t(x_ith_shared[,t,])
       }
     }; rm(k,t)
   }
   
   # Layer-specific latent coordinates
-  if(!is.null(x_ihtk)) {
+  if(!is.null(x_ithk)) {
     if( directed ) {
       for( k in 1:K_net ){
         for( t in 1:T_net ){
-          s_ijtk[,,t,k] <- s_ijtk[,,t,k] + x_ihtk[[1]][,,t,k] %*% t(x_ihtk[[2]][,,t,k])
+          s_ijtk[,,t,k] <- s_ijtk[,,t,k] + x_ithk[[1]][,t,,k] %*% t(x_ithk[[2]][,t,,k])
         }
       }; rm(k,t)
     } else {
       for( k in 1:K_net ){
         for( t in 1:T_net ){
-          s_ijtk[,,t,k] <- s_ijtk[,,t,k] + x_ihtk[,,t,k] %*% t(x_ihtk[,,t,k])
+          s_ijtk[,,t,k] <- s_ijtk[,,t,k] + x_ithk[,t,,k] %*% t(x_ithk[,t,,k])
         }
       }; rm(k,t)
     }

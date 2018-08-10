@@ -35,8 +35,8 @@
 #'     \item{\code{pi_ijtk}}{Numeric array. Underlying probability of edge existence.}
 #'     \item{\code{s_ijtk}}{Numeric array. Associated linear predictor in the logit model.}
 #'     \item{\code{mu_tk}}{Numeric matrix. Baseline process at time t for layer k.}
-#'     \item{\code{x_iht_shared}}{Numeric array. Global latent coordinates.}
-#'     \item{\code{x_ihtk}}{Numeric array. Latent specific latent coordinates.}
+#'     \item{\code{x_ith_shared}}{Numeric array. Global latent coordinates.}
+#'     \item{\code{x_ithk}}{Numeric array. Latent specific latent coordinates.}
 #'     \item{\code{tau_h_shared}}{Numeric matrix. Shrinkage parameter for global latent coordinates.}
 #'     \item{\code{tau_h_k}}{Numeric matrix. Shrinkage parameter for layer-specific latent coordinates.}
 #' }
@@ -137,16 +137,16 @@ gen_synth_net <- function( node_all,
   # Covariance matrix prior for coordinates x_t
   x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
   # shared: hth coordinate of actor v at time t shared across the different layers
-  x_iht_shared <- array( NA,
-                         dim=c(V_net,H_dim,T_net) )
-  # i<-1;h<-1;plot(y=x_iht_shared[i,h,],x=time_all,type="l")
+  x_ith_shared <- array( NA,
+                         dim=c(V_net,T_net,H_dim) )
+  # i<-1;h<-1;plot(y=x_ith_shared[i,,h],x=time_all,type="l")
   if(directed){
-    x_iht_shared <- list( sender=x_iht_shared,
-                          receiver=x_iht_shared )
+    x_ith_shared <- list( sender=x_ith_shared,
+                          receiver=x_ith_shared )
     for( dir_i in 1:2 ) {
       for( i in 1:V_net){
         for( h in 1:H_dim){
-          x_iht_shared[[dir_i]][i,h,] <- mvtnorm::rmvnorm( n = 1,
+          x_ith_shared[[dir_i]][i,,h] <- mvtnorm::rmvnorm( n = 1,
                                                            mean = matrix(0,T_net,1),
                                                            sigma = (1/tau_h_shared[[dir_i]][h,1]) * x_t_sigma_prior )
         }
@@ -155,7 +155,7 @@ gen_synth_net <- function( node_all,
   } else {
     for( i in 1:V_net){
       for( h in 1:H_dim){
-        x_iht_shared[i,h,] <- mvtnorm::rmvnorm( n = 1,
+        x_ith_shared[i,,h] <- mvtnorm::rmvnorm( n = 1,
                                                 mean = matrix(0,T_net,1),
                                                 sigma = (1/tau_h_shared[h,1]) * x_t_sigma_prior )
       }
@@ -164,18 +164,18 @@ gen_synth_net <- function( node_all,
   
   if( K_net>1 ){
     # by layer: hth coordinate of actor v at time t specific to layer k
-    x_ihtk <- array( NA,
-                     dim=c(V_net,R_dim,T_net,K_net) )
+    x_ithk <- array( NA,
+                     dim=c(V_net,T_net,R_dim,K_net) )
     
-    # i<-1;h<-1;k<-1;plot(y=x_ihtk[i,h,,k],x=time_all,type="l")
+    # i<-1;h<-1;k<-1;plot(y=x_ithk[i,,h,k],x=time_all,type="l")
     if(directed){
-      x_ihtk <- list( sender=x_ihtk,
-                      receiver=x_ihtk )
+      x_ithk <- list( sender=x_ithk,
+                      receiver=x_ithk )
       for( dir_i in 1:2){
         for( k in 1:K_net){
           for( i in 1:V_net){
             for( h in 1:H_dim){
-              x_ihtk[[dir_i]][i,h,,k] <- mvtnorm::rmvnorm( n = 1,
+              x_ithk[[dir_i]][i,,h,k] <- mvtnorm::rmvnorm( n = 1,
                                                            mean = matrix(0,T_net,1),
                                                            sigma = (1/tau_h_k[[dir_i]][h,k]) * x_t_sigma_prior )
             }
@@ -186,7 +186,7 @@ gen_synth_net <- function( node_all,
       for( k in 1:K_net){
         for( i in 1:V_net){
           for( h in 1:R_dim){
-            x_ihtk[i,h,,k] <- mvtnorm::rmvnorm( n = 1,
+            x_ithk[i,,h,k] <- mvtnorm::rmvnorm( n = 1,
                                                 mean = matrix(0,T_net,1),
                                                 sigma = (1/tau_h_k[h,k]) * x_t_sigma_prior )
           }
@@ -194,7 +194,7 @@ gen_synth_net <- function( node_all,
       }; rm(i,h,k)
     }
   } else {
-    x_ihtk <- NULL
+    x_ithk <- NULL
   }
   
   ### Edges ###
@@ -216,7 +216,7 @@ gen_synth_net <- function( node_all,
   
   ### Linear Predictor ###
   s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                x_iht_shared=x_iht_shared, x_ihtk=x_ihtk,
+                                x_ith_shared=x_ith_shared, x_ithk=x_ithk,
                                 pred_all=pred_all, layer_all=layer_all,
                                 z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                 beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
@@ -271,8 +271,8 @@ gen_synth_net <- function( node_all,
                      pi_ijtk = pi_ijtk,
                      s_ijtk = s_ijtk,
                      mu_tk = mu_tk,
-                     x_iht_shared=x_iht_shared,
-                     x_ihtk=x_ihtk,
+                     x_ith_shared=x_ith_shared,
+                     x_ithk=x_ithk,
                      tau_h_shared=tau_h_shared,
                      tau_h_k=tau_h_k )
   if(!is.null(out_file)){
