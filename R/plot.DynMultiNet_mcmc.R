@@ -154,25 +154,25 @@ plot.DynMultiNet_mcmc <- function( x,
     p <- ggplot() +
       geom_ribbon( aes( ymin=get(paste("qmcmc_",100*cred_int_probs[1]/2,sep="")),
                         ymax=get(paste("qmcmc_",100*(1-cred_int_probs[1]/2),sep="")),
-                        x="time" ),
+                        x=time ),
                    fill="grey80", data=summary_mcmc ) +
       geom_ribbon( aes( ymin=get(paste("qmcmc_",100*cred_int_probs[2]/2,sep="")),
                         ymax=get(paste("qmcmc_",100*(1-cred_int_probs[2]/2),sep="")),
-                        x="time" ),
+                        x=time ),
                    fill="grey60", data=summary_mcmc ) +
-      geom_line( aes(y="Mean",x="time"),col="red", data=summary_mcmc )
+      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc )
     
   } else if( is.element(cred_int_type,"norm") ){
     p <- ggplot() +
       geom_ribbon( aes( ymin=get(paste("qnorm_",100*cred_int_probs[1]/2,sep="")),
                         ymax=get(paste("qnorm_",100*(1-cred_int_probs[1]/2),sep="")),
-                        x="time" ),
+                        x=time ),
                    fill="grey80", data=summary_mcmc ) +
       geom_ribbon( aes( ymin=get(paste("qnorm_",100*cred_int_probs[2]/2,sep="")),
                         ymax=get(paste("qnorm_",100*(1-cred_int_probs[2]/2),sep="")),
-                        x="time" ),
+                        x=time ),
                    fill="grey60", data=summary_mcmc ) +
-      geom_line( aes(y="Mean",x="time"),col="red", data=summary_mcmc )
+      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc )
   }
   
   if( is.element(param,"mu_tk") ){
