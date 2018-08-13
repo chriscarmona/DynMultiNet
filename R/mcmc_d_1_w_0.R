@@ -165,7 +165,13 @@ mcmc_d_1_w_0 <- function( y_ijtk,
   
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
+  
   for ( iter_i in 1:n_iter_mcmc) { # iter_i <- 1
+    
+    # Check singularity of implicit logistic regression for mu and x_ith, in the first iteration
+    check_Y<-TRUE
+    if(iter_i==2) {check_Y<-FALSE}
+    
     #cat(iter_i,",")
     
     
@@ -183,7 +189,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                            mu_t_cov_prior_inv=mu_t_cov_prior_inv,
                                            directed=TRUE,
                                            use_cpp=TRUE,
-                                           parallel_mcmc=parallel_mcmc )
+                                           parallel_mcmc=parallel_mcmc,
+                                           check_Y=check_Y )
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
@@ -208,7 +215,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                              z_tkp, pred_id_layer, pred_all, layer_all,
                                                              y_ijtk, w_ijtk, s_ijtk,
                                                              beta_t_cov_prior_inv,
-                                                             use_cpp=TRUE )
+                                                             use_cpp=TRUE,
+                                                             check_Y=check_Y )
         if(is.element(iter_i,iter_out_mcmc)){
           beta_z_layer_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_z_layer
         }
@@ -248,7 +256,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                          x_t_sigma_prior_inv=x_t_sigma_prior_inv,
                                                          tau_h=tau_h_shared,
                                                          y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
-                                                         directed=TRUE )
+                                                         directed=TRUE,
+                                                         check_Y=check_Y )
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       x_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- x_ith_shared[[1]]
@@ -273,7 +282,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                tau_h=tau_h_k,
                                                y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                                directed=TRUE,
-                                               parallel_mcmc=parallel_mcmc )
+                                               parallel_mcmc=parallel_mcmc,
+                                               check_Y=check_Y )
       
       # MCMC chain for x_ithk #
       if(is.element(iter_i,iter_out_mcmc)){

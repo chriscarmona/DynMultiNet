@@ -34,7 +34,8 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           directed=FALSE,
                                           use_cpp=TRUE,
                                           parallel_mcmc=FALSE,
-                                          calc_method_R=1 ) {
+                                          calc_method_R=1,
+                                          check_Y=FALSE ) {
   ### Sample mu_t from its conditional N-variate Gaussian posterior ###
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
@@ -48,7 +49,8 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                          y_ijt=y_ijtk[,,,k],
                                          w_ijt=w_ijtk[,,,k],
                                          s_ijt=s_ijtk[,,,k],
-                                         directed=directed )
+                                         directed=directed,
+                                         check_Y=check_Y )
       }
     } else {
       for( k in 1:K_net ) { # k<-1
@@ -57,7 +59,8 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                                       y_ijt=y_ijtk[,,,k],
                                                       w_ijt=w_ijtk[,,,k],
                                                       s_ijt=s_ijtk[,,,k],
-                                                      directed=directed )
+                                                      directed=directed,
+                                                      check_Y=check_Y )
       }
     }
   } else {
@@ -157,7 +160,8 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
                                                  y_ijtk, w_ijtk, s_ijtk,
                                                  beta_t_cov_prior_inv,
                                                  use_cpp = TRUE,
-                                                 directed = FALSE ) {
+                                                 directed = FALSE,
+                                                 check_Y=FALSE ) {
   ### Sample beta_z_layer from its conditional N-variate Gaussian posterior ###
   ### output ###
   # beta_z_layer <- matrix(0,nrow=T_net,ncol=nrow(pred_id_layer))
@@ -176,7 +180,8 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
                                                                        y_ijt=y_ijtk[,,,k],
                                                                        w_ijt=w_ijtk[,,,k],
                                                                        s_ijt=s_ijtk[,,,k],
-                                                                       directed=directed )
+                                                                       directed=directed,
+                                                                       check_Y=check_Y )
     } else {
       if(directed) {
         stop("beta_z_layer sampling not supported in R code for directed networks.")
@@ -217,7 +222,8 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
 sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
                                                  x_t_sigma_prior_inv, tau_h,
                                                  y_ijtk, w_ijtk, s_ijtk,
-                                                 directed=FALSE ) {
+                                                 directed=FALSE,
+                                                 check_Y=FALSE ) {
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
   V_net <- dim(x_ith_shared)[1]
@@ -241,14 +247,16 @@ sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
                                                                  tau_h_shared_receive = tau_h[[2]],
                                                                  y_ijtk = y_ijtk_list,
                                                                  w_ijtk = w_ijtk_list,
-                                                                 s_ijtk = s_ijtk_list )
+                                                                 s_ijtk = s_ijtk_list,
+                                                                 check_Y=check_Y )
   } else {
     x_ith_shared <- sample_x_ith_shared_DynMultiNet_bin_cpp( x_ith_shared = x_ith_shared,
                                                              x_t_sigma_prior_inv = x_t_sigma_prior_inv,
                                                              tau_h = tau_h,
                                                              y_ijtk = y_ijtk_list,
                                                              w_ijtk = w_ijtk_list,
-                                                             s_ijtk = s_ijtk_list )
+                                                             s_ijtk = s_ijtk_list,
+                                                             check_Y=check_Y )
   }
   
   return( x_ith_shared )
@@ -261,7 +269,8 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                            x_t_sigma_prior_inv, tau_h,
                                            y_ijtk, w_ijtk, s_ijtk,
                                            directed=FALSE,
-                                           parallel_mcmc=FALSE ) {
+                                           parallel_mcmc=FALSE,
+                                           check_Y=FALSE ) {
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
   
@@ -283,7 +292,8 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                               tau_h_receive = tau_h[[2]][,k],
                                               y_ijt = y_ijtk[,,,k],
                                               w_ijt = w_ijtk[,,,k],
-                                              s_ijt = s_ijtk[,,,k] )
+                                              s_ijt = s_ijtk[,,,k],
+                                              check_Y=check_Y )
       }
     } else {
       for(k in 1:K_net){ # k<-1
@@ -294,7 +304,8 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                                             tau_h_receive = tau_h[[2]][,k],
                                                             y_ijt = y_ijtk[,,,k],
                                                             w_ijt = w_ijtk[,,,k],
-                                                            s_ijt = s_ijtk[,,,k] )
+                                                            s_ijt = s_ijtk[,,,k],
+                                                            check_Y=check_Y )
         x_ithk[[1]][,,,k] <- x_ithk_aux[[1]]
         x_ithk[[2]][,,,k] <- x_ithk_aux[[2]]
       }
@@ -312,7 +323,8 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                           tau_h = tau_h[,k],
                                           y_ijt = y_ijtk[,,,k],
                                           w_ijt = w_ijtk[,,,k],
-                                          s_ijt = s_ijtk[,,,k] )
+                                          s_ijt = s_ijtk[,,,k],
+                                          check_Y=check_Y )
       }
     } else {
       for(k in 1:K_net){ # k<-1
@@ -321,7 +333,8 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                                           tau_h = tau_h[,k],
                                                           y_ijt = y_ijtk[,,,k],
                                                           w_ijt = w_ijtk[,,,k],
-                                                          s_ijt = s_ijtk[,,,k] )
+                                                          s_ijt = s_ijtk[,,,k],
+                                                          check_Y=check_Y )
       }
     }
   }
