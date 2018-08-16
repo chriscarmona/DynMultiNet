@@ -2,7 +2,7 @@
 #'    Bayesian Learning of Dynamic Multilayer Networks with binary data
 #'
 #' @description
-#'    \code{DynMultiNet} Implements model from Durante and Dunson, 2018
+#'    \code{DynMultiNet_mcmc} Implements model from Durante and Dunson, 2018
 #'
 #' @param net_data Data frame.Network information.
 #' @param pred_data Data frame. Linked predictors information.
@@ -15,6 +15,7 @@
 #' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
+#' @param n_chains_mcmc Integer. Number of chains for the MCMC.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
@@ -53,13 +54,13 @@
 #'                             k_x = 0.10, k_mu = 0.10, k_p = 0.10,
 #'                             a_1 = 1.5, a_2 = 2.5 )
 #'                             
-#' DynMultiNet_mcmc <- DynMultiNet( net_data = synth_net$edge_data,
-#'                                  pred_data = NULL,
-#'                                  directed = FALSE,
-#'                                  H_dim = 10, R_dim = 5,
-#'                                  k_x = 0.10, k_mu = 0.10, k_p = 0.10,
-#'                                  a_1 = 2, a_2 = 2,
-#'                                  n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
+#' net_mcmc <- DynMultiNet_mcmc( net_data = synth_net$edge_data,
+#'                               pred_data = NULL,
+#'                               directed = FALSE,
+#'                               H_dim = 10, R_dim = 5,
+#'                               k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                               a_1 = 2, a_2 = 2,
+#'                               n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
 #' }
 #' 
 #' @useDynLib DynMultiNet
@@ -69,16 +70,17 @@
 #' @export
 #' 
 
-DynMultiNet <- function( net_data,
-                         pred_data=NULL,
-                         directed=FALSE, weighted=FALSE,
-                         H_dim=10, R_dim=10,
-                         k_x=0.10, k_mu=0.10, k_p=0.10,
-                         a_1=2, a_2=2.5,
-                         n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
-                         out_file=NULL, log_file=NULL,
-                         quiet_mcmc=FALSE,
-                         parallel_mcmc=FALSE ) {
+DynMultiNet_mcmc <- function( net_data,
+                              pred_data=NULL,
+                              directed=FALSE, weighted=FALSE,
+                              H_dim=10, R_dim=10,
+                              k_x=0.10, k_mu=0.10, k_p=0.10,
+                              a_1=2, a_2=2.5,
+                              n_chains_mcmc=1,
+                              n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
+                              out_file=NULL, log_file=NULL,
+                              quiet_mcmc=FALSE,
+                              parallel_mcmc=FALSE ) {
   
   mcmc_clock <- Sys.time()
   
@@ -151,6 +153,7 @@ DynMultiNet <- function( net_data,
         "a_1 = ",a_1,"\n",
         "a_2 = ",a_2,"\n",
         "----- MCMC parameters -----\n",
+        "n_chains_mcmc = ",n_chains_mcmc,"\n",
         "n_iter_mcmc = ",n_iter_mcmc,"\n",
         "n_burn = ",n_burn,"\n",
         "n_thin = ",n_thin,"\n",
@@ -169,39 +172,22 @@ DynMultiNet <- function( net_data,
   mcmc_clock <- Sys.time()
   
   if( !directed & !weighted ) {
-    DynMultiNet_mcmc <- mcmc_d_0_w_0( y_ijtk=y_ijtk,
-                                      node_all=node_all, time_all=time_all, layer_all=layer_all,
-                                      
-                                      pred_all=pred_all,
-                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      
-                                      H_dim=H_dim, R_dim=R_dim,
-                                      k_x=k_x, k_mu=k_mu, k_p=k_p,
-                                      a_1=a_1, a_2=a_2,
-                                      
-                                      n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
-                                      
-                                      out_file=out_file, log_file=log_file,
-                                      quiet_mcmc=quiet_mcmc,
-                                      parallel_mcmc=parallel_mcmc )
-  } else if( directed & !weighted ) {
-    DynMultiNet_mcmc <- mcmc_d_1_w_0( y_ijtk=y_ijtk,
-                                      node_all=node_all, time_all=time_all, layer_all=layer_all,
-                                      
-                                      pred_all=pred_all,
-                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      
-                                      H_dim=H_dim, R_dim=R_dim,
-                                      k_x=k_x, k_mu=k_mu, k_p=k_p,
-                                      a_1=a_1, a_2=a_2,
-                                      
-                                      n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
-                                      
-                                      out_file=out_file, log_file=log_file,
-                                      quiet_mcmc=quiet_mcmc,
-                                      parallel_mcmc=parallel_mcmc )
+    DynMultiNet_mcmc <- mcmc_d_0_w_0_stan( y_ijtk=y_ijtk,
+                                           node_all=node_all, time_all=time_all, layer_all=layer_all,
+                                           
+                                           pred_all=pred_all,
+                                           pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                                           z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                           
+                                           H_dim=H_dim, R_dim=R_dim,
+                                           k_x=k_x, k_mu=k_mu, k_p=k_p,
+                                           a_1=a_1, a_2=a_2,
+                                           
+                                           n_chains_mcmc=n_chains_mcmc,
+                                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                                           
+                                           out_file=out_file,
+                                           quiet_mcmc=quiet_mcmc )
   } else {
     stop( "directed=",directed, ", weighted=",weighted," not currently supported.")
   }

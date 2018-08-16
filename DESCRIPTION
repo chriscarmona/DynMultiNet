@@ -1,14 +1,20 @@
 Package: DynMultiNet
-Type: Package
 Title: Bayesian Learning of Dynamic Multilayer Networks
-Version: 0.0.1
-Date: 2018-07-07
-Author: Christian Carmona
-Maintainer: Christian Carmona <carmona@stats.ox.ac.uk>
+Version: 0.0.2
+Date: 2018-08-15
+Authors@R: 
+    person(given = "Christian",
+           family = "Carmona",
+           role = c("aut", "cre"),
+           email = "carmona@stats.ox.ac.uk")
 Description: Bayesian Learning of Dynamic Multilayer Networks.
-License: GPL-3 + file LICENSE
-LazyData: TRUE
-URL: https://github.com/christianu7/DynMultiNet
+License: GPL (>=3)
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 3.4.0),
+    Rcpp (>= 0.12.18),
+    methods
 Imports:
     abind,
     BayesLogit,
@@ -17,9 +23,14 @@ Imports:
     foreach,
     ggplot2,
     mvtnorm,
-    Rcpp (>= 0.12.17)
+    rstan (>= 2.17.3),
+    rstantools (>= 1.5.0)
 LinkingTo:
-    Rcpp,
-    RcppArmadillo
+    BH (>= 1.66.0-1),
+    Rcpp (>= 0.12.18),
+    RcppEigen (>= 0.3.3.4.0),
+    rstan (>= 2.17.3),
+    StanHeaders (>= 2.17.2)
+SystemRequirements: GNU make
+NeedsCompilation: yes
 RoxygenNote: 6.1.0
-Encoding: UTF-8

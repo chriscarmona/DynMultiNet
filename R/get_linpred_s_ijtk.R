@@ -48,6 +48,8 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
     for( k in 1:K_net ){ # k<-1
       for( t in 1:T_net ){ # t<-1
         s_ijtk[,,t,k] <- mu_tk[t,k] + x_ith_shared[[1]][,t,] %*% t(x_ith_shared[[2]][,t,])
+        # i<-3;j<-5
+        # s_ijtk[i,j,t,k] == mu_tk[t,k] + matrix(x_ith_shared[[1]][i,t,],nrow=1) %*% t(matrix(x_ith_shared[[2]][j,t,],nrow=1))
       }
     }; rm(k,t)
   } else {
@@ -61,8 +63,8 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
   # Layer-specific latent coordinates
   if(!is.null(x_ithk)) {
     if( directed ) {
-      for( k in 1:K_net ){
-        for( t in 1:T_net ){
+      for( k in 1:K_net ){ # k<-1
+        for( t in 1:T_net ){ # t<-1
           s_ijtk[,,t,k] <- s_ijtk[,,t,k] + x_ithk[[1]][,t,,k] %*% t(x_ithk[[2]][,t,,k])
         }
       }; rm(k,t)
