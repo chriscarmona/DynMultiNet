@@ -166,7 +166,6 @@ DynMultiNet_mcmc <- function( net_data,
         "---------------------------\n\n",
         "MCMC Starting time:\n",as.character(Sys.time()),"\n\n",
         "---------------------------\n\n\n",
-        "iter_i , mcmc_acum_minutes , Sys.time \n",
         file=log_file )
   }
   mcmc_clock <- Sys.time()
@@ -190,6 +189,29 @@ DynMultiNet_mcmc <- function( net_data,
                                            quiet_mcmc=quiet_mcmc )
   } else {
     stop( "directed=",directed, ", weighted=",weighted," not currently supported.")
+  }
+  
+  if( !is.null(log_file) ) {
+    model_des <- "Dynamic"
+    if(K_net==1) {
+      model_des <- paste(model_des," single-layer network,",collapse="")
+    } else if(K_net>1) {
+      model_des <- paste(model_des," multi-layer network,",collapse="")
+    }
+    if(directed) {
+      model_des <- paste(model_des," directed",collapse="")
+    } else {
+      model_des <- paste(model_des," undirected",collapse="")
+    }
+    if(weighted) {
+      model_des <- paste(model_des," weighted edges",collapse="")
+    } else {
+      model_des <- paste(model_des," unweighted edges",collapse="")
+    }
+    
+    cat("MCMC Finish time:\n",as.character(Sys.time()),"\n\n",
+        "---------------------------\n\n\n",
+        file=log_file,append=T )
   }
   
   return( DynMultiNet_mcmc )
