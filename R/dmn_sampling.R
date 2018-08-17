@@ -2,7 +2,7 @@
 #'    Bayesian Learning of Dynamic Multilayer Networks with binary data
 #'
 #' @description
-#'    \code{DynMultiNet_mcmc} Implements model from Durante and Dunson, 2018
+#'    \code{dmn_sampling} Implements model from Durante and Dunson, 2018
 #'
 #' @param net_data Data frame.Network information.
 #' @param pred_data Data frame. Linked predictors information.
@@ -70,17 +70,17 @@
 #' @export
 #' 
 
-DynMultiNet_mcmc <- function( net_data,
-                              pred_data=NULL,
-                              directed=FALSE, weighted=FALSE,
-                              H_dim=10, R_dim=10,
-                              k_x=0.10, k_mu=0.10, k_p=0.10,
-                              a_1=2, a_2=2.5,
-                              n_chains_mcmc=1,
-                              n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
-                              out_file=NULL, log_file=NULL,
-                              quiet_mcmc=FALSE,
-                              parallel_mcmc=FALSE ) {
+dmn_sampling <- function( net_data,
+                          pred_data=NULL,
+                          directed=FALSE, weighted=FALSE,
+                          H_dim=10, R_dim=10,
+                          k_x=0.10, k_mu=0.10, k_p=0.10,
+                          a_1=2, a_2=2.5,
+                          n_chains_mcmc=1,
+                          n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
+                          out_file=NULL, log_file=NULL,
+                          quiet_mcmc=FALSE,
+                          parallel_mcmc=FALSE ) {
   
   mcmc_clock <- Sys.time()
   
@@ -170,26 +170,25 @@ DynMultiNet_mcmc <- function( net_data,
   }
   mcmc_clock <- Sys.time()
   
-  if( !directed & !weighted ) {
-    DynMultiNet_mcmc <- mcmc_d_0_w_0_stan( y_ijtk=y_ijtk,
-                                           node_all=node_all, time_all=time_all, layer_all=layer_all,
-                                           
-                                           pred_all=pred_all,
-                                           pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                           z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                           
-                                           H_dim=H_dim, R_dim=R_dim,
-                                           k_x=k_x, k_mu=k_mu, k_p=k_p,
-                                           a_1=a_1, a_2=a_2,
-                                           
-                                           n_chains_mcmc=n_chains_mcmc,
-                                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
-                                           
-                                           out_file=out_file,
-                                           quiet_mcmc=quiet_mcmc )
-  } else {
-    stop( "directed=",directed, ", weighted=",weighted," not currently supported.")
-  }
+  dmn_mcmc <- mcmc_stan( y_ijtk=y_ijtk,
+                         node_all=node_all, time_all=time_all, layer_all=layer_all,
+                         
+                         pred_all=pred_all,
+                         pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                         z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                         
+                         H_dim=H_dim, R_dim=R_dim,
+                         k_x=k_x, k_mu=k_mu, k_p=k_p,
+                         a_1=a_1, a_2=a_2,
+                         
+                         directed=directed,
+                         weighted=weighted,
+                         
+                         n_chains_mcmc=n_chains_mcmc,
+                         n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                         
+                         out_file=out_file,
+                         quiet_mcmc=quiet_mcmc )
   
   if( !is.null(log_file) ) {
     cat("MCMC Finish time:\n",as.character(Sys.time()),"\n\n",
@@ -197,6 +196,6 @@ DynMultiNet_mcmc <- function( net_data,
         file=log_file,append=T )
   }
   
-  return( DynMultiNet_mcmc )
+  return( dmn_mcmc )
   
 }

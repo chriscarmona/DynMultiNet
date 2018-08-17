@@ -1,5 +1,11 @@
 
-// saved as net_d_0_w_0.stan
+// saved as net_m_1_p_0_d_0_w_0.stan
+
+// Supports Dynamic Networks with the following characteristics:
+//   multi-layer: TRUE
+//   predictors: FALSE
+//   directed: FALSE
+//   weigthed: FALSE
 
 data {
   int<lower=1> V_net; // number of nodes
@@ -60,7 +66,7 @@ transformed parameters {
     tau_h_shared[h] = tau_h_shared[h-1]*nu_h_shared[h];
     x_t_shared_cov_chol[h] = cholesky_decompose( (1/tau_h_shared[h])*x_t_cov_prior );
     for (k in 1:K_net) {
-      tau_hk[h,k] = tau_hk[h-1,k] .* nu_hk[h,k];
+      tau_hk[h,k] = tau_hk[h-1,k] * nu_hk[h,k];
       x_t_k_cov_chol[h,k] = cholesky_decompose( (1/tau_hk[h,k])*x_t_cov_prior );
     }
   }
