@@ -60,10 +60,11 @@ mcmc_stan <- function( y_ijtk,
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk") )
-    dmn_mcmc <- dmn_mcmc_from_stan( stan_fit,
-                                    stan_data_input=stan_data_input,
-                                    directed=directed,
-                                    weighted=weighted )
+    dmn_mcmc <- stan_fit
+    # dmn_mcmc <- dmn_mcmc_from_stan( stan_fit,
+    #                                 stan_data_input=stan_data_input,
+    #                                 directed=directed,
+    #                                 weighted=weighted )
   } else {
     stop("Not supported")
   }
