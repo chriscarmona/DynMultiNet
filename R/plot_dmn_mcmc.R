@@ -28,6 +28,30 @@
 #' @import ggplot2
 #' @importFrom stats qnorm
 #' 
+#' @examples
+#' 
+#' \dontrun{
+#' 
+#' plot_dmn_mcmc( x=dmn_mcmc,
+#'                param="mu_tk",
+#'                layer_k=dmn_mcmc$layer_all[1] )
+#'                
+#' plot_dmn_mcmc( x=dmn_mcmc,
+#'                param="pi_ijtk",
+#'                node_i=dmn_mcmc$node_all[2],
+#'                node_j=dmn_mcmc$node_all[1],
+#'                layer_k=1 )
+#'                
+#' plot_dmn_mcmc( x=dmn_mcmc,
+#'                param="x_ith_shared",
+#'                node_i=dmn_mcmc$node_all[1],
+#'                h=1 )
+#' 
+#' plot_dmn_mcmc( x=dmn_mcmc,
+#'                param="x_ithk",
+#'                node_i=dmn_mcmc$node_all[1],
+#'                h=1, layer_k=1 )
+#' }
 #' @export
 #' 
 
@@ -87,7 +111,7 @@ plot_dmn_mcmc <- function( x,
     j <- match(node_j,x$node_all)
     
     if(is.null(layer_k)){ layer_k=x$layer_all[1]; warning("Plotting layer_k=",layer_k," as layer_k was not specified") }
-    if(!is.element(layer_k,x$layer_all)) {stop("node_i=",layer_k," is not a valid node")}
+    if(!is.element(layer_k,x$layer_all)) {stop("layer_k=",layer_k," is not a valid layer")}
     k <- match(layer_k,x$layer_all)
     
     param_mcmc_chain <- coda::mcmc( t(x$pi_ijtk_mcmc[i,j,,k,iter_out_mcmc]) )
@@ -138,7 +162,9 @@ plot_dmn_mcmc <- function( x,
   
   summary_mcmc <- summary(param_mcmc_chain,quantiles=cred_int_quantiles)
   colnames(summary_mcmc[[2]]) <- paste("qmcmc_",100*cred_int_quantiles,sep="")
-  summary_mcmc <- data.frame(cbind(time=x$time_all,summary_mcmc[[1]],summary_mcmc[[2]]))
+  summary_mcmc <- data.frame( cbind( time=x$time_all,
+                                     summary_mcmc[[1]],
+                                     summary_mcmc[[2]] ))
   
   summary_mcmc_aux <- sapply( cred_int_quantiles, function(x) { qnorm( p=x,
                                                                        mean=summary_mcmc$Mean,

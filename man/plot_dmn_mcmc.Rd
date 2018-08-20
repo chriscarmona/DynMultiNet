@@ -43,3 +43,28 @@ plot_dmn_mcmc(x, param = c("pi_ijtk", "mu_tk", "x_ith_shared", "x_ithk",
 \description{
 Plotting method for objects inheriting from class "\code{dmn_mcmc}".
 }
+\examples{
+
+\dontrun{
+
+plot_dmn_mcmc( x=dmn_mcmc,
+               param="mu_tk",
+               layer_k=dmn_mcmc$layer_all[1] )
+               
+plot_dmn_mcmc( x=dmn_mcmc,
+               param="pi_ijtk",
+               node_i=dmn_mcmc$node_all[2],
+               node_j=dmn_mcmc$node_all[1],
+               layer_k=1 )
+               
+plot_dmn_mcmc( x=dmn_mcmc,
+               param="x_ith_shared",
+               node_i=dmn_mcmc$node_all[1],
+               h=1 )
+
+plot_dmn_mcmc( x=dmn_mcmc,
+               param="x_ithk",
+               node_i=dmn_mcmc$node_all[1],
+               h=1, layer_k=1 )
+}
+}

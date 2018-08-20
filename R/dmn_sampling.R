@@ -46,6 +46,9 @@
 #' @examples
 #' 
 #' \dontrun{
+#' 
+#' set.seed(0)
+#' 
 #' synth_net <- gen_synth_net( node_all = seq(1,10),
 #'                             time_all = seq(1,15),
 #'                             layer_all = seq(1,3),
@@ -53,14 +56,15 @@
 #'                             H_dim = 3, R_dim = 3,
 #'                             k_x = 0.10, k_mu = 0.10, k_p = 0.10,
 #'                             a_1 = 1.5, a_2 = 2.5 )
-#'                             
-#' net_mcmc <- DynMultiNet_mcmc( net_data = synth_net$edge_data,
-#'                               pred_data = NULL,
-#'                               directed = FALSE,
-#'                               H_dim = 10, R_dim = 5,
-#'                               k_x = 0.10, k_mu = 0.10, k_p = 0.10,
-#'                               a_1 = 2, a_2 = 2,
-#'                               n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
+#' 
+#' set.seed(0)
+#' net_mcmc <- dmn_sampling( net_data = synth_net$edge_data,
+#'                           pred_data = NULL,
+#'                           directed = FALSE,
+#'                           H_dim = 10, R_dim = 5,
+#'                           k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                           a_1 = 2, a_2 = 2,
+#'                           n_iter_mcmc = 2000 )
 #' }
 #' 
 #' @useDynLib DynMultiNet
