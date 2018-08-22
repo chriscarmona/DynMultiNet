@@ -22,6 +22,7 @@ Imports:
     dplyr,
     foreach,
     ggplot2,
+    matrixcalc,
     mvtnorm,
     rstan (>= 2.17.3),
     rstantools (>= 1.5.0)

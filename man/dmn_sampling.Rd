@@ -7,7 +7,7 @@
 dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
   weighted = FALSE, H_dim = 10, R_dim = 10, k_x = 0.1,
   k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
-  n_iter_mcmc = 10000, n_burn = n_iter_mcmc/2, n_thin = 3,
+  n_iter_mcmc = 1000, n_burn = n_iter_mcmc/2, n_thin = 3,
   time_fc = NULL, out_file = NULL, log_file = NULL,
   quiet_mcmc = FALSE, parallel_mcmc = FALSE)
 }

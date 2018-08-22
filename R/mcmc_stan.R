@@ -1,6 +1,7 @@
 
 #' @import foreach
 #' @importFrom rstan stan
+#' @importFrom matrixcalc is.positive.definite
 #' @keywords internal
 mcmc_stan <- function( y_ijtk,
                        node_all, time_all, layer_all,
@@ -33,12 +34,22 @@ mcmc_stan <- function( y_ijtk,
   y_tkij <- aperm(y_ijtk,c(3,4,1,2))
   y_tkij[is.na(y_tkij)]<-0 # Stan does not support NA (in y_ijtk) in data
   
+  mu_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
+  if(!is.positive.definite(mu_t_cov_prior)){ stop('"mu_t_cov_prior" is not positive definite, increase the value of "k_mu"') }
+  x_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
+  if(!is.positive.definite(x_t_cov_prior)){ stop('"x_t_cov_prior" is not positive definite, increase the value of "k_x"') }
+  
+  mu_tk_mean <- matrix( apply(y_ijtk,c(4),mean,na.rm=T), nrow=T_all, ncol=K_net, byrow=T)
+  
   stan_data_input <- list( V_net=V_net,T_net=T_net,K_net=K_net,
                            H_dim=H_dim, R_dim=R_dim,
                            y_tkij=y_tkij,
                            a_1=a_1, a_2=a_2,
                            k_mu=k_mu, k_x=k_x,
                            T_all=T_all,
+                           mu_tk_mean = mu_tk_mean,
+                           # mu_t_cov_prior=mu_t_cov_prior,
+                           # x_t_cov_prior=x_t_cov_prior,
                            time_all=time_all,
                            time_all_idx_net=time_all_idx_net )
   
@@ -53,8 +64,8 @@ mcmc_stan <- function( y_ijtk,
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk") )
+    save( stan_fit , file=out_file )
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
-                                    stan_data_input=stan_data_input,
                                     directed=directed,
                                     weighted=weighted )
     
@@ -69,9 +80,9 @@ mcmc_stan <- function( y_ijtk,
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk") )
+    save( stan_fit , file=out_file )
     dmn_mcmc <- stan_fit
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
-                                    stan_data_input=stan_data_input,
                                     directed=directed,
                                     weighted=weighted )
   } else {

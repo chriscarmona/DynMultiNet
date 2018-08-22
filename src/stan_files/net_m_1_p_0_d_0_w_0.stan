@@ -23,11 +23,18 @@ data {
   real<lower=0> k_x;
   
   int<lower=1> T_all; // Total number of time-steps (incluiding forecast)
+  
+  matrix[T_all,K_net] mu_tk_mean;
+  
+  // cov_matrix[T_all] mu_t_cov_prior;
+  // cov_matrix[T_all] x_t_cov_prior;
+  
   vector[T_all] time_all; // Time stamps of all time-steps
   int<lower=1> time_all_idx_net[T_net]; // Indices of time_all that correspond to observed networks
 }
 
 transformed data {
+  
   cov_matrix[T_all] mu_t_cov_prior;
   cov_matrix[T_all] x_t_cov_prior;
   cholesky_factor_cov[T_all] mu_t_cov_prior_chol;
@@ -71,7 +78,7 @@ transformed parameters {
   cholesky_factor_cov[T_all] x_t_k_cov_chol[H_dim,K_net];
   
   // baseline process //
-  mu_tk = mu_t_cov_prior_chol * z_mu_kt';
+  mu_tk = mu_tk_mean + mu_t_cov_prior_chol * z_mu_kt';
   
   // Shrinkage factors and covariance matrices //
   tau_h_shared[1]=nu_h_shared[1];
