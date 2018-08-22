@@ -5,7 +5,6 @@
 #'    \code{DynMultiNet_bin} Implements model from Durante and Dunson, 2018
 #'
 #' @param stan_fit Object of class "stanfit".
-#' @param stan_data_input list. The input received by stan.
 #' @param directed Boolean. Indicates if the network is directed.
 #' @param weighted Boolean. Indicates if the network is weighted.
 #' 
@@ -21,14 +20,13 @@
 #' 
 
 dmn_mcmc_from_stan <- function( stan_fit,
-                                stan_data_input,
                                 directed=FALSE,
                                 weighted=FALSE ) {
   
   posterior <- rstan::extract(stan_fit)
   
   if( !directed & !weighted ) {
-    dmn_mcmc <- list( y_ijtk = stan_data_input$y_ijtk,
+    dmn_mcmc <- list( y_ijtk=NULL,
                       
                       directed = directed,
                       weighted = weighted,
@@ -36,12 +34,13 @@ dmn_mcmc_from_stan <- function( stan_fit,
                       n_chains_mcmc=NULL,
                       n_iter_mcmc = NULL, n_burn = NULL, n_thin = NULL,
                       
-                      a_1=stan_data_input$a_1, a_2=stan_data_input$a_2,
-                      k_mu=stan_data_input$k_mu, k_x=stan_data_input$k_x,
+                      a_1=NULL, a_2=NULL,
+                      k_mu=NULL, k_x=NULL,
                       
                       pi_ijtk_mcmc = aperm(posterior[["pi_ij_tk"]],c(4,5,2,3,1)),
                       
                       node_all=NULL, time_all=NULL, layer_all=NULL,
+                      time_all_idx_net=NULL,
                       
                       mu_tk_mcmc = posterior[["mu_tk"]],
                       
@@ -54,16 +53,17 @@ dmn_mcmc_from_stan <- function( stan_fit,
                       beta_z_layer_mcmc=NULL,
                       beta_z_edge_mcmc=NULL )
   } else if( directed & !weighted ) {
-    dmn_mcmc <- list( y_ijtk = stan_data_input$y_ijtk,
+    dmn_mcmc <- list( y_ijtk=NULL,
                       
                       directed = directed,
                       weighted = weighted,
                       
                       n_chains_mcmc=NULL,
                       n_iter_mcmc = NULL, n_burn = NULL, n_thin = NULL,
+                      time_all_idx_net=NULL,
                       
-                      a_1=stan_data_input$a_1, a_2=stan_data_input$a_2,
-                      k_mu=stan_data_input$k_mu, k_x=stan_data_input$k_x,
+                      a_1=NULL, a_2=NULL,
+                      k_mu=NULL, k_x=NULL,
                       
                       pi_ijtk_mcmc = aperm(posterior[["pi_ij_tk"]],c(4,5,2,3,1)),
                       

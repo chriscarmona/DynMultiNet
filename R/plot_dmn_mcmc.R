@@ -203,7 +203,7 @@ plot_dmn_mcmc <- function( x,
     p <- p + labs(x="time",y="mu_tk",title="mu_tk",subtitle=paste("layer_k=",layer_k,sep=""))
   } else if( is.element(param,"pi_ijtk") ){
     p <- p + geom_point( aes( y=x$y_ijtk[i,j,,k],
-                              x=x$time_all) ) +
+                              x=x$time_all[x$time_all_idx_net]) ) +
       labs(x="time",y="pi_ijtk",title="pi_ijtk",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))
   } else if( is.element(param,"x_ith_shared") ) {
     p <- p + labs(x="time",y="x_ith_shared",title="x_ith_shared",subtitle=paste("node_i=",node_i,", h=",h,sep=""))

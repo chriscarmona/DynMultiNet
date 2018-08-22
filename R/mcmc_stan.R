@@ -4,6 +4,7 @@
 #' @keywords internal
 mcmc_stan <- function( y_ijtk,
                        node_all, time_all, layer_all,
+                       time_all_idx_net,
                        
                        pred_all,
                        pred_id_layer, pred_id_edge,
@@ -19,23 +20,30 @@ mcmc_stan <- function( y_ijtk,
                        n_chains_mcmc=4,
                        n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=1,
                        
+                       time_fc=NULL,
+                       
                        out_file=NULL,
                        quiet_mcmc=FALSE ) {
   
   V_net <- length(node_all)
-  T_net <- length(time_all)
+  T_all <- length(time_all)
+  T_net <- length(time_all_idx_net)
   K_net <- length(layer_all)
   
-  y_ijtk[is.na(y_ijtk)]<-0 # Stan does not support NA (in y_ijtk) in data
+  y_tkij <- aperm(y_ijtk,c(3,4,1,2))
+  y_tkij[is.na(y_tkij)]<-0 # Stan does not support NA (in y_ijtk) in data
+  
   stan_data_input <- list( V_net=V_net,T_net=T_net,K_net=K_net,
                            H_dim=H_dim, R_dim=R_dim,
-                           y_ijtk=y_ijtk,
-                           mu_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } ),
-                           x_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } ),
+                           y_tkij=y_tkij,
                            a_1=a_1, a_2=a_2,
-                           k_mu=k_mu, k_x=k_x )
+                           k_mu=k_mu, k_x=k_x,
+                           T_all=T_all,
+                           time_all=time_all,
+                           time_all_idx_net=time_all_idx_net )
   
   if( K_net>=1 & is.null(pred_all) & !directed & !weighted ) {
+    
     stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_0_w_0,
                                  data = stan_data_input, 
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
@@ -51,6 +59,7 @@ mcmc_stan <- function( y_ijtk,
                                     weighted=weighted )
     
   } else if( K_net>=1 & is.null(pred_all) & directed & !weighted ) {
+    
     stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_1_w_0,
                                  data = stan_data_input, 
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
@@ -69,6 +78,7 @@ mcmc_stan <- function( y_ijtk,
     stop("Not supported")
   }
   
+  dmn_mcmc$y_ijtk = y_ijtk
   dmn_mcmc$n_chains_mcmc = n_chains_mcmc
   dmn_mcmc$n_iter_mcmc =n_iter_mcmc
   dmn_mcmc$n_burn = n_burn
@@ -77,6 +87,11 @@ mcmc_stan <- function( y_ijtk,
   dmn_mcmc$node_all = node_all
   dmn_mcmc$time_all = time_all
   dmn_mcmc$layer_all = layer_all
+  
+  dmn_mcmc$a_1=a_1; dmn_mcmc$a_2=a_2
+  dmn_mcmc$k_mu=k_mu; dmn_mcmc$k_x=k_x
+  
+  dmn_mcmc$time_all_idx_net=time_all_idx_net
   
   if(!is.null(out_file)){
     save( dmn_mcmc , file=out_file )

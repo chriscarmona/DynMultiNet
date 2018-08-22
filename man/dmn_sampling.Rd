@@ -8,8 +8,8 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
   weighted = FALSE, H_dim = 10, R_dim = 10, k_x = 0.1,
   k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
   n_iter_mcmc = 10000, n_burn = n_iter_mcmc/2, n_thin = 3,
-  out_file = NULL, log_file = NULL, quiet_mcmc = FALSE,
-  parallel_mcmc = FALSE)
+  time_fc = NULL, out_file = NULL, log_file = NULL,
+  quiet_mcmc = FALSE, parallel_mcmc = FALSE)
 }
 \arguments{
 \item{net_data}{Data frame.Network information.}
@@ -41,6 +41,8 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
 \item{n_burn}{Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.}
 
 \item{n_thin}{Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.}
+
+\item{time_fc}{Numeric vector. Specifies times in the networks to be forecasted.}
 
 \item{out_file}{String. Indicates a file (.RData) where the output will be saved.}
 

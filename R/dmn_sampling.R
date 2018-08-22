@@ -19,6 +19,7 @@
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
+#' @param time_fc Numeric vector. Specifies times in the networks to be forecasted.
 #' @param out_file String. Indicates a file (.RData) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
@@ -82,6 +83,7 @@ dmn_sampling <- function( net_data,
                           a_1=2, a_2=2.5,
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
+                          time_fc=NULL,
                           out_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
@@ -102,12 +104,21 @@ dmn_sampling <- function( net_data,
                                    self_edges=FALSE )
   node_all <- sort(unique(unlist(net_data[,c("source","target")])))
   V_net <- length(node_all)
-  time_all <- sort(unique(unlist(net_data$time)))
-  T_net <- length(time_all)
+  time_net <- sort(unique(unlist(net_data$time)))
+  T_net <- length(time_net)
   layer_all <- sort(unique(unlist(net_data$layer)))
   K_net <- length(layer_all)
   
+  if(any(is.element(time_fc,time_net))) {
+    warning('Some elements in "time_fc" are already in the network observed data.')
+    time_fc <- time_fc[!is.element(time_fc,time_net)]
+  }
+  
+  time_all <- sort(c(time_net,time_fc))
+  time_all_idx_net <- which(is.element(time_all,time_net))
+  
   ### Predictors data ###
+  # Pending: do something for predictors and time_fc
   pred_net <- get_z_pred( pred_data,
                           node_all, time_all, layer_all,
                           quiet=FALSE )
@@ -161,6 +172,8 @@ dmn_sampling <- function( net_data,
         "n_iter_mcmc = ",n_iter_mcmc,"\n",
         "n_burn = ",n_burn,"\n",
         "n_thin = ",n_thin,"\n",
+        "----- Network forecasting -----\n",
+        "time_fc = ", paste(time_fc,collapse=","), "\n",
         "----- Storage and processing -----\n",
         "out_file = ",out_file,"\n",
         "log_file = ",log_file,"\n",
@@ -176,6 +189,7 @@ dmn_sampling <- function( net_data,
   
   dmn_mcmc <- mcmc_stan( y_ijtk=y_ijtk,
                          node_all=node_all, time_all=time_all, layer_all=layer_all,
+                         time_all_idx_net=time_all_idx_net,
                          
                          pred_all=pred_all,
                          pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,

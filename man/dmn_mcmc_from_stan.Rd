@@ -4,13 +4,10 @@
 \alias{dmn_mcmc_from_stan}
 \title{Bayesian Learning of Dynamic Multilayer Networks}
 \usage{
-dmn_mcmc_from_stan(stan_fit, stan_data_input, directed = FALSE,
-  weighted = FALSE)
+dmn_mcmc_from_stan(stan_fit, directed = FALSE, weighted = FALSE)
 }
 \arguments{
 \item{stan_fit}{Object of class "stanfit".}
-
-\item{stan_data_input}{list. The input received by stan.}
 
 \item{directed}{Boolean. Indicates if the network is directed.}
 
