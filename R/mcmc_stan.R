@@ -39,7 +39,9 @@ mcmc_stan <- function( y_ijtk,
   x_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
   if(!is.positive.definite(x_t_cov_prior)){ stop('"x_t_cov_prior" is not positive definite, increase the value of "k_x"') }
   
-  mu_tk_mean <- matrix( apply(y_ijtk,c(4),mean,na.rm=T), nrow=T_all, ncol=K_net, byrow=T)
+  mu_tk_mean <- apply(y_ijtk,c(4),mean,na.rm=T)
+  mu_tk_mean <- log(mu_tk_mean/(1-mu_tk_mean))
+  mu_tk_mean <- matrix(mu_tk_mean, nrow=T_all, ncol=K_net, byrow=T)
   
   stan_data_input <- list( V_net=V_net,T_net=T_net,K_net=K_net,
                            H_dim=H_dim, R_dim=R_dim,
