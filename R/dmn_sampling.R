@@ -10,11 +10,14 @@
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
-#' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
-#' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
-#' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
-#' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
+#' @param k_mu Positive scalar. Hyperparameter for the scale of the baseline process.
+#' @param lambda_mu Positive scalar. Hyperparameter for the smoothness of movements of the baseline process. In general, you won't be able to extrapolate more than \code{lambda_mu} units away from your data.
+#' @param k_x Positive scalar. Hyperparameter for the scale of latent coordinates.
+#' @param lambda_x Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates.
+#' @param k_p Positive scalar. Hyperparameter for the scale of the predictor coefficients.
+#' @param lambda_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.
+#' @param a_1 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
+#' @param a_2 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
 #' @param n_chains_mcmc Integer. Number of chains for the MCMC.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
@@ -55,7 +58,7 @@
 #'                             layer_all = seq(1,3),
 #'                             directed = FALSE,
 #'                             H_dim = 3, R_dim = 3,
-#'                             k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                             k_mu = 0.10, k_x = 0.10,
 #'                             a_1 = 1.5, a_2 = 2.5 )
 #' 
 #' set.seed(0)
@@ -63,7 +66,7 @@
 #'                           pred_data = NULL,
 #'                           directed = FALSE,
 #'                           H_dim = 10, R_dim = 5,
-#'                           k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                           k_mu = 0.10, k_x = 0.10,
 #'                           a_1 = 2, a_2 = 2,
 #'                           n_iter_mcmc = 2000 )
 #' }
@@ -79,7 +82,9 @@ dmn_sampling <- function( net_data,
                           pred_data=NULL,
                           directed=FALSE, weighted=FALSE,
                           H_dim=10, R_dim=10,
-                          k_x=0.10, k_mu=0.10, k_p=0.10,
+                          k_mu=0.2, lambda_mu=1,
+                          k_x=0.2, lambda_x=1,
+                          k_p=0.2, lambda_p=1,
                           a_1=2, a_2=2.5,
                           n_chains_mcmc=1,
                           n_iter_mcmc=1000, n_burn=n_iter_mcmc/2, n_thin=3,
@@ -162,9 +167,9 @@ dmn_sampling <- function( net_data,
         "----- Inferential parameters -----\n",
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
-        "k_x = ",k_x,"\n",
-        "k_mu = ",k_mu,"\n",
-        "k_p = ",k_p,"\n",
+        "k_mu =",k_mu, ", lambda_mu =",lambda_mu,"\n",
+        "k_x =",k_x, ", lambda_x =",lambda_x,"\n",
+        "k_p =",k_p, ", lambda_p =",lambda_p,"\n",
         "a_1 = ",a_1,"\n",
         "a_2 = ",a_2,"\n",
         "----- MCMC parameters -----\n",
@@ -196,7 +201,11 @@ dmn_sampling <- function( net_data,
                          z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                          
                          H_dim=H_dim, R_dim=R_dim,
-                         k_x=k_x, k_mu=k_mu, k_p=k_p,
+                         
+                         k_mu=k_mu, lambda_mu=lambda_mu,
+                         k_x=k_x, lambda_x=lambda_x,
+                         k_p=k_p, lambda_p=lambda_p,
+                         
                          a_1=a_1, a_2=a_2,
                          
                          directed=directed,

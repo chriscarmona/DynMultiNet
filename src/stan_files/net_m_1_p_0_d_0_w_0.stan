@@ -16,11 +16,13 @@ data {
   
   int<lower=0,upper=1> y_tkij[T_net,K_net,V_net,V_net];
   
+  real<lower=0> k_mu;
+  real<lower=0> lambda_mu;
+  real<lower=0> k_x;
+  real<lower=0> lambda_x;
+  
   real<lower=0> a_1;
   real<lower=0> a_2;
-  
-  real<lower=0> k_mu;
-  real<lower=0> k_x;
   
   int<lower=1> T_all; // Total number of time-steps (incluiding forecast)
   
@@ -41,10 +43,10 @@ transformed data {
   
   for(t1 in 1:T_all) {
     for(t2 in 1:t1) {
-      mu_t_cov_prior[t1,t2] = exp(-k_mu*(time_all[t1]-time_all[t2])^2);
-      mu_t_cov_prior[t2,t1] = exp(-k_mu*(time_all[t1]-time_all[t2])^2);
-      x_t_cov_prior[t1,t2] = exp(-k_x*(time_all[t1]-time_all[t2])^2);
-      x_t_cov_prior[t2,t1] = exp(-k_x*(time_all[t1]-time_all[t2])^2);
+      mu_t_cov_prior[t1,t2] = exp(-k_mu*((time_all[t1]-time_all[t2])/lambda_mu)^2);
+      mu_t_cov_prior[t2,t1] = exp(-k_mu*((time_all[t1]-time_all[t2])/lambda_mu)^2);
+      x_t_cov_prior[t1,t2] = exp(-k_x*((time_all[t1]-time_all[t2])/lambda_x)^2);
+      x_t_cov_prior[t2,t1] = exp(-k_x*((time_all[t1]-time_all[t2])/lambda_x)^2);
     }
   }
   

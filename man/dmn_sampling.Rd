@@ -5,8 +5,9 @@
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
 dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
-  weighted = FALSE, H_dim = 10, R_dim = 10, k_x = 0.1,
-  k_mu = 0.1, k_p = 0.1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
+  weighted = FALSE, H_dim = 10, R_dim = 10, k_mu = 0.2,
+  lambda_mu = 1, k_x = 0.2, lambda_x = 1, k_p = 0.2,
+  lambda_p = 1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
   n_iter_mcmc = 1000, n_burn = n_iter_mcmc/2, n_thin = 3,
   time_fc = NULL, out_file = NULL, log_file = NULL,
   quiet_mcmc = FALSE, parallel_mcmc = FALSE)
@@ -24,15 +25,21 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
 
 \item{R_dim}{Integer. Latent space dimension, for layer specific latent vectors.}
 
-\item{k_x}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.}
+\item{k_mu}{Positive scalar. Hyperparameter for the scale of the baseline process.}
 
-\item{k_mu}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.}
+\item{lambda_mu}{Positive scalar. Hyperparameter for the smoothness of movements of the baseline process. In general, you won't be able to extrapolate more than \code{lambda_mu} units away from your data.}
 
-\item{k_p}{Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.}
+\item{k_x}{Positive scalar. Hyperparameter for the scale of latent coordinates.}
 
-\item{a_1}{Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.}
+\item{lambda_x}{Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates.}
 
-\item{a_2}{Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.}
+\item{k_p}{Positive scalar. Hyperparameter for the scale of the predictor coefficients.}
+
+\item{lambda_p}{Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.}
+
+\item{a_1}{Positive scalar. Hyperparameter for number of effective dimensions in the latent space.}
+
+\item{a_2}{Positive scalar. Hyperparameter for number of effective dimensions in the latent space.}
 
 \item{n_chains_mcmc}{Integer. Number of chains for the MCMC.}
 
@@ -84,7 +91,7 @@ synth_net <- gen_synth_net( node_all = seq(1,10),
                             layer_all = seq(1,3),
                             directed = FALSE,
                             H_dim = 3, R_dim = 3,
-                            k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+                            k_mu = 0.10, k_x = 0.10,
                             a_1 = 1.5, a_2 = 2.5 )
 
 set.seed(0)
@@ -92,7 +99,7 @@ net_mcmc <- dmn_sampling( net_data = synth_net$edge_data,
                           pred_data = NULL,
                           directed = FALSE,
                           H_dim = 10, R_dim = 5,
-                          k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+                          k_mu = 0.10, k_x = 0.10,
                           a_1 = 2, a_2 = 2,
                           n_iter_mcmc = 2000 )
 }

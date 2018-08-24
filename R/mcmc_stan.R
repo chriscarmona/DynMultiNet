@@ -12,7 +12,11 @@ mcmc_stan <- function( y_ijtk,
                        z_tkp, z_ijtkp,
                        
                        H_dim=10, R_dim=10,
-                       k_x=0.10, k_mu=0.10, k_p=0.10,
+                       
+                       k_mu=0.2, lambda_mu=1,
+                       k_x=0.2, lambda_x=1,
+                       k_p=0.2, lambda_p=1,
+                       
                        a_1=2, a_2=2.5,
                        
                        directed=directed,
@@ -34,9 +38,9 @@ mcmc_stan <- function( y_ijtk,
   y_tkij <- aperm(y_ijtk,c(3,4,1,2))
   y_tkij[is.na(y_tkij)]<-0 # Stan does not support NA (in y_ijtk) in data
   
-  mu_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
+  mu_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_mu,lambda=lambda_mu){ exp(-k*((x-y)/lambda)^2) } )
   if(!is.positive.definite(mu_t_cov_prior)){ stop('"mu_t_cov_prior" is not positive definite, increase the value of "k_mu"') }
-  x_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
+  x_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_x,lambda=lambda_x){ exp(-k*((x-y)/lambda)^2) } )
   if(!is.positive.definite(x_t_cov_prior)){ stop('"x_t_cov_prior" is not positive definite, increase the value of "k_x"') }
   
   mu_tk_mean <- apply(y_ijtk,c(4),mean,na.rm=T)
@@ -46,8 +50,13 @@ mcmc_stan <- function( y_ijtk,
   stan_data_input <- list( V_net=V_net,T_net=T_net,K_net=K_net,
                            H_dim=H_dim, R_dim=R_dim,
                            y_tkij=y_tkij,
+                           
+                           k_mu=k_mu, lambda_mu=lambda_mu,
+                           k_x=k_x, lambda_x=lambda_x,
+                           k_p=k_p, lambda_p=lambda_p,
+                           
                            a_1=a_1, a_2=a_2,
-                           k_mu=k_mu, k_x=k_x,
+                           
                            T_all=T_all,
                            mu_tk_mean = mu_tk_mean,
                            # mu_t_cov_prior=mu_t_cov_prior,
