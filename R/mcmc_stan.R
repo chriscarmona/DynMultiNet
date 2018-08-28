@@ -39,9 +39,9 @@ mcmc_stan <- function( y_ijtk,
   y_tkij[is.na(y_tkij)]<-0 # Stan does not support NA (in y_ijtk) in data
   
   mu_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_mu,lambda=lambda_mu){ exp(-k*((x-y)/lambda)^2) } )
-  if(!is.positive.definite(mu_t_cov_prior)){ stop('"mu_t_cov_prior" is not positive definite, increase the value of "k_mu"') }
+  mu_t_cov_prior = mu_t_cov_prior + diag(1e-4,dim(mu_t_cov_prior)[1])
   x_t_cov_prior = outer( time_all, time_all, FUN=function(x,y,k=k_x,lambda=lambda_x){ exp(-k*((x-y)/lambda)^2) } )
-  if(!is.positive.definite(x_t_cov_prior)){ stop('"x_t_cov_prior" is not positive definite, increase the value of "k_x"') }
+  x_t_cov_prior = x_t_cov_prior + diag(1e-4,dim(x_t_cov_prior)[1])
   
   mu_tk_mean <- apply(y_ijtk,c(4),mean,na.rm=T)
   mu_tk_mean <- log(mu_tk_mean/(1-mu_tk_mean))
@@ -66,7 +66,7 @@ mcmc_stan <- function( y_ijtk,
   
   if( K_net>=1 & is.null(pred_all) & !directed & !weighted ) {
     
-    stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_0_w_0,
+    stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_0_w_0_chol,
                                  data = stan_data_input, 
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
@@ -75,6 +75,7 @@ mcmc_stan <- function( y_ijtk,
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk") )
+    
     save( stan_fit , file=out_file )
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
                                     directed=directed,
@@ -82,7 +83,7 @@ mcmc_stan <- function( y_ijtk,
     
   } else if( K_net>=1 & is.null(pred_all) & directed & !weighted ) {
     
-    stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_1_w_0,
+    stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_1_w_0_chol,
                                  data = stan_data_input, 
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
@@ -91,6 +92,7 @@ mcmc_stan <- function( y_ijtk,
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk") )
+    
     save( stan_fit , file=out_file )
     dmn_mcmc <- stan_fit
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,

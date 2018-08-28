@@ -39,7 +39,7 @@ transformed data {
   
   cov_matrix[T_all] mu_t_cov_prior;
   cov_matrix[T_all] x_t_cov_prior;
-  cholesky_factor_cov[T_all] mu_t_cov_prior_chol;
+  cholesky_factor_cov[T_all] mu_t_cov_prior_sqrt;
   
   for(t1 in 1:T_all) {
     for(t2 in 1:t1) {
@@ -49,8 +49,9 @@ transformed data {
       x_t_cov_prior[t2,t1] = exp(-k_x*((time_all[t1]-time_all[t2])/lambda_x)^2);
     }
   }
-  
-  mu_t_cov_prior_chol = cholesky_decompose(mu_t_cov_prior);
+  mu_t_cov_prior = mu_t_cov_prior + diag_matrix(rep_vector(1e-4, T_all));
+  x_t_cov_prior = x_t_cov_prior + diag_matrix(rep_vector(1e-4, T_all));
+  mu_t_cov_prior_sqrt = cholesky_decompose( mu_t_cov_prior );
 }
 
 parameters {
@@ -76,35 +77,38 @@ transformed parameters {
   
   vector[H_dim] tau_h_shared;
   matrix[H_dim,K_net] tau_hk;
-  cholesky_factor_cov[T_all] x_t_shared_cov_chol[H_dim];
-  cholesky_factor_cov[T_all] x_t_k_cov_chol[H_dim,K_net];
+  cholesky_factor_cov[T_all] x_t_shared_cov_sqrt[H_dim];
+  cholesky_factor_cov[T_all] x_t_k_cov_sqrt[R_dim,K_net];
   
   // baseline process //
-  mu_tk = mu_tk_mean + mu_t_cov_prior_chol * z_mu_kt';
+  mu_tk = mu_tk_mean + mu_t_cov_prior_sqrt * z_mu_kt';
   
   // Shrinkage factors and covariance matrices //
   tau_h_shared[1]=nu_h_shared[1];
-  x_t_shared_cov_chol[1] = cholesky_decompose( (1/tau_h_shared[1])*x_t_cov_prior );
-  tau_hk[1]=nu_hk[1];
-  for (k in 1:K_net) {
-    x_t_k_cov_chol[1,k] = cholesky_decompose( (1/tau_hk[1,k])*x_t_cov_prior );
-  }
+  x_t_shared_cov_sqrt[1] = cholesky_decompose( (1/tau_h_shared[1])*x_t_cov_prior );
   for(h in 2:H_dim) {
     tau_h_shared[h] = tau_h_shared[h-1]*nu_h_shared[h];
-    x_t_shared_cov_chol[h] = cholesky_decompose( (1/tau_h_shared[h])*x_t_cov_prior );
+    x_t_shared_cov_sqrt[h] = cholesky_decompose( (1/tau_h_shared[h])*x_t_cov_prior );
+  }
+  
+  tau_hk[1]=nu_hk[1];
+  for (k in 1:K_net) {
+    x_t_k_cov_sqrt[1,k] = cholesky_decompose( (1/tau_hk[1,k])*x_t_cov_prior );
+  }
+  for(h in 2:R_dim) {
     for (k in 1:K_net) {
       tau_hk[h,k] = tau_hk[h-1,k] * nu_hk[h,k];
-      x_t_k_cov_chol[h,k] = cholesky_decompose( (1/tau_hk[h,k])*x_t_cov_prior );
+      x_t_k_cov_sqrt[h,k] = cholesky_decompose( (1/tau_hk[h,k])*x_t_cov_prior );
     }
   }
   
   // Shared latent coordinates //
   for(h in 1:H_dim) {
-    x_ti_h_shared[h] = x_t_shared_cov_chol[h] * z_x_it_h_shared[h]';
+    x_ti_h_shared[h] = x_t_shared_cov_sqrt[h] * z_x_it_h_shared[h]';
   }
   // rearrange 
   for(t in 1:T_all) {
-    for(h in 1:R_dim) {
+    for(h in 1:H_dim) {
       for(i in 1:V_net) {
         x_ih_t_shared[t][i,h] = x_ti_h_shared[h][t,i];
       }
@@ -114,7 +118,7 @@ transformed parameters {
   // Layer-specific latent coordinates //
   for(h in 1:R_dim) {
     for(k in 1:K_net) {
-      x_ti_hk[h,k] = x_t_k_cov_chol[h,k] * z_x_it_hk[h,k]';
+      x_ti_hk[h,k] = x_t_k_cov_sqrt[h,k] * z_x_it_hk[h,k]';
     }
   }
   // rearrange
@@ -159,7 +163,7 @@ model {
   }
   
   // Layer-specific latent coordinates //
-  for (h in 1:H_dim) {
+  for (h in 1:R_dim) {
     for (k in 1:K_net) {
       for (i in 1:V_net) {
         z_x_it_hk[h,k][i] ~ normal( 0 , 1 );
@@ -169,9 +173,11 @@ model {
   
   // Shrinkage factors //
   nu_h_shared[1] ~ gamma(a_1,1);
-  nu_hk[1]~gamma(a_1,1);
   for(h in 2:H_dim) {
     nu_h_shared[h] ~ gamma(a_2,1);
+  }
+  nu_hk[1]~gamma(a_1,1);
+  for(h in 2:R_dim) {
     nu_hk[h] ~ gamma(a_2,1);
   }
 }
