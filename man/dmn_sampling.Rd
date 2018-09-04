@@ -6,8 +6,9 @@
 \usage{
 dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
   weighted = FALSE, H_dim = 10, R_dim = 10, k_mu = 0.2,
-  lambda_mu = 1, k_x = 0.2, lambda_x = 1, k_p = 0.2,
-  lambda_p = 1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
+  delta_mu = 1, k_x = 0.2, delta_x = 1, k_p = 0.2, delta_p = 1,
+  k_lambda = 0.2, delta_lambda = 1, k_u = 0.2, delta_u = 1,
+  k_q = 0.2, delta_q = 1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
   n_iter_mcmc = 1000, n_burn = n_iter_mcmc/2, n_thin = 3,
   time_fc = NULL, out_file = NULL, log_file = NULL,
   quiet_mcmc = FALSE, parallel_mcmc = FALSE)
@@ -25,17 +26,27 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
 
 \item{R_dim}{Integer. Latent space dimension, for layer specific latent vectors.}
 
-\item{k_mu}{Positive scalar. Hyperparameter for the scale of the baseline process.}
+\item{k_mu}{Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link probabilities.}
 
-\item{lambda_mu}{Positive scalar. Hyperparameter for the smoothness of movements of the baseline process. In general, you won't be able to extrapolate more than \code{lambda_mu} units away from your data.}
+\item{delta_mu}{Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link probabilities. In general, you won't be able to extrapolate more than \code{delta_mu} units away from your data.}
 
-\item{k_x}{Positive scalar. Hyperparameter for the scale of latent coordinates.}
+\item{k_x}{Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link probabilities.}
 
-\item{lambda_x}{Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates.}
+\item{delta_x}{Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link probabilities.}
 
-\item{k_p}{Positive scalar. Hyperparameter for the scale of the predictor coefficients.}
+\item{k_p}{Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link probabilities.}
 
-\item{lambda_p}{Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.}
+\item{delta_p}{Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.}
+
+\item{k_lambda}{Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link weights.}
+
+\item{delta_lambda}{Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link weight. In general, you won't be able to extrapolate more than \code{delta_lambda} units away from your data.}
+
+\item{k_u}{Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link weights.}
+
+\item{delta_u}{Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link weights.}
+
+\item{k_q}{Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link weights.}
 
 \item{a_1}{Positive scalar. Hyperparameter for number of effective dimensions in the latent space.}
 
@@ -58,6 +69,8 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
 \item{quiet_mcmc}{Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.}
 
 \item{parallel_mcmc}{Boolean. Indicates if some steps in the mcmc would be processed in parallel.}
+
+\item{delta_p}{Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients that correspond to link weights.}
 }
 \value{
 A list with the following components:

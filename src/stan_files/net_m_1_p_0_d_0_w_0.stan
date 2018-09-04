@@ -16,23 +16,21 @@ data {
   
   int<lower=0,upper=1> y_tkij[T_net,K_net,V_net,V_net];
   
-  real<lower=0> k_mu;
-  real<lower=0> lambda_mu;
-  real<lower=0> k_x;
-  real<lower=0> lambda_x;
+  int<lower=1> T_all; // Total number of time-steps (incluiding forecast)
+  vector[T_all] time_all; // Time stamps of all time-steps
+  int<lower=1> time_all_idx_net[T_net]; // Indices of time_all that correspond to observed networks
   
+  // shrinkage parameters
   real<lower=0> a_1;
   real<lower=0> a_2;
   
-  int<lower=1> T_all; // Total number of time-steps (incluiding forecast)
-  
+  // latent variables, for link probability
+  real<lower=0> k_mu;
+  real<lower=0> delta_mu;
+  real<lower=0> k_x;
+  real<lower=0> delta_x;
   matrix[T_all,K_net] mu_tk_mean;
   
-  // cov_matrix[T_all] mu_t_cov_prior;
-  // cov_matrix[T_all] x_t_cov_prior;
-  
-  vector[T_all] time_all; // Time stamps of all time-steps
-  int<lower=1> time_all_idx_net[T_net]; // Indices of time_all that correspond to observed networks
 }
 
 transformed data {
@@ -43,10 +41,10 @@ transformed data {
   
   for(t1 in 1:T_all) {
     for(t2 in 1:t1) {
-      mu_t_cov_prior[t1,t2] = exp(-k_mu*((time_all[t1]-time_all[t2])/lambda_mu)^2);
-      mu_t_cov_prior[t2,t1] = exp(-k_mu*((time_all[t1]-time_all[t2])/lambda_mu)^2);
-      x_t_cov_prior[t1,t2] = exp(-k_x*((time_all[t1]-time_all[t2])/lambda_x)^2);
-      x_t_cov_prior[t2,t1] = exp(-k_x*((time_all[t1]-time_all[t2])/lambda_x)^2);
+      mu_t_cov_prior[t1,t2] = exp(-k_mu*((time_all[t1]-time_all[t2])/delta_mu)^2);
+      mu_t_cov_prior[t2,t1] = exp(-k_mu*((time_all[t1]-time_all[t2])/delta_mu)^2);
+      x_t_cov_prior[t1,t2] = exp(-k_x*((time_all[t1]-time_all[t2])/delta_x)^2);
+      x_t_cov_prior[t2,t1] = exp(-k_x*((time_all[t1]-time_all[t2])/delta_x)^2);
     }
   }
   mu_t_cov_prior = mu_t_cov_prior + diag_matrix(rep_vector(1e-4, T_all));

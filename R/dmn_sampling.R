@@ -10,12 +10,21 @@
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param k_mu Positive scalar. Hyperparameter for the scale of the baseline process.
-#' @param lambda_mu Positive scalar. Hyperparameter for the smoothness of movements of the baseline process. In general, you won't be able to extrapolate more than \code{lambda_mu} units away from your data.
-#' @param k_x Positive scalar. Hyperparameter for the scale of latent coordinates.
-#' @param lambda_x Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates.
-#' @param k_p Positive scalar. Hyperparameter for the scale of the predictor coefficients.
-#' @param lambda_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.
+#' 
+#' @param k_mu Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link probabilities.
+#' @param delta_mu Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link probabilities. In general, you won't be able to extrapolate more than \code{delta_mu} units away from your data.
+#' @param k_x Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link probabilities.
+#' @param delta_x Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link probabilities.
+#' @param k_p Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link probabilities.
+#' @param delta_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.
+#' 
+#' @param k_lambda Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link weights.
+#' @param delta_lambda Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link weight. In general, you won't be able to extrapolate more than \code{delta_lambda} units away from your data.
+#' @param k_u Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link weights.
+#' @param delta_u Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link weights.
+#' @param k_q Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link weights.
+#' @param delta_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients that correspond to link weights.
+#' 
 #' @param a_1 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
 #' @param n_chains_mcmc Integer. Number of chains for the MCMC.
@@ -82,10 +91,17 @@ dmn_sampling <- function( net_data,
                           pred_data=NULL,
                           directed=FALSE, weighted=FALSE,
                           H_dim=10, R_dim=10,
-                          k_mu=0.2, lambda_mu=1,
-                          k_x=0.2, lambda_x=1,
-                          k_p=0.2, lambda_p=1,
+                          
+                          k_mu=0.2, delta_mu=1,
+                          k_x=0.2, delta_x=1,
+                          k_p=0.2, delta_p=1,
+                          
+                          k_lambda=0.2, delta_lambda=1,
+                          k_u=0.2, delta_u=1,
+                          k_q=0.2, delta_q=1,
+                          
                           a_1=2, a_2=2.5,
+                          
                           n_chains_mcmc=1,
                           n_iter_mcmc=1000, n_burn=n_iter_mcmc/2, n_thin=3,
                           time_fc=NULL,
@@ -157,37 +173,48 @@ dmn_sampling <- function( net_data,
       model_des <- paste(model_des," unweighted edges",collapse="")
     }
     
-    cat("**** DynMultiNet *****\n\n",
-        "----- Network topology -----\n",
+    cat("**** DynMultiNet *****\n",
+        
+        "\n----- Network topology -----\n",
         "Nodes = ",V_net,"\n",
         "Layers = ",K_net,"\n",
         "Times steps = ",T_net,"\n",
         "Directed = ",directed,"\n",
         "Weighted = ",weighted,"\n",
-        "----- Inferential parameters -----\n",
+        
+        "\n----- Inferential parameters -----\n",
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
-        "k_mu =",k_mu, ", lambda_mu =",lambda_mu,"\n",
-        "k_x =",k_x, ", lambda_x =",lambda_x,"\n",
-        "k_p =",k_p, ", lambda_p =",lambda_p,"\n",
+        
+        "k_mu =",k_mu, ", delta_mu =",delta_mu,"\n",
+        "k_x =",k_x, ", delta_x =",delta_x,"\n",
+        "k_p =",k_p, ", delta_p =",delta_p,"\n",
+        
+        "k_mu =",k_lambda, ", delta_lambda =",delta_lambda,"\n",
+        "k_u =",k_u, ", delta_u =",delta_u,"\n",
+        "k_q =",k_q, ", delta_q =",delta_q,"\n",
+        
         "a_1 = ",a_1,"\n",
         "a_2 = ",a_2,"\n",
-        "----- MCMC parameters -----\n",
+        
+        "\n----- MCMC parameters -----\n",
         "n_chains_mcmc = ",n_chains_mcmc,"\n",
         "n_iter_mcmc = ",n_iter_mcmc,"\n",
         "n_burn = ",n_burn,"\n",
         "n_thin = ",n_thin,"\n",
-        "----- Network forecasting -----\n",
+        
+        "\n----- Network forecasting -----\n",
         "time_fc = ", paste(time_fc,collapse=","), "\n",
-        "----- Storage and processing -----\n",
+        
+        "\n----- Storage and processing -----\n",
         "out_file = ",out_file,"\n",
         "log_file = ",log_file,"\n",
         "parallel_mcmc = ",parallel_mcmc,"\n",
-        "---------------------------\n\n",
-        "Process starting time:\n",as.character(mcmc_clock),"\n\n",
-        "---------------------------\n\n",
-        "MCMC Starting time:\n",as.character(Sys.time()),"\n\n",
-        "---------------------------\n\n\n",
+        "\n---------------------------\n",
+        "\nProcess starting time:\n",as.character(mcmc_clock),"\n",
+        "\n---------------------------\n",
+        "\nMCMC Starting time:\n",as.character(Sys.time()),"\n",
+        "\n---------------------------\n\n",
         file=log_file )
   }
   mcmc_clock <- Sys.time()
@@ -202,9 +229,13 @@ dmn_sampling <- function( net_data,
                          
                          H_dim=H_dim, R_dim=R_dim,
                          
-                         k_mu=k_mu, lambda_mu=lambda_mu,
-                         k_x=k_x, lambda_x=lambda_x,
-                         k_p=k_p, lambda_p=lambda_p,
+                         k_mu=k_mu, delta_mu=delta_mu,
+                         k_x=k_x, delta_x=delta_x,
+                         k_p=k_p, delta_p=delta_p,
+                         
+                         k_lambda=k_lambda, delta_lambda=delta_lambda,
+                         k_u=k_u, delta_u=delta_u,
+                         k_q=k_q, delta_q=delta_q,
                          
                          a_1=a_1, a_2=a_2,
                          
