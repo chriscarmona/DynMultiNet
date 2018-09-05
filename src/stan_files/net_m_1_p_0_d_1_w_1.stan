@@ -104,7 +104,7 @@ transformed parameters {
   matrix[V_net,V_net] r_ij_tk[T_all,K_net]; // for link weight
   
   // Link probabilities
-  matrix<lower=1,upper=1>[V_net,V_net] pi_ij_tk[T_all,K_net];
+  matrix<lower=0,upper=1>[V_net,V_net] pi_ij_tk[T_all,K_net];
   
   // Baseline processes
   matrix[T_all,K_net] mu_tk; // for link probability
