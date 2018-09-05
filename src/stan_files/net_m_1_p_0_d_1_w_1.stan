@@ -95,7 +95,7 @@ parameters {
   vector<lower=0>[H_dim] eta_h_shared[2];
   matrix<lower=0>[H_dim,K_net] eta_hk[2];
   
-  real<lower=0> log_sigma_w_k[K_net];
+  real log_sigma_w_k[K_net];
 }
 
 transformed parameters {
