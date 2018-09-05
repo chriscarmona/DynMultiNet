@@ -104,7 +104,7 @@ transformed parameters {
   matrix[V_net,V_net] r_ij_tk[T_all,K_net]; // for link weight
   
   // Link probabilities
-  matrix[V_net,V_net] pi_ij_tk[T_all,K_net];
+  matrix<lower=1,upper=1>[V_net,V_net] pi_ij_tk[T_all,K_net];
   
   // Baseline processes
   matrix[T_all,K_net] mu_tk; // for link probability
@@ -231,9 +231,9 @@ model {
         for (j in 1:V_net) {
           if(i!=j){
             if( y_tkij[t,k,i,j]==0 ){
-              target += log(pi_ij_tk[t,k][i,j]);
+              target += log(1-pi_ij_tk[t,k][i,j]);
             } else {
-              target += log(1-pi_ij_tk[t,k][i,j]) + normal_lpdf( y_tkij[t,k,i,j] | r_ij_tk[t,k][i,j] , exp(log_sigma_w_k[k]) );
+              target += log(pi_ij_tk[t,k][i,j]) + normal_lpdf( y_tkij[t,k,i,j] | r_ij_tk[t,k][i,j] , exp(log_sigma_w_k[k]) );
             }
           }
         }
