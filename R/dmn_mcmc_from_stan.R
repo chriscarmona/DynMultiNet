@@ -83,8 +83,53 @@ dmn_mcmc_from_stan <- function( stan_fit,
                       pred_id_layer=NULL, pred_id_edge=NULL,
                       beta_z_layer_mcmc=NULL,
                       beta_z_edge_mcmc=NULL )
+  } else if( directed & weighted ) {
+    dmn_mcmc <- list( y_ijtk=NULL,
+                      
+                      directed = directed,
+                      weighted = weighted,
+                      
+                      n_chains_mcmc=NULL,
+                      n_iter_mcmc = NULL, n_burn = NULL, n_thin = NULL,
+                      time_all_idx_net=NULL,
+                      
+                      a_1=NULL, a_2=NULL,
+                      k_mu=NULL, k_x=NULL,
+                      
+                      node_all=NULL, time_all=NULL, layer_all=NULL,
+                      
+                      # For link probabilities #
+                      pi_ijtk_mcmc = aperm(posterior[["pi_ij_tk"]],c(4,5,2,3,1)),
+                      
+                      mu_tk_mcmc = aperm(posterior[["mu_tk"]],c(2,3,1)),
+                      x_ith_shared_mcmc = list( aperm(posterior[["x_ti_h_shared"]][,1,,,],c(4,3,2,1)),
+                                                aperm(posterior[["x_ti_h_shared"]][,2,,,],c(4,3,2,1)) ),
+                      x_ithk_mcmc = list( aperm(posterior[["x_ti_hk"]][,1,,,,],c(5,4,2,3,1)),
+                                          aperm(posterior[["x_ti_hk"]][,2,,,,],c(5,4,2,3,1)) ),
+                      tau_h_shared_mcmc = list( aperm(posterior[["tau_h_shared"]][,1,],c(2,1) ),
+                                                aperm(posterior[["tau_h_shared"]][,1,],c(2,1)) ),
+                      tau_h_k_mcmc = list( aperm(posterior[["tau_hk"]][,1,,],c(2,3,1)),
+                                           aperm(posterior[["tau_hk"]][,1,,],c(2,3,1)) ),
+                      
+                      # For link weights #
+                      r_ijtk_mcmc = aperm(posterior[["r_ij_tk"]],c(4,5,2,3,1)),
+                      sigma_w_k = aperm(posterior[["sigma_w_k"]],c(2,1)),
+                      
+                      lambda_tk_mcmc = aperm(posterior[["lambda_tk"]],c(2,3,1)),
+                      u_ith_shared_mcmc = list( aperm(posterior[["u_ti_h_shared"]][,1,,,],c(4,3,2,1)),
+                                                aperm(posterior[["u_ti_h_shared"]][,2,,,],c(4,3,2,1)) ),
+                      u_ithk_mcmc = list( aperm(posterior[["u_ti_hk"]][,1,,,,],c(5,4,2,3,1)),
+                                          aperm(posterior[["u_ti_hk"]][,2,,,,],c(5,4,2,3,1)) ),
+                      rho_h_shared_mcmc = list( aperm(posterior[["rho_h_shared"]][,1,],c(2,1) ),
+                                                aperm(posterior[["rho_h_shared"]][,1,],c(2,1)) ),
+                      rho_h_k_mcmc = list( aperm(posterior[["rho_hk"]][,1,,],c(2,3,1)),
+                                           aperm(posterior[["rho_hk"]][,1,,],c(2,3,1)) ),
+                      
+                      pred_id_layer=NULL, pred_id_edge=NULL,
+                      beta_z_layer_mcmc=NULL,
+                      beta_z_edge_mcmc=NULL )
   } else {
-    stop("Not supported.")
+    stop("dmn_mcmc_from_stan does not supported your specification.")
   }
   dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
   

@@ -120,6 +120,7 @@ mcmc_stan <- function( y_ijtk,
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk",
+                                        "r_ij_tk","sigma_w_k",
                                         "lambda_tk",
                                         "u_ti_h_shared","u_ti_hk",
                                         "rho_h_shared","rho_hk") )

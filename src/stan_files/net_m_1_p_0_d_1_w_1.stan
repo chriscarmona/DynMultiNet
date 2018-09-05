@@ -281,3 +281,8 @@ model {
     }
   }
 }
+
+generated quantities {
+  real<lower=0> sigma_w_k[K_net];
+  sigma_w_k = exp(log_sigma_w_k);
+}
