@@ -75,6 +75,7 @@ mcmc_stan <- function( y_ijtk,
                            k_q=k_q, delta_q=delta_q,
                            lambda_tk_mean = lambda_tk_mean )
   
+  cat("MCMC will be saved in ",n_chains_mcmc," csv files:\n\n",paste(gsub(".RData","",out_file),"_",1:n_chains_mcmc,".csv\n",sep=""),"\n\n",sep="")
   if( K_net>=1 & is.null(pred_all) & !directed & !weighted ) {
     
     stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_0_w_0,
@@ -82,6 +83,7 @@ mcmc_stan <- function( y_ijtk,
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
                                  verbose=!quiet_mcmc,
+                                 sample_file=gsub(".RData","",out_file),
                                  pars=c("pi_ij_tk",
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
@@ -99,6 +101,7 @@ mcmc_stan <- function( y_ijtk,
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
                                  verbose=!quiet_mcmc,
+                                 sample_file=gsub(".RData","",out_file),
                                  pars=c("pi_ij_tk",
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
@@ -116,14 +119,17 @@ mcmc_stan <- function( y_ijtk,
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
                                  verbose=!quiet_mcmc,
+                                 sample_file=gsub(".RData","",out_file),
                                  pars=c("pi_ij_tk",
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk",
-                                        "r_ij_tk","sigma_w_k",
+                                        "r_ij_tk",
+                                        "sigma_w_k",
                                         "lambda_tk",
                                         "u_ti_h_shared","u_ti_hk",
-                                        "rho_h_shared","rho_hk") )
+                                        "rho_h_shared","rho_hk"
+                                        ) )
     
     save( stan_fit , file=out_file )
     dmn_mcmc <- stan_fit
@@ -131,7 +137,7 @@ mcmc_stan <- function( y_ijtk,
                                     directed=directed,
                                     weighted=weighted )
   } else {
-    stop("Not supported")
+    stop("Apologies, network not supported by DynMultiNet.")
   }
   
   dmn_mcmc$y_ijtk = y_ijtk
