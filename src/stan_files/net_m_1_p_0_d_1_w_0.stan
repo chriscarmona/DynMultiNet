@@ -74,7 +74,7 @@ transformed parameters {
   matrix[V_net,R_dim] x_ih_tk[2,T_all,K_net];
   
   vector[H_dim] tau_h_shared[2];
-  matrix[H_dim,K_net] tau_hk[2];
+  matrix[R_dim,K_net] tau_hk[2];
   cholesky_factor_cov[T_all] x_t_shared_cov_sqrt[2,H_dim];
   cholesky_factor_cov[T_all] x_t_k_cov_sqrt[2,R_dim,K_net];
   

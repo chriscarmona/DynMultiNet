@@ -31,7 +31,7 @@ mcmc_stan <- function( y_ijtk,
                        
                        time_fc=NULL,
                        
-                       out_file=NULL,
+                       out_file="DynMultiNet_mcmc_result",
                        quiet_mcmc=FALSE ) {
   
   V_net <- length(node_all)
@@ -75,7 +75,7 @@ mcmc_stan <- function( y_ijtk,
                            k_q=k_q, delta_q=delta_q,
                            lambda_tk_mean = lambda_tk_mean )
   
-  cat("MCMC will be saved in ",n_chains_mcmc," csv files:\n\n",paste(gsub(".RData","",out_file),"_",1:n_chains_mcmc,".csv\n",sep=""),"\n\n",sep="")
+  cat("MCMC will be saved in ",n_chains_mcmc," csv files:\n\n",paste(out_file,"_",1:n_chains_mcmc,".csv\n",sep=""),"\n\n",sep="")
   if( K_net>=1 & is.null(pred_all) & !directed & !weighted ) {
     
     stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_0_w_0,
@@ -83,13 +83,13 @@ mcmc_stan <- function( y_ijtk,
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
                                  verbose=!quiet_mcmc,
-                                 sample_file=gsub(".RData","",out_file),
+                                 sample_file=out_file,
                                  pars=c("pi_ij_tk",
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk") )
     
-    save( stan_fit , file=out_file )
+    saveRDS( stan_fit , file=paste(out_file,".rds") )
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
                                     directed=directed,
                                     weighted=weighted )
@@ -101,25 +101,26 @@ mcmc_stan <- function( y_ijtk,
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
                                  verbose=!quiet_mcmc,
-                                 sample_file=gsub(".RData","",out_file),
+                                 sample_file=out_file,
                                  pars=c("pi_ij_tk",
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
                                         "tau_h_shared","tau_hk") )
     
-    save( stan_fit , file=out_file )
+    saveRDS( stan_fit , file=paste(out_file,".rds") )
     dmn_mcmc <- stan_fit
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
                                     directed=directed,
                                     weighted=weighted )
   } else if( K_net>=1 & is.null(pred_all) & directed & weighted ) {
     
+    tryCatch({
     stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_1_w_1,
                                  data = stan_data_input, 
                                  iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                  chains = n_chains_mcmc,
                                  verbose=!quiet_mcmc,
-                                 sample_file=gsub(".RData","",out_file),
+                                 sample_file=out_file,
                                  pars=c("pi_ij_tk",
                                         "mu_tk",
                                         "x_ti_h_shared","x_ti_hk",
@@ -130,19 +131,26 @@ mcmc_stan <- function( y_ijtk,
                                         "u_ti_h_shared","u_ti_hk",
                                         "rho_h_shared","rho_hk"
                                         ) )
-    
-    save( stan_fit , file=out_file )
+    saveRDS( stan_fit , file=paste(out_file,".rds") )
     dmn_mcmc <- stan_fit
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
                                     directed=directed,
                                     weighted=weighted )
+    }, error=dmn_mcmc_from_stan_failed( file=out_file,
+                                        n_chains_mcmc=n_chains_mcmc,
+                                        n_iter_mcmc=n_iter_mcmc,n_burn=n_burn,
+                                        V_net=V_net,T_all=T_all,K_net=K_net,
+                                        H_dim=H_dim,R_dim=R_dim,
+                                        directed=directed,
+                                        weighted=weighted ) )
+    
   } else {
     stop("Apologies, network not supported by DynMultiNet.")
   }
   
   dmn_mcmc$y_ijtk = y_ijtk
   dmn_mcmc$n_chains_mcmc = n_chains_mcmc
-  dmn_mcmc$n_iter_mcmc =n_iter_mcmc
+  dmn_mcmc$n_iter_mcmc = n_iter_mcmc
   dmn_mcmc$n_burn = n_burn
   dmn_mcmc$n_thin = n_thin
   
@@ -155,9 +163,7 @@ mcmc_stan <- function( y_ijtk,
   
   dmn_mcmc$time_all_idx_net=time_all_idx_net
   
-  if(!is.null(out_file)){
-    save( dmn_mcmc , file=out_file )
-  }
+  saveRDS( dmn_mcmc , file=paste(out_file,".rds") )
   
   return( dmn_mcmc )
   
