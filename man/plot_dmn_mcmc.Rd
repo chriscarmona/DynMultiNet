@@ -14,12 +14,19 @@ plot_dmn_mcmc(x, param = c("pi_ijtk", "mu_tk", "x_ith_shared", "x_ithk",
 
 \item{param}{Character. Specifies the parameter that will be plotted. Possible parameters are:
 \describe{
-    \item{\code{"pi_ijtk"}}{Edge probabilities between node_i and node_j at layer_k.}
-    \item{\code{"mu_tk"}}{Baseline process for layer_k.}
-    \item{\code{"x_ith_shared"}}{Global (shared) latent coordinates for node_i in dimension h.}
-    \item{\code{"x_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h.}
-    \item{\code{"tau_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h.}
-    \item{\code{"tau_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h.}
+    \item{\code{"pi_ijtk"}}{Edge probabilities between node_i and node_j at time t in layer_k.}
+    \item{\code{"mu_tk"}}{Baseline process for edge probability at layer_k.}
+    \item{\code{"x_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge probability.}
+    \item{\code{"x_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge probability.}
+    \item{\code{"tau_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h, corresponding to edge probability.}
+    \item{\code{"tau_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h, corresponding to edge probability.}
+    \item{\code{"r_ijtk"}}{Expected value of edge weight between node_i and node_j at time t in layer_k.}
+    \item{\code{"sigma_w_k"}}{Variance of edge weight at layer_k.}
+    \item{\code{"lambda_tk_mcmc"}}{Baseline process for edge weight at layer_k.}
+    \item{\code{"u_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge weight.}
+    \item{\code{"x_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge weight}
+    \item{\code{"rho_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h, corresponding to edge weight}
+    \item{\code{"rho_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h, corresponding to edge weight}
     }}
 
 \item{node_i}{character/numeric. Id of a node in the network.}
@@ -48,14 +55,14 @@ Plotting method for objects inheriting from class "\code{dmn_mcmc}".
 \dontrun{
 
 plot_dmn_mcmc( x=dmn_mcmc,
-               param="mu_tk",
-               layer_k=dmn_mcmc$layer_all[1] )
-               
-plot_dmn_mcmc( x=dmn_mcmc,
                param="pi_ijtk",
                node_i=dmn_mcmc$node_all[2],
                node_j=dmn_mcmc$node_all[1],
                layer_k=1 )
+               
+plot_dmn_mcmc( x=dmn_mcmc,
+               param="mu_tk",
+               layer_k=dmn_mcmc$layer_all[1] )
                
 plot_dmn_mcmc( x=dmn_mcmc,
                param="x_ith_shared",

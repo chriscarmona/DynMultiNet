@@ -36,7 +36,8 @@
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
 #' @param parallel_mcmc Boolean. Indicates if some steps in the mcmc would be processed in parallel.
-#'
+#' @param only_read_csv_stan_fit Boolean. Indicates if the sampling process is skipped and only reads the csv output from a previous run.
+#' 
 #' @details
 #'    The model assumes a latent variable approach
 #'    
@@ -107,7 +108,8 @@ dmn_sampling <- function( net_data,
                           time_fc=NULL,
                           out_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
-                          parallel_mcmc=FALSE ) {
+                          parallel_mcmc=FALSE,
+                          only_read_csv_stan_fit=FALSE ) {
   
   mcmc_clock <- Sys.time()
   
@@ -207,15 +209,15 @@ dmn_sampling <- function( net_data,
         "time_fc = ", paste(time_fc,collapse=","), "\n",
         
         "\n----- Storage and processing -----\n",
-        "out_file = ",out_file,"\n",
-        "log_file = ",log_file,"\n",
+        "out_file = ",paste(out_file,".rds",sep=""),"\n",
+        "log_file = ",paste(log_file,".txt",sep=""),"\n",
         "parallel_mcmc = ",parallel_mcmc,"\n",
         "\n---------------------------\n",
         "\nProcess starting time:\n",as.character(mcmc_clock),"\n",
         "\n---------------------------\n",
         "\nMCMC Starting time:\n",as.character(Sys.time()),"\n",
         "\n---------------------------\n\n",
-        file=log_file )
+        file=paste(log_file,".txt",sep="") )
   }
   mcmc_clock <- Sys.time()
   
@@ -246,12 +248,13 @@ dmn_sampling <- function( net_data,
                          n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                          
                          out_file=out_file,
-                         quiet_mcmc=quiet_mcmc )
+                         quiet_mcmc=quiet_mcmc,
+                         only_read_csv_stan_fit=only_read_csv_stan_fit )
   
   if( !is.null(log_file) ) {
     cat("MCMC Finish time:\n",as.character(Sys.time()),"\n\n",
         "---------------------------\n\n\n",
-        file=log_file,append=T )
+        file=paste(log_file,".txt",sep=""),append=T )
   }
   
   return( dmn_mcmc )

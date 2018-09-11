@@ -11,7 +11,8 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
   k_q = 0.2, delta_q = 1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
   n_iter_mcmc = 1000, n_burn = n_iter_mcmc/2, n_thin = 3,
   time_fc = NULL, out_file = NULL, log_file = NULL,
-  quiet_mcmc = FALSE, parallel_mcmc = FALSE)
+  quiet_mcmc = FALSE, parallel_mcmc = FALSE,
+  only_read_csv_stan_fit = FALSE)
 }
 \arguments{
 \item{net_data}{Data frame.Network information.}
@@ -69,6 +70,8 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
 \item{quiet_mcmc}{Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.}
 
 \item{parallel_mcmc}{Boolean. Indicates if some steps in the mcmc would be processed in parallel.}
+
+\item{only_read_csv_stan_fit}{Boolean. Indicates if the sampling process is skipped and only reads the csv output from a previous run.}
 
 \item{delta_p}{Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients that correspond to link weights.}
 }

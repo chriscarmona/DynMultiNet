@@ -143,7 +143,7 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
     chain_files <- paste(sample_file,"_",1:n_chains_mcmc,".csv",sep="")
     posterior <- list(NULL)
     
-    cat("Loading chains from output csv files...\n\n")
+    cat("\nLoading chains from output csv files...\n\n")
     
     for(file_i in 1:n_chains_mcmc) { # file_i<-1
       cat("chain =",file_i,"\n")
@@ -276,7 +276,7 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
                       
                       # For link weights #
                       r_ijtk_mcmc = aperm(posterior[["r_ij_tk"]],c(4,5,2,3,1)),
-                      sigma_w_k = aperm(posterior[["sigma_w_k"]],c(2,1)),
+                      sigma_w_k_mcmc = aperm(posterior[["sigma_w_k"]],c(2,1)),
                       
                       lambda_tk_mcmc = aperm(posterior[["lambda_tk"]],c(2,3,1)),
                       u_ith_shared_mcmc = list( aperm(posterior[["u_ti_h_shared"]][,1,,,],c(4,3,2,1)),
@@ -296,5 +296,8 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
   }
   dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
   
+  saveRDS( dmn_mcmc , file=paste(out_file,".rds") )
+  
   return( dmn_mcmc )
+  
 }
