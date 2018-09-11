@@ -65,9 +65,11 @@
 
 plot_dmn_mcmc <- function( x,
                            param = c( "pi_ijtk",
-                                      "mu_tk", "x_ith_shared","x_ithk",
+                                      "mu_tk", "x_ith_shared", "x_ithk",
                                       "tau_h_shared","tau_h_k",
-                                      "beta" )[1],
+                                      "r_ijtk","sigma_w_k",
+                                      "lambda_tk","u_ith_shared","u_ithk",
+                                      "rho_h_shared","rho_h_k" )[1],
                            node_i=NULL, node_j=NULL, layer_k=NULL, h=NULL, pred_p=NULL,
                            lat_space=NULL,
                            cred_int_type = c("empirical","norm")[1],
