@@ -122,6 +122,7 @@ mcmc_stan <- function( y_ijtk,
                                              directed=directed,
                                              weighted=weighted )
     } else {
+      browser()
       tryCatch(
         {
           stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_1_w_1,
