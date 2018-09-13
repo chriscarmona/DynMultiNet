@@ -165,10 +165,13 @@ mcmc_stan <- function( y_ijtk,
   }
   
   dmn_mcmc$y_ijtk = y_ijtk
-  dimnames(dmn_mcmc$pi_ijtk)=dimnames(dmn_mcmc$y_ijtk)
+  dimnames(dmn_mcmc$pi_ijtk) = list( node_all,
+                                     node_all,
+                                     time_all,
+                                     layer_all )
   
   if(weighted){
-    dimnames(dmn_mcmc$r_ijtk)=dimnames(dmn_mcmc$y_ijtk)
+    dimnames(dmn_mcmc$r_ijtk) = dimnames(dmn_mcmc$pi_ijtk)
   }
     
   dmn_mcmc$n_chains_mcmc = n_chains_mcmc
