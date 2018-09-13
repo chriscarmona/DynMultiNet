@@ -296,7 +296,7 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
   }
   dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
   
-  saveRDS( dmn_mcmc , file=paste(out_file,".rds") )
+  saveRDS( dmn_mcmc , file=paste(out_file,".rds",sep="") )
   
   return( dmn_mcmc )
   
