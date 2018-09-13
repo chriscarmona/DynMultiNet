@@ -63,7 +63,8 @@ get_y_ijtk_from_edges <- function( net_data,
   K_net <- length(layer_all)
   
   y_ijtk <- array( data=0,
-                   dim=c(V_net,V_net,T_net,K_net) )
+                   dim=c(V_net,V_net,T_net,K_net),
+                   dimnames=list(node_all,node_all,time_all,layer_all) )
   
   # for( k in 1:K_net) {
   #   for( t in 1:T_net) {
