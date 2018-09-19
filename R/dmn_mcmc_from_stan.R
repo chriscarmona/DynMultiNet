@@ -85,11 +85,11 @@ dmn_mcmc_from_stan <- function( stan_fit,
                       # For link probabilities #
                       pi_ijtk_mcmc = aperm(posterior[["pi_ij_tk"]],c(4,5,2,3,1)),
                       
-                      mu_tk_mcmc = aperm(posterior[["mu_tk"]],c(2,3,1)),
-                      x_ith_shared_mcmc = list( aperm(posterior[["x_ti_h_shared"]][,1,,,],c(4,3,2,1)),
-                                                aperm(posterior[["x_ti_h_shared"]][,2,,,],c(4,3,2,1)) ),
-                      x_ithk_mcmc = list( aperm(posterior[["x_ti_hk"]][,1,,,,],c(5,4,2,3,1)),
-                                          aperm(posterior[["x_ti_hk"]][,2,,,,],c(5,4,2,3,1)) ),
+                      mu_tk_mcmc = aperm(posterior[["mu_kt"]],c(3,2,1)),
+                      x_ith_shared_mcmc = list( aperm(posterior[["x_it_h_shared"]][,1,,,],c(3,4,2,1)),
+                                                aperm(posterior[["x_it_h_shared"]][,2,,,],c(3,4,2,1)) ),
+                      x_ithk_mcmc = list( aperm(posterior[["x_it_hk"]][,1,,,,],c(4,5,2,3,1)),
+                                          aperm(posterior[["x_it_hk"]][,2,,,,],c(4,5,2,3,1)) ),
                       tau_h_shared_mcmc = list( aperm(posterior[["tau_h_shared"]][,1,],c(2,1) ),
                                                 aperm(posterior[["tau_h_shared"]][,1,],c(2,1)) ),
                       tau_h_k_mcmc = list( aperm(posterior[["tau_hk"]][,1,,],c(2,3,1)),
@@ -97,13 +97,13 @@ dmn_mcmc_from_stan <- function( stan_fit,
                       
                       # For link weights #
                       r_ijtk_mcmc = aperm(posterior[["r_ij_tk"]],c(4,5,2,3,1)),
-                      sigma_w_k = aperm(posterior[["sigma_w_k"]],c(2,1)),
+                      sigma_w_k_mcmc = aperm(posterior[["sigma_w_k"]],c(2,1)),
                       
-                      lambda_tk_mcmc = aperm(posterior[["lambda_tk"]],c(2,3,1)),
-                      u_ith_shared_mcmc = list( aperm(posterior[["u_ti_h_shared"]][,1,,,],c(4,3,2,1)),
-                                                aperm(posterior[["u_ti_h_shared"]][,2,,,],c(4,3,2,1)) ),
-                      u_ithk_mcmc = list( aperm(posterior[["u_ti_hk"]][,1,,,,],c(5,4,2,3,1)),
-                                          aperm(posterior[["u_ti_hk"]][,2,,,,],c(5,4,2,3,1)) ),
+                      lambda_tk_mcmc = aperm(posterior[["lambda_kt"]],c(3,2,1)),
+                      u_ith_shared_mcmc = list( aperm(posterior[["u_it_h_shared"]][,1,,,],c(3,4,2,1)),
+                                                aperm(posterior[["u_it_h_shared"]][,2,,,],c(3,4,2,1)) ),
+                      u_ithk_mcmc = list( aperm(posterior[["u_it_hk"]][,1,,,,],c(4,5,2,3,1)),
+                                          aperm(posterior[["u_it_hk"]][,2,,,,],c(4,5,2,3,1)) ),
                       rho_h_shared_mcmc = list( aperm(posterior[["rho_h_shared"]][,1,],c(2,1) ),
                                                 aperm(posterior[["rho_h_shared"]][,1,],c(2,1)) ),
                       rho_h_k_mcmc = list( aperm(posterior[["rho_hk"]][,1,,],c(2,3,1)),
@@ -131,12 +131,12 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
     
     pars=c( "lp__","pi_ij_tk",
             "mu_tk",
-            "x_ti_h_shared","x_ti_hk",
+            "x_it_h_shared","x_it_hk",
             "tau_h_shared","tau_hk",
             "r_ij_tk",
             "sigma_w_k",
             "lambda_tk",
-            "u_ti_h_shared","u_ti_hk",
+            "u_it_h_shared","u_it_hk",
             "rho_h_shared","rho_hk" )
     
     
@@ -197,17 +197,17 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
       posterior[["pi_ij_tk"]] <- array(data=c(posterior[["pi_ij_tk"]]),dim=c(n_iter_mcmc_eff,T_all,K_net,V_net,V_net))
     } else { stop('Error loading samples from "pi_ij_tk"') }
     
-    if( all(dim(posterior[["mu_tk"]])==c(n_iter_mcmc_eff,T_all*K_net)) ){
-      posterior[["mu_tk"]] <- array(data=c(posterior[["mu_tk"]]),dim=c(n_iter_mcmc_eff,T_all,K_net))
-    } else { stop('Error loading samples from "mu_tk"') }
+    if( all(dim(posterior[["mu_kt"]])==c(n_iter_mcmc_eff,T_all*K_net)) ){
+      posterior[["mu_kt"]] <- array(data=c(posterior[["mu_kt"]]),dim=c(n_iter_mcmc_eff,K_net,T_all))
+    } else { stop('Error loading samples from "mu_kt"') }
     
-    if( all(dim(posterior[["x_ti_h_shared"]])==c(n_iter_mcmc_eff,2*H_dim*T_all*V_net)) ){
-      posterior[["x_ti_h_shared"]] <- array(data=c(posterior[["x_ti_h_shared"]]),dim=c(n_iter_mcmc_eff,2,H_dim,T_all,V_net))
-    } else { stop('Error loading samples from "x_ti_h_shared"') }
+    if( all(dim(posterior[["x_it_h_shared"]])==c(n_iter_mcmc_eff,2*H_dim*T_all*V_net)) ){
+      posterior[["x_it_h_shared"]] <- array(data=c(posterior[["x_it_h_shared"]]),dim=c(n_iter_mcmc_eff,2,H_dim,V_net,T_all))
+    } else { stop('Error loading samples from "x_it_h_shared"') }
     
-    if( all(dim(posterior[["x_ti_hk"]])==c(n_iter_mcmc_eff,2*R_dim*K_net*T_all*V_net)) ){
-      posterior[["x_ti_hk"]] <- array(data=c(posterior[["x_ti_hk"]]),dim=c(n_iter_mcmc_eff,2,R_dim,K_net,T_all,V_net))
-    } else { stop('Error loading samples from "x_ti_hk"') }
+    if( all(dim(posterior[["x_it_hk"]])==c(n_iter_mcmc_eff,2*R_dim*K_net*T_all*V_net)) ){
+      posterior[["x_it_hk"]] <- array(data=c(posterior[["x_it_hk"]]),dim=c(n_iter_mcmc_eff,2,R_dim,K_net,V_net,T_all))
+    } else { stop('Error loading samples from "x_it_hk"') }
     
     if( all(dim(posterior[["tau_h_shared"]])==c(n_iter_mcmc_eff,2*H_dim)) ){
       posterior[["tau_h_shared"]] <- array(data=c(posterior[["tau_h_shared"]]),dim=c(n_iter_mcmc_eff,2,H_dim))
@@ -227,17 +227,17 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
       posterior[["sigma_w_k"]] <- array(data=c(posterior[["sigma_w_k"]]),dim=c(n_iter_mcmc_eff,K_net))
     } else { stop('Error loading samples from "sigma_w_k"') }
     
-    if( all(dim(posterior[["lambda_tk"]])==c(n_iter_mcmc_eff,T_all*K_net)) ){
-      posterior[["lambda_tk"]] <- array(data=c(posterior[["lambda_tk"]]),dim=c(n_iter_mcmc_eff,T_all,K_net))
-    } else { stop('Error loading samples from "lambda_tk"') }
+    if( all(dim(posterior[["lambda_kt"]])==c(n_iter_mcmc_eff,T_all*K_net)) ){
+      posterior[["lambda_kt"]] <- array(data=c(posterior[["lambda_kt"]]),dim=c(n_iter_mcmc_eff,K_net,T_all))
+    } else { stop('Error loading samples from "lambda_kt"') }
     
-    if( all(dim(posterior[["u_ti_h_shared"]])==c(n_iter_mcmc_eff,2*H_dim*T_all*V_net)) ){
-      posterior[["u_ti_h_shared"]] <- array(data=c(posterior[["u_ti_h_shared"]]),dim=c(n_iter_mcmc_eff,2,H_dim,T_all,V_net))
-    } else { stop('Error loading samples from "u_ti_h_shared"') }
+    if( all(dim(posterior[["u_it_h_shared"]])==c(n_iter_mcmc_eff,2*H_dim*T_all*V_net)) ){
+      posterior[["u_it_h_shared"]] <- array(data=c(posterior[["u_it_h_shared"]]),dim=c(n_iter_mcmc_eff,2,H_dim,V_net,T_all))
+    } else { stop('Error loading samples from "u_it_h_shared"') }
     
-    if( all(dim(posterior[["u_ti_hk"]])==c(n_iter_mcmc_eff,2*R_dim*K_net*T_all*V_net)) ){
-      posterior[["u_ti_hk"]] <- array(data=c(posterior[["u_ti_hk"]]),dim=c(n_iter_mcmc_eff,2,R_dim,K_net,T_all,V_net))
-    } else { stop('Error loading samples from "u_ti_hk"') }
+    if( all(dim(posterior[["u_it_hk"]])==c(n_iter_mcmc_eff,2*R_dim*K_net*T_all*V_net)) ){
+      posterior[["u_it_hk"]] <- array(data=c(posterior[["u_it_hk"]]),dim=c(n_iter_mcmc_eff,2,R_dim,K_net,V_net,T_all))
+    } else { stop('Error loading samples from "u_it_hk"') }
     
     if( all(dim(posterior[["rho_h_shared"]])==c(n_iter_mcmc_eff,2*H_dim)) ){
       posterior[["rho_h_shared"]] <- array(data=c(posterior[["rho_h_shared"]]),dim=c(n_iter_mcmc_eff,2,H_dim))
@@ -264,11 +264,11 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
                       # For link probabilities #
                       pi_ijtk_mcmc = aperm(posterior[["pi_ij_tk"]],c(4,5,2,3,1)),
                       
-                      mu_tk_mcmc = aperm(posterior[["mu_tk"]],c(2,3,1)),
-                      x_ith_shared_mcmc = list( aperm(posterior[["x_ti_h_shared"]][,1,,,],c(4,3,2,1)),
-                                                aperm(posterior[["x_ti_h_shared"]][,2,,,],c(4,3,2,1)) ),
-                      x_ithk_mcmc = list( aperm(posterior[["x_ti_hk"]][,1,,,,],c(5,4,2,3,1)),
-                                          aperm(posterior[["x_ti_hk"]][,2,,,,],c(5,4,2,3,1)) ),
+                      mu_tk_mcmc = aperm(posterior[["mu_kt"]],c(3,2,1)),
+                      x_ith_shared_mcmc = list( aperm(posterior[["x_it_h_shared"]][,1,,,],c(3,4,2,1)),
+                                                aperm(posterior[["x_it_h_shared"]][,2,,,],c(3,4,2,1)) ),
+                      x_ithk_mcmc = list( aperm(posterior[["x_it_hk"]][,1,,,,],c(4,5,2,3,1)),
+                                          aperm(posterior[["x_it_hk"]][,2,,,,],c(4,5,2,3,1)) ),
                       tau_h_shared_mcmc = list( aperm(posterior[["tau_h_shared"]][,1,],c(2,1) ),
                                                 aperm(posterior[["tau_h_shared"]][,1,],c(2,1)) ),
                       tau_h_k_mcmc = list( aperm(posterior[["tau_hk"]][,1,,],c(2,3,1)),
@@ -278,11 +278,11 @@ dmn_mcmc_from_stan_failed <- function( sample_file,
                       r_ijtk_mcmc = aperm(posterior[["r_ij_tk"]],c(4,5,2,3,1)),
                       sigma_w_k_mcmc = aperm(posterior[["sigma_w_k"]],c(2,1)),
                       
-                      lambda_tk_mcmc = aperm(posterior[["lambda_tk"]],c(2,3,1)),
-                      u_ith_shared_mcmc = list( aperm(posterior[["u_ti_h_shared"]][,1,,,],c(4,3,2,1)),
-                                                aperm(posterior[["u_ti_h_shared"]][,2,,,],c(4,3,2,1)) ),
-                      u_ithk_mcmc = list( aperm(posterior[["u_ti_hk"]][,1,,,,],c(5,4,2,3,1)),
-                                          aperm(posterior[["u_ti_hk"]][,2,,,,],c(5,4,2,3,1)) ),
+                      lambda_tk_mcmc = aperm(posterior[["lambda_kt"]],c(3,2,1)),
+                      u_ith_shared_mcmc = list( aperm(posterior[["u_it_h_shared"]][,1,,,],c(3,4,2,1)),
+                                                aperm(posterior[["u_it_h_shared"]][,2,,,],c(3,4,2,1)) ),
+                      u_ithk_mcmc = list( aperm(posterior[["u_it_hk"]][,1,,,,],c(4,5,2,3,1)),
+                                          aperm(posterior[["u_it_hk"]][,2,,,,],c(4,5,2,3,1)) ),
                       rho_h_shared_mcmc = list( aperm(posterior[["rho_h_shared"]][,1,],c(2,1) ),
                                                 aperm(posterior[["rho_h_shared"]][,1,],c(2,1)) ),
                       rho_h_k_mcmc = list( aperm(posterior[["rho_hk"]][,1,,],c(2,3,1)),
