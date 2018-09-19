@@ -122,9 +122,10 @@ mcmc_stan <- function( y_ijtk,
                                              directed=directed,
                                              weighted=weighted )
     } else {
+      browser()
       tryCatch(
         {
-          stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_1_w_1,
+          stan_fit <- rstan::sampling( stanmodels$net_m_1_p_0_d_1_w_1_small,
                                        data = stan_data_input, 
                                        iter = n_iter_mcmc,warmup=n_burn,thin=n_thin,
                                        chains = n_chains_mcmc,
@@ -132,12 +133,12 @@ mcmc_stan <- function( y_ijtk,
                                        sample_file=out_file,
                                        pars=c("pi_ij_tk",
                                               "mu_tk",
-                                              "x_ti_h_shared","x_ti_hk",
+                                              "x_it_h_shared","x_it_hk",
                                               "tau_h_shared","tau_hk",
                                               "r_ij_tk",
                                               "sigma_w_k",
                                               "lambda_tk",
-                                              "u_ti_h_shared","u_ti_hk",
+                                              "u_it_h_shared","u_it_hk",
                                               "rho_h_shared","rho_hk"
                                        ) )
           saveRDS( stan_fit , file=paste(out_file,"_stan.rds",sep="") )
