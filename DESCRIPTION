@@ -1,6 +1,6 @@
 Package: DynMultiNet
 Title: Bayesian Learning of Dynamic Multilayer Networks
-Version: 0.0.2
+Version: 0.2.0
 Date: 2018-08-15
 Authors@R: 
     person(given = "Christian",

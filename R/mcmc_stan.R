@@ -1,6 +1,6 @@
 
 #' @import foreach
-#' @importFrom rstan stan
+#' @importFrom rstan stan sampling
 #' @importFrom matrixcalc is.positive.definite
 #' @keywords internal
 mcmc_stan <- function( y_ijtk,
@@ -131,13 +131,13 @@ mcmc_stan <- function( y_ijtk,
                                        verbose=!quiet_mcmc,
                                        sample_file=out_file,
                                        pars=c("pi_ij_tk",
-                                              "mu_kt",
-                                              "x_it_h_shared","x_it_hk",
+                                              "mu_t_k",
+                                              "x_t_hi_shared","x_t_hki",
                                               "tau_h_shared","tau_hk",
                                               "r_ij_tk",
                                               "sigma_w_k",
-                                              "lambda_kt",
-                                              "u_it_h_shared","u_it_hk",
+                                              "lambda_t_k",
+                                              "u_t_hi_shared","u_t_hki",
                                               "rho_h_shared","rho_hk"
                                        ) )
           

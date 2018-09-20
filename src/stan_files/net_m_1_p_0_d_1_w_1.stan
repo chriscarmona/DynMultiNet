@@ -41,9 +41,8 @@ data {
 }
 
 transformed data {
-  
-  matrix[K_net,T_all] mu_kt_mean=mu_tk_mean';
-  matrix[K_net,T_all] lambda_kt_mean=lambda_tk_mean';
+  vector[T_all] mu_t_k_mean[K_net];
+  vector[T_all] lambda_t_k_mean[K_net];
   
   cov_matrix[T_all] mu_t_cov_prior;
   cholesky_factor_cov[T_all] mu_t_cov_prior_sqrt;
@@ -53,6 +52,12 @@ transformed data {
   cholesky_factor_cov[T_all] lambda_t_cov_prior_sqrt;
   cov_matrix[T_all] u_t_cov_prior;
   
+  for( k in 1:K_net) {
+    for(t in 1:T_all) {
+      mu_t_k_mean[k][t] = mu_tk_mean[t,k];
+      lambda_t_k_mean[k][t] = lambda_tk_mean[t,k];
+    }
+  }
   
   for(t1 in 1:T_all) {
     for(t2 in 1:t1) {
@@ -81,19 +86,19 @@ transformed data {
 
 parameters {
   // for link probability
-  matrix[K_net,T_all] mu_kt;
+  vector[T_all] mu_t_k[K_net];
   
-  matrix[V_net,T_all] x_it_h_shared[2,H_dim];
-  matrix[V_net,T_all] x_it_hk[2,R_dim,K_net];
+  vector[T_all] x_t_hi_shared[2,H_dim,V_net];
+  vector[T_all] x_t_hki[2,R_dim,K_net,V_net];
   
   vector<lower=0>[H_dim] nu_h_shared[2];
   matrix<lower=0>[H_dim,K_net] nu_hk[2];
   
   // for link weight
-  matrix[K_net,T_all] lambda_kt;
+  vector[T_all] lambda_t_k[K_net];
   
-  matrix[V_net,T_all] u_it_h_shared[2,H_dim];
-  matrix[V_net,T_all] u_it_hk[2,R_dim,K_net];
+  vector[T_all] u_t_hi_shared[2,H_dim,V_net];
+  vector[T_all] u_t_hki[2,R_dim,K_net,V_net];
   
   vector<lower=0>[H_dim] eta_h_shared[2];
   matrix<lower=0>[H_dim,K_net] eta_hk[2];
@@ -163,8 +168,8 @@ transformed parameters {
     for(t in 1:T_all) {
       for(h in 1:H_dim) {
         for(i in 1:V_net) {
-          x_ih_t_shared[dir,t][i,h] = x_it_h_shared[dir,h][i,t];
-          u_ih_t_shared[dir,t][i,h] = u_it_h_shared[dir,h][i,t];
+          x_ih_t_shared[dir,t][i,h] = x_t_hi_shared[dir,h,i][t];
+          u_ih_t_shared[dir,t][i,h] = u_t_hi_shared[dir,h,i][t];
         }
       }
     }
@@ -175,8 +180,8 @@ transformed parameters {
       for(k in 1:K_net) {
         for(h in 1:R_dim) {
           for(i in 1:V_net) {
-            x_ih_tk[dir,t,k][i,h] = x_it_hk[dir,h,k][i,t];
-            u_ih_tk[dir,t,k][i,h] = u_it_hk[dir,h,k][i,t];
+            x_ih_tk[dir,t,k][i,h] = x_t_hki[dir,h,k,i][t];
+            u_ih_tk[dir,t,k][i,h] = u_t_hki[dir,h,k,i][t];
           }
         }
       }
@@ -186,8 +191,8 @@ transformed parameters {
   // Linear predictors //
   for(t in 1:T_all) {
     for(k in 1:K_net) {
-      s_ij_tk[t,k] = mu_kt[k,t] + x_ih_t_shared[1,t]*x_ih_t_shared[2,t]' + x_ih_tk[1,t,k]*x_ih_tk[2,t,k]';
-      r_ij_tk[t,k] = lambda_kt[k,t] + u_ih_t_shared[1,t]*u_ih_t_shared[2,t]' + u_ih_tk[1,t,k]*u_ih_tk[2,t,k]';
+      s_ij_tk[t,k] = mu_t_k[k][t] + x_ih_t_shared[1,t]*x_ih_t_shared[2,t]' + x_ih_tk[1,t,k]*x_ih_tk[2,t,k]';
+      r_ij_tk[t,k] = lambda_t_k[k][t] + u_ih_t_shared[1,t]*u_ih_t_shared[2,t]' + u_ih_tk[1,t,k]*u_ih_tk[2,t,k]';
     }
   }
   
@@ -219,16 +224,16 @@ model {
   
   // baseline processes //
   for (k in 1:K_net) {
-    mu_kt[k] ~ multi_normal_cholesky( mu_kt_mean[k] , mu_t_cov_prior_sqrt );
-    lambda_kt[k] ~ multi_normal_cholesky( lambda_kt_mean[k] , lambda_t_cov_prior_sqrt );
+    mu_t_k[k] ~ multi_normal_cholesky( mu_t_k_mean[k] , mu_t_cov_prior_sqrt );
+    lambda_t_k[k] ~ multi_normal_cholesky( lambda_t_k_mean[k] , lambda_t_cov_prior_sqrt );
   }
   
   for(dir in 1:2){
     // Shared latent coordinates //
     for (h in 1:H_dim) {
       for (i in 1:V_net) {
-        x_it_h_shared[dir,h][i] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_shared_cov_sqrt[dir,h] );
-        u_it_h_shared[dir,h][i] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_shared_cov_sqrt[dir,h] );
+        x_t_hi_shared[dir,h,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_shared_cov_sqrt[dir,h] );
+        u_t_hi_shared[dir,h,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_shared_cov_sqrt[dir,h] );
       }
     }
     
@@ -236,8 +241,8 @@ model {
     for (h in 1:R_dim) {
       for (k in 1:K_net) {
         for (i in 1:V_net) {
-          x_it_hk[dir,h,k][i] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_k_cov_sqrt[dir,h,k] );
-          u_it_hk[dir,h,k][i] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_k_cov_sqrt[dir,h,k] );
+          x_t_hki[dir,h,k,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_k_cov_sqrt[dir,h,k] );
+          u_t_hki[dir,h,k,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_k_cov_sqrt[dir,h,k] );
         }
       }
     }
