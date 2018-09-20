@@ -5,10 +5,9 @@
 \title{Bayesian Learning of Dynamic Multilayer Networks with binary data}
 \usage{
 dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
-  weighted = FALSE, H_dim = 10, R_dim = 10, k_mu = 0.2,
-  delta_mu = 1, k_x = 0.2, delta_x = 1, k_p = 0.2, delta_p = 1,
-  k_lambda = 0.2, delta_lambda = 1, k_u = 0.2, delta_u = 1,
-  k_q = 0.2, delta_q = 1, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
+  weighted = FALSE, H_dim = 10, R_dim = 10, delta_mu = 5,
+  delta_x = 5, delta_p = 5, delta_lambda = 5, delta_u = 5,
+  delta_q = 5, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
   n_iter_mcmc = 1000, n_burn = n_iter_mcmc/2, n_thin = 3,
   time_fc = NULL, out_file = NULL, log_file = NULL,
   quiet_mcmc = FALSE, parallel_mcmc = FALSE,
@@ -27,27 +26,15 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
 
 \item{R_dim}{Integer. Latent space dimension, for layer specific latent vectors.}
 
-\item{k_mu}{Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link probabilities.}
-
 \item{delta_mu}{Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link probabilities. In general, you won't be able to extrapolate more than \code{delta_mu} units away from your data.}
-
-\item{k_x}{Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link probabilities.}
 
 \item{delta_x}{Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link probabilities.}
 
-\item{k_p}{Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link probabilities.}
-
 \item{delta_p}{Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.}
-
-\item{k_lambda}{Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link weights.}
 
 \item{delta_lambda}{Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link weight. In general, you won't be able to extrapolate more than \code{delta_lambda} units away from your data.}
 
-\item{k_u}{Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link weights.}
-
 \item{delta_u}{Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link weights.}
-
-\item{k_q}{Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link weights.}
 
 \item{a_1}{Positive scalar. Hyperparameter for number of effective dimensions in the latent space.}
 
@@ -107,7 +94,6 @@ synth_net <- gen_synth_net( node_all = seq(1,10),
                             layer_all = seq(1,3),
                             directed = FALSE,
                             H_dim = 3, R_dim = 3,
-                            k_mu = 0.10, k_x = 0.10,
                             a_1 = 1.5, a_2 = 2.5 )
 
 set.seed(0)
@@ -115,7 +101,6 @@ net_mcmc <- dmn_sampling( net_data = synth_net$edge_data,
                           pred_data = NULL,
                           directed = FALSE,
                           H_dim = 10, R_dim = 5,
-                          k_mu = 0.10, k_x = 0.10,
                           a_1 = 2, a_2 = 2,
                           n_iter_mcmc = 2000 )
 }

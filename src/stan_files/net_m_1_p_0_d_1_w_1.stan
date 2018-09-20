@@ -25,16 +25,12 @@ data {
   real<lower=0> a_2;
   
   // latent variables, for link probability
-  real<lower=0> k_mu;
   real<lower=0> delta_mu;
-  real<lower=0> k_x;
   real<lower=0> delta_x;
   matrix[T_all,K_net] mu_tk_mean;
   
   // link weight latent variables
-  real<lower=0> k_lambda;
   real<lower=0> delta_lambda;
-  real<lower=0> k_u;
   real<lower=0> delta_u;
   matrix[T_all,K_net] lambda_tk_mean;
   
@@ -62,15 +58,15 @@ transformed data {
   for(t1 in 1:T_all) {
     for(t2 in 1:t1) {
       // for link probability
-      mu_t_cov_prior[t1,t2] = exp(-k_mu*((time_all[t1]-time_all[t2])/delta_mu)^2);
-      mu_t_cov_prior[t2,t1] = exp(-k_mu*((time_all[t1]-time_all[t2])/delta_mu)^2);
-      x_t_cov_prior[t1,t2] = exp(-k_x*((time_all[t1]-time_all[t2])/delta_x)^2);
-      x_t_cov_prior[t2,t1] = exp(-k_x*((time_all[t1]-time_all[t2])/delta_x)^2);
+      mu_t_cov_prior[t1,t2] = exp(-((time_all[t1]-time_all[t2])/delta_mu)^2);
+      mu_t_cov_prior[t2,t1] = exp(-((time_all[t1]-time_all[t2])/delta_mu)^2);
+      x_t_cov_prior[t1,t2] = exp(-((time_all[t1]-time_all[t2])/delta_x)^2);
+      x_t_cov_prior[t2,t1] = exp(-((time_all[t1]-time_all[t2])/delta_x)^2);
       // for link weight
-      lambda_t_cov_prior[t1,t2] = exp(-k_lambda*((time_all[t1]-time_all[t2])/delta_lambda)^2);
-      lambda_t_cov_prior[t2,t1] = exp(-k_lambda*((time_all[t1]-time_all[t2])/delta_lambda)^2);
-      u_t_cov_prior[t1,t2] = exp(-k_u*((time_all[t1]-time_all[t2])/delta_u)^2);
-      u_t_cov_prior[t2,t1] = exp(-k_u*((time_all[t1]-time_all[t2])/delta_u)^2);
+      lambda_t_cov_prior[t1,t2] = exp(-((time_all[t1]-time_all[t2])/delta_lambda)^2);
+      lambda_t_cov_prior[t2,t1] = exp(-((time_all[t1]-time_all[t2])/delta_lambda)^2);
+      u_t_cov_prior[t1,t2] = exp(-((time_all[t1]-time_all[t2])/delta_u)^2);
+      u_t_cov_prior[t2,t1] = exp(-((time_all[t1]-time_all[t2])/delta_u)^2);
     }
   }
   // for link probability

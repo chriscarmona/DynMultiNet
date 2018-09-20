@@ -11,18 +11,12 @@
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' 
-#' @param k_mu Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link probabilities.
 #' @param delta_mu Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link probabilities. In general, you won't be able to extrapolate more than \code{delta_mu} units away from your data.
-#' @param k_x Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link probabilities.
 #' @param delta_x Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link probabilities.
-#' @param k_p Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link probabilities.
 #' @param delta_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.
 #' 
-#' @param k_lambda Positive scalar. Hyperparameter for the scale of the baseline process that correspond to link weights.
 #' @param delta_lambda Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link weight. In general, you won't be able to extrapolate more than \code{delta_lambda} units away from your data.
-#' @param k_u Positive scalar. Hyperparameter for the scale of latent coordinates that correspond to link weights.
 #' @param delta_u Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link weights.
-#' @param k_q Positive scalar. Hyperparameter for the scale of the predictor coefficients that correspond to link weights.
 #' @param delta_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients that correspond to link weights.
 #' 
 #' @param a_1 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
@@ -68,7 +62,6 @@
 #'                             layer_all = seq(1,3),
 #'                             directed = FALSE,
 #'                             H_dim = 3, R_dim = 3,
-#'                             k_mu = 0.10, k_x = 0.10,
 #'                             a_1 = 1.5, a_2 = 2.5 )
 #' 
 #' set.seed(0)
@@ -76,7 +69,6 @@
 #'                           pred_data = NULL,
 #'                           directed = FALSE,
 #'                           H_dim = 10, R_dim = 5,
-#'                           k_mu = 0.10, k_x = 0.10,
 #'                           a_1 = 2, a_2 = 2,
 #'                           n_iter_mcmc = 2000 )
 #' }
@@ -93,13 +85,13 @@ dmn_sampling <- function( net_data,
                           directed=FALSE, weighted=FALSE,
                           H_dim=10, R_dim=10,
                           
-                          k_mu=0.2, delta_mu=1,
-                          k_x=0.2, delta_x=1,
-                          k_p=0.2, delta_p=1,
+                          delta_mu=5,
+                          delta_x=5,
+                          delta_p=5,
                           
-                          k_lambda=0.2, delta_lambda=1,
-                          k_u=0.2, delta_u=1,
-                          k_q=0.2, delta_q=1,
+                          delta_lambda=5,
+                          delta_u=5,
+                          delta_q=5,
                           
                           a_1=2, a_2=2.5,
                           
@@ -188,13 +180,13 @@ dmn_sampling <- function( net_data,
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
         
-        "k_mu =",k_mu, ", delta_mu =",delta_mu,"\n",
-        "k_x =",k_x, ", delta_x =",delta_x,"\n",
-        "k_p =",k_p, ", delta_p =",delta_p,"\n",
+        "delta_mu =",delta_mu,"\n",
+        "delta_x =",delta_x,"\n",
+        "delta_p =",delta_p,"\n",
         
-        "k_mu =",k_lambda, ", delta_lambda =",delta_lambda,"\n",
-        "k_u =",k_u, ", delta_u =",delta_u,"\n",
-        "k_q =",k_q, ", delta_q =",delta_q,"\n",
+        "delta_lambda =",delta_lambda,"\n",
+        "delta_u =",delta_u,"\n",
+        "delta_q =",delta_q,"\n",
         
         "a_1 = ",a_1,"\n",
         "a_2 = ",a_2,"\n",
@@ -231,13 +223,13 @@ dmn_sampling <- function( net_data,
                          
                          H_dim=H_dim, R_dim=R_dim,
                          
-                         k_mu=k_mu, delta_mu=delta_mu,
-                         k_x=k_x, delta_x=delta_x,
-                         k_p=k_p, delta_p=delta_p,
+                         delta_mu=delta_mu,
+                         delta_x=delta_x,
+                         delta_p=delta_p,
                          
-                         k_lambda=k_lambda, delta_lambda=delta_lambda,
-                         k_u=k_u, delta_u=delta_u,
-                         k_q=k_q, delta_q=delta_q,
+                         delta_lambda=delta_lambda,
+                         delta_u=delta_u,
+                         delta_q=delta_q,
                          
                          a_1=a_1, a_2=a_2,
                          

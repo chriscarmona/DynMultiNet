@@ -25,9 +25,7 @@ data {
   real<lower=0> a_2;
   
   // latent variables, for link probability
-  real<lower=0> k_mu;
   real<lower=0> delta_mu;
-  real<lower=0> k_x;
   real<lower=0> delta_x;
   matrix[T_all,K_net] mu_tk_mean;
   
@@ -41,10 +39,10 @@ transformed data {
   
   for(t1 in 1:T_all) {
     for(t2 in 1:t1) {
-      mu_t_cov_prior[t1,t2] = exp(-k_mu*((time_all[t1]-time_all[t2])/delta_mu)^2);
-      mu_t_cov_prior[t2,t1] = exp(-k_mu*((time_all[t1]-time_all[t2])/delta_mu)^2);
-      x_t_cov_prior[t1,t2] = exp(-k_x*((time_all[t1]-time_all[t2])/delta_x)^2);
-      x_t_cov_prior[t2,t1] = exp(-k_x*((time_all[t1]-time_all[t2])/delta_x)^2);
+      mu_t_cov_prior[t1,t2] = exp(-((time_all[t1]-time_all[t2])/delta_mu)^2);
+      mu_t_cov_prior[t2,t1] = exp(-((time_all[t1]-time_all[t2])/delta_mu)^2);
+      x_t_cov_prior[t1,t2] = exp(-((time_all[t1]-time_all[t2])/delta_x)^2);
+      x_t_cov_prior[t2,t1] = exp(-((time_all[t1]-time_all[t2])/delta_x)^2);
     }
   }
   mu_t_cov_prior = mu_t_cov_prior + diag_matrix(rep_vector(1e-4, T_all));

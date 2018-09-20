@@ -13,13 +13,13 @@ mcmc_stan <- function( y_ijtk,
                        
                        H_dim=10, R_dim=10,
                        
-                       k_mu=0.2, delta_mu=1,
-                       k_x=0.2, delta_x=1,
-                       k_p=0.2, delta_p=1,
+                       delta_mu=1,
+                       delta_x=1,
+                       delta_p=1,
                        
-                       k_lambda=0.2, delta_lambda=1,
-                       k_u=0.2, delta_u=1,
-                       k_q=0.2, delta_q=1,
+                       delta_lambda=1,
+                       delta_u=1,
+                       delta_q=1,
                        
                        a_1=2, a_2=2.5,
                        
@@ -66,14 +66,14 @@ mcmc_stan <- function( y_ijtk,
                            
                            a_1=a_1, a_2=a_2,
                            
-                           k_mu=k_mu, delta_mu=delta_mu,
-                           k_x=k_x, delta_x=delta_x,
-                           k_p=k_p, delta_p=delta_p,
+                           delta_mu=delta_mu,
+                           delta_x=delta_x,
+                           delta_p=delta_p,
                            mu_tk_mean = mu_tk_mean,
                            
-                           k_lambda=k_lambda, delta_lambda=delta_lambda,
-                           k_u=k_u, delta_u=delta_u,
-                           k_q=k_q, delta_q=delta_q,
+                           delta_lambda=delta_lambda,
+                           delta_u=delta_u,
+                           delta_q=delta_q,
                            lambda_tk_mean = lambda_tk_mean )
   
   cat("MCMC will be saved in ",n_chains_mcmc," csv files:\n\n",paste(out_file,"_",1:n_chains_mcmc,".csv\n",sep=""),"\n\n",sep="")
@@ -185,7 +185,6 @@ mcmc_stan <- function( y_ijtk,
   dmn_mcmc$layer_all = layer_all
   
   dmn_mcmc$a_1=a_1; dmn_mcmc$a_2=a_2
-  dmn_mcmc$k_mu=k_mu; dmn_mcmc$k_x=k_x
   
   dmn_mcmc$time_all_idx_net=time_all_idx_net
   
