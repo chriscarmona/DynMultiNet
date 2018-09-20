@@ -223,27 +223,24 @@ model {
   }
   
   // baseline processes //
-  for (k in 1:K_net) {
-    mu_t_k[k] ~ multi_normal_cholesky( mu_t_k_mean[k] , mu_t_cov_prior_sqrt );
-    lambda_t_k[k] ~ multi_normal_cholesky( lambda_t_k_mean[k] , lambda_t_cov_prior_sqrt );
-  }
+  
+  mu_t_k ~ multi_normal_cholesky( mu_t_k_mean , mu_t_cov_prior_sqrt );
+  lambda_t_k ~ multi_normal_cholesky( lambda_t_k_mean , lambda_t_cov_prior_sqrt );
+  
   
   for(dir in 1:2){
     // Shared latent coordinates //
     for (h in 1:H_dim) {
-      for (i in 1:V_net) {
-        x_t_hi_shared[dir,h,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_shared_cov_sqrt[dir,h] );
-        u_t_hi_shared[dir,h,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_shared_cov_sqrt[dir,h] );
-      }
+      x_t_hi_shared[dir,h] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_shared_cov_sqrt[dir,h] );
+      u_t_hi_shared[dir,h] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_shared_cov_sqrt[dir,h] );
+      
     }
     
     // Layer-specific latent coordinates //
     for (h in 1:R_dim) {
       for (k in 1:K_net) {
-        for (i in 1:V_net) {
-          x_t_hki[dir,h,k,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_k_cov_sqrt[dir,h,k] );
-          u_t_hki[dir,h,k,i] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_k_cov_sqrt[dir,h,k] );
-        }
+        x_t_hki[dir,h,k] ~ multi_normal_cholesky( rep_vector(0,T_all) , x_t_k_cov_sqrt[dir,h,k] );
+        u_t_hki[dir,h,k] ~ multi_normal_cholesky( rep_vector(0,T_all) , u_t_k_cov_sqrt[dir,h,k] );
       }
     }
     
