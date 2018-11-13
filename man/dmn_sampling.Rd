@@ -7,11 +7,11 @@
 dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
   weighted = FALSE, H_dim = 10, R_dim = 10, delta_mu = 5,
   delta_x = 5, delta_p = 5, delta_lambda = 5, delta_u = 5,
-  delta_q = 5, a_1 = 2, a_2 = 2.5, n_chains_mcmc = 1,
-  n_iter_mcmc = 1000, n_burn = n_iter_mcmc/2, n_thin = 3,
-  time_fc = NULL, out_file = NULL, log_file = NULL,
-  quiet_mcmc = FALSE, parallel_mcmc = FALSE,
-  only_read_csv_stan_fit = FALSE)
+  delta_q = 5, a_1 = 2, a_2 = 2.5, inference_type = c("mcmc",
+  "vb")[1], n_chains_mcmc = 1, n_iter_mcmc = 1000,
+  n_burn = n_iter_mcmc/2, n_thin = 3, time_fc = NULL,
+  out_file = NULL, log_file = NULL, quiet_mcmc = FALSE,
+  parallel_mcmc = FALSE, only_read_csv_stan_fit = FALSE)
 }
 \arguments{
 \item{net_data}{Data frame.Network information.}
@@ -39,6 +39,8 @@ dmn_sampling(net_data, pred_data = NULL, directed = FALSE,
 \item{a_1}{Positive scalar. Hyperparameter for number of effective dimensions in the latent space.}
 
 \item{a_2}{Positive scalar. Hyperparameter for number of effective dimensions in the latent space.}
+
+\item{inference_type}{Character. Inferential procedure for the estimation of posterior distributions. One of "mcmc" (default) or 'vb".}
 
 \item{n_chains_mcmc}{Integer. Number of chains for the MCMC.}
 

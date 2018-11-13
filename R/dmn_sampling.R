@@ -21,6 +21,7 @@
 #' 
 #' @param a_1 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
+#' @param inference_type Character. Inferential procedure for the estimation of posterior distributions. One of "mcmc" (default) or 'vb".
 #' @param n_chains_mcmc Integer. Number of chains for the MCMC.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
@@ -94,6 +95,8 @@ dmn_sampling <- function( net_data,
                           delta_q=5,
                           
                           a_1=2, a_2=2.5,
+                          
+                          inference_type=c("mcmc","vb")[1],
                           
                           n_chains_mcmc=1,
                           n_iter_mcmc=1000, n_burn=n_iter_mcmc/2, n_thin=3,
@@ -213,35 +216,67 @@ dmn_sampling <- function( net_data,
   }
   mcmc_clock <- Sys.time()
   
-  dmn_mcmc <- mcmc_stan( y_ijtk=y_ijtk,
-                         node_all=node_all, time_all=time_all, layer_all=layer_all,
-                         time_all_idx_net=time_all_idx_net,
-                         
-                         pred_all=pred_all,
-                         pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                         z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                         
-                         H_dim=H_dim, R_dim=R_dim,
-                         
-                         delta_mu=delta_mu,
-                         delta_x=delta_x,
-                         delta_p=delta_p,
-                         
-                         delta_lambda=delta_lambda,
-                         delta_u=delta_u,
-                         delta_q=delta_q,
-                         
-                         a_1=a_1, a_2=a_2,
-                         
-                         directed=directed,
-                         weighted=weighted,
-                         
-                         n_chains_mcmc=n_chains_mcmc,
-                         n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
-                         
-                         out_file=out_file,
-                         quiet_mcmc=quiet_mcmc,
-                         only_read_csv_stan_fit=only_read_csv_stan_fit )
+  if(inference_type=="mcmc") {
+    dmn_mcmc <- mcmc_stan( y_ijtk=y_ijtk,
+                           node_all=node_all, time_all=time_all, layer_all=layer_all,
+                           time_all_idx_net=time_all_idx_net,
+                           
+                           pred_all=pred_all,
+                           pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                           z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                           
+                           H_dim=H_dim, R_dim=R_dim,
+                           
+                           delta_mu=delta_mu,
+                           delta_x=delta_x,
+                           delta_p=delta_p,
+                           
+                           delta_lambda=delta_lambda,
+                           delta_u=delta_u,
+                           delta_q=delta_q,
+                           
+                           a_1=a_1, a_2=a_2,
+                           
+                           directed=directed,
+                           weighted=weighted,
+                           
+                           n_chains_mcmc=n_chains_mcmc,
+                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                           
+                           out_file=out_file,
+                           quiet_mcmc=quiet_mcmc,
+                           only_read_csv_stan_fit=only_read_csv_stan_fit )
+  } else if (inference_type=="vb") {
+    dmn_mcmc <- mcmc_stan_vb( y_ijtk=y_ijtk,
+                              node_all=node_all, time_all=time_all, layer_all=layer_all,
+                              time_all_idx_net=time_all_idx_net,
+                              
+                              pred_all=pred_all,
+                              pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                              z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                              
+                              H_dim=H_dim, R_dim=R_dim,
+                              
+                              delta_mu=delta_mu,
+                              delta_x=delta_x,
+                              delta_p=delta_p,
+                              
+                              delta_lambda=delta_lambda,
+                              delta_u=delta_u,
+                              delta_q=delta_q,
+                              
+                              a_1=a_1, a_2=a_2,
+                              
+                              directed=directed,
+                              weighted=weighted,
+                              
+                              n_chains_mcmc=n_chains_mcmc,
+                              n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                              
+                              out_file=out_file,
+                              quiet_mcmc=quiet_mcmc,
+                              only_read_csv_stan_fit=only_read_csv_stan_fit )
+  }
   
   if( !is.null(log_file) ) {
     cat("MCMC Finish time:\n",as.character(Sys.time()),"\n\n",
