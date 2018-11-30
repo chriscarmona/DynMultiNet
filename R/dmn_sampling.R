@@ -63,7 +63,8 @@
 #'                                  n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
 #' }
 #' 
-#' @useDynLib DynMultiNet
+#' @useDynLib DynMultiNet, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
 #' 
 #' @import dplyr
 #' 

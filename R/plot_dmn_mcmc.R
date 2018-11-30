@@ -33,7 +33,6 @@
 #' 
 #' @import coda
 #' @import ggplot2
-#' @import bayesplot
 #' @importFrom stats qnorm
 #' 
 #' @examples

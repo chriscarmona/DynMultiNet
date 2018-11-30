@@ -1,4 +1,8 @@
 
+.onUnload <- function (libpath) {
+  library.dynam.unload("DynMultiNet", libpath)
+}
+
 #' @importFrom stats var
 #' @keywords internal
 R_hat.mcmc <- function(x,m) {
