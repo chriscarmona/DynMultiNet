@@ -1,7 +1,40 @@
-
+#' @title
+#'    MCMC algorithm for Dynamic Multilayer directed unweighted graphs
+#'
+#' @description
+#'    \code{mcmc_d_1_w_0} Implements a Gibbs sampler MCMC algorithm for Dynamic Multilayer directed unweighted graphs.
+#'
+#' @param y_ijtk Array. Network data, with entry \code{y_ijtk[i,j,t,k]} representing the link from node i to node j at time t in layer k. 0 indicates no link.
+#' @param node_all Character vector. Id's of nodes in the network.
+#' @param time_all Numeric vector. Timestamps of all relevant epochs for the MCMC, those observed and those for forecast
+#' @param layer_all Character vector. Id's of layers in the network.
+#' @param time_all_idx_net Boolean vector. Indicates which elements in time_all correspond to timesteps observed in the network.
+#' @param pred_all Character vector. Id's of all predictors, incluiding layer and node specific.
+#' @param pred_id_layer Character vector. Id's of layer specific predictors.
+#' @param pred_id_edge Character vector. Id's of node specific predictors.
+#' @param z_tkp Array. Layer specific predictor data.
+#' @param z_ijtkp Array. Edge specific predictor data.
+#' @param H_dim Integer. Latent space dimension.
+#' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
+#' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
+#' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
+#' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
+#' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
+#' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
+#' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
+#' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
+#' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
+#' @param rds_file String. Indicates a file (.rds) where the output will be saved.
+#' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
+#' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
+#' @param parallel_mcmc Boolean. Indicates if some steps in the mcmc would be processed in parallel.
+#' 
 #' @import foreach
 #' @import BayesLogit
+#' 
 #' @keywords internal
+#' 
+
 mcmc_d_0_w_0 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           time_all_idx_net,

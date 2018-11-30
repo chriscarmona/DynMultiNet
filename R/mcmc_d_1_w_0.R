@@ -29,7 +29,13 @@
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
 #' @param parallel_mcmc Boolean. Indicates if some steps in the mcmc would be processed in parallel.
 #' 
+#' @import foreach
+#' @import BayesLogit
+#' 
 #' @keywords internal
+#' 
+
+
 mcmc_d_1_w_0 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           time_all_idx_net,
