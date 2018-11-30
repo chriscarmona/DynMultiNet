@@ -116,6 +116,12 @@ plot_dmn_mcmc <- function( x,
     if(!is.element(node_j,x$node_all)) {stop("node_i=",node_j," is not a valid node")}
     j <- match(node_j,x$node_all)
     
+    if(!directed){
+      ij_aux <- c(i,j)
+      i <- max(ij_aux); node_i <- x$node_all[i]
+      j <- min(ij_aux); node_j <- x$node_all[j]
+    }
+    
     if(is.null(layer_k)){ layer_k=x$layer_all[1]; warning("Plotting layer_k=",layer_k," as layer_k was not specified") }
     if(!is.element(layer_k,x$layer_all)) {stop("layer_k=",layer_k," is not a valid layer")}
     k <- match(layer_k,x$layer_all)
@@ -251,7 +257,7 @@ plot_dmn_mcmc <- function( x,
   
   if( is.element(param,"pi_ijtk") ){
     p <- p + geom_point( aes( y=as.numeric(x$y_ijtk[i,j,,k]>0),
-                              x=x$time_all[x$time_all_idx_net]) ) +
+                              x=x$time_all[x$time_all_idx_net] ) ) +
       labs(x="time",y="pi_ijtk",title="pi_ijtk",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))+
       coord_cartesian(ylim=c(0,1))
   } else if( is.element(param,"mu_tk") ){

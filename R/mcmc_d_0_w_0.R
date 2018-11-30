@@ -4,6 +4,7 @@
 #' @keywords internal
 mcmc_d_0_w_0 <- function( y_ijtk,
                           node_all, time_all, layer_all,
+                          time_all_idx_net,
                           
                           pred_all,
                           pred_id_layer, pred_id_edge,
@@ -15,9 +16,11 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           
                           n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
                           
-                          out_file=NULL, log_file=NULL,
+                          rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
+  
+  time_net <- time_all[time_all_idx_net]
   
   V_net <- length(node_all)
   T_net <- length(time_all)
@@ -47,10 +50,12 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   
   # Covariance matrix prior for baseline mu_tk
   mu_t_cov_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
+  diag(mu_t_cov_prior) <- diag(mu_t_cov_prior) + 1e-3 # numerical stability
   mu_t_cov_prior_inv <- solve(mu_t_cov_prior)
   
   # Covariance matrix prior for parameters beta
   beta_t_cov_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_p){ exp(-k*(x-y)^2) } )
+  diag(beta_t_cov_prior) <- diag(beta_t_cov_prior) + 1e-3 # numerical stability
   beta_t_cov_prior_inv <- solve(beta_t_cov_prior)
   
   # Latent coordinates #
@@ -73,6 +78,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   }
   # Covariance matrix prior for coordinates x_t
   x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
+  diag(x_t_sigma_prior) <- diag(x_t_sigma_prior) + 1e-3 # numerical stability
   x_t_sigma_prior_inv <- solve(x_t_sigma_prior)
   
   # Predictor coefficients
@@ -138,6 +144,9 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   for ( iter_i in 1:n_iter_mcmc) {
     #cat(iter_i,",")
     
+    # Check singularity of implicit logistic regression for mu and x_ith, in the first iteration
+    check_Y<-FALSE
+    if(iter_i==2) {check_Y<-FALSE}
     
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
@@ -303,23 +312,45 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     }
     # save MCMC progress #
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) & iter_i>min(iter_out_mcmc,na.rm=T) ) {
-      if(!is.null(out_file)){
-        DynMultiNet_mcmc <- list( y_ijtk=y_ijtk,
-                                  directed=FALSE,
-                                  weighted=FALSE,
-                                  n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
-                                  pi_ijtk_mcmc=pi_ijtk_mcmc,
-                                  node_all=node_all, time_all=time_all, layer_all=layer_all,
-                                  mu_tk_mcmc=mu_tk_mcmc,
-                                  x_ith_shared_mcmc=x_ith_shared_mcmc,
-                                  x_ithk_mcmc=x_ithk_mcmc,
-                                  tau_h_shared_mcmc=tau_h_shared_mcmc,
-                                  tau_h_k_mcmc=tau_h_k_mcmc,
-                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                  beta_z_layer_mcmc=beta_z_layer_mcmc,
-                                  beta_z_edge_mcmc=beta_z_edge_mcmc )
-        DynMultiNet_mcmc <- structure( DynMultiNet_mcmc, class="DynMultiNet_mcmc" )
-        save(DynMultiNet_mcmc,file=out_file)
+      if(!is.null(rds_file)){
+        dmn_mcmc <- list( y_ijtk=y_ijtk,
+                          
+                          directed=FALSE,
+                          weighted=FALSE,
+                          
+                          n_chains_mcmc=NULL,
+                          n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                          time_all_idx_net=time_all_idx_net,
+                          
+                          a_1=a_1, a_2=a_2,
+                          k_x=k_x, k_mu=k_mu, k_p=k_p,
+                          
+                          node_all=node_all, time_all=time_all, layer_all=layer_all,
+                          
+                          # For link probabilities #
+                          pi_ijtk_mcmc=pi_ijtk_mcmc,
+                          mu_tk_mcmc=mu_tk_mcmc,
+                          x_ith_shared_mcmc=x_ith_shared_mcmc,
+                          x_ithk_mcmc=x_ithk_mcmc,
+                          tau_h_shared_mcmc=tau_h_shared_mcmc,
+                          tau_h_k_mcmc=tau_h_k_mcmc,
+                          
+                          # For link weights #
+                          r_ijtk_mcmc = NULL,
+                          sigma_w_k_mcmc = NULL,
+                          
+                          lambda_tk_mcmc = NULL,
+                          u_ith_shared_mcmc = NULL,
+                          u_ithk_mcmc = NULL,
+                          rho_h_shared_mcmc = NULL,
+                          rho_h_k_mcmc = NULL,
+                          
+                          pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                          beta_z_layer_mcmc=beta_z_layer_mcmc,
+                          beta_z_edge_mcmc=beta_z_edge_mcmc )
+        
+        dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
+        saveRDS(dmn_mcmc,file=rds_file)
       }
     }
   }
@@ -331,22 +362,43 @@ mcmc_d_0_w_0 <- function( y_ijtk,
         file=log_file, append=TRUE)
   }
   
-  DynMultiNet_mcmc <- list( y_ijtk=y_ijtk,
-                            directed=FALSE,
-                            weighted=FALSE,
-                            n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
-                            pi_ijtk_mcmc=pi_ijtk_mcmc,
-                            node_all=node_all, time_all=time_all, layer_all=layer_all,
-                            mu_tk_mcmc=mu_tk_mcmc,
-                            x_ith_shared_mcmc=x_ith_shared_mcmc,
-                            x_ithk_mcmc=x_ithk_mcmc,
-                            tau_h_shared_mcmc=tau_h_shared_mcmc,
-                            tau_h_k_mcmc=tau_h_k_mcmc,
-                            pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                            beta_z_layer_mcmc=beta_z_layer_mcmc,
-                            beta_z_edge_mcmc=beta_z_edge_mcmc )
-  DynMultiNet_mcmc <- structure( DynMultiNet_mcmc, class="DynMultiNet_mcmc" )
+  dmn_mcmc <- list( y_ijtk=y_ijtk,
+                    
+                    directed=FALSE,
+                    weighted=FALSE,
+                    
+                    n_chains_mcmc=NULL,
+                    n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                    time_all_idx_net=time_all_idx_net,
+                    
+                    a_1=a_1, a_2=a_2,
+                    k_x=k_x, k_mu=k_mu, k_p=k_p,
+                    
+                    node_all=node_all, time_all=time_all, layer_all=layer_all,
+                    
+                    # For link probabilities #
+                    pi_ijtk_mcmc=pi_ijtk_mcmc,
+                    mu_tk_mcmc=mu_tk_mcmc,
+                    x_ith_shared_mcmc=x_ith_shared_mcmc,
+                    x_ithk_mcmc=x_ithk_mcmc,
+                    tau_h_shared_mcmc=tau_h_shared_mcmc,
+                    tau_h_k_mcmc=tau_h_k_mcmc,
+                    
+                    # For link weights #
+                    r_ijtk_mcmc = NULL,
+                    sigma_w_k_mcmc = NULL,
+                    
+                    lambda_tk_mcmc = NULL,
+                    u_ith_shared_mcmc = NULL,
+                    u_ithk_mcmc = NULL,
+                    rho_h_shared_mcmc = NULL,
+                    rho_h_k_mcmc = NULL,
+                    
+                    pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                    beta_z_layer_mcmc=beta_z_layer_mcmc,
+                    beta_z_edge_mcmc=beta_z_edge_mcmc )
+  dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
   
-  return( DynMultiNet_mcmc )
+  return( dmn_mcmc )
   
 }

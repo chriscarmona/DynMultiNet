@@ -19,7 +19,7 @@
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
-#' @param out_file String. Indicates a file (.RData) where the output will be saved.
+#' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
 #' @param parallel_mcmc Boolean. Indicates if some steps in the mcmc would be processed in parallel.
@@ -81,7 +81,7 @@ dmn_sampling <- function( net_data,
                           time_fc=NULL,
                           
                           n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
-                          out_file=NULL, log_file=NULL,
+                          rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
   
@@ -92,7 +92,9 @@ dmn_sampling <- function( net_data,
       stop('Layers in "pred_data" must be one of layers in "net_data"')
     }
   }
-  
+  if( !is.null(rds_file) & substr(rds_file,nchar(rds_file)-3,nchar(rds_file))!=".rds" ) {
+    rds_file<-paste(rds_file,".rds",sep="")
+  }
   #### Start: Processing data ####
   ### Network data ###
   y_ijtk <- get_y_ijtk_from_edges( net_data,
@@ -167,7 +169,7 @@ dmn_sampling <- function( net_data,
         "n_burn = ",n_burn,"\n",
         "n_thin = ",n_thin,"\n",
         "----- Storage and processing -----\n",
-        "out_file = ",out_file,"\n",
+        "rds_file = ",rds_file,"\n",
         "log_file = ",log_file,"\n",
         "parallel_mcmc = ",parallel_mcmc,"\n",
         "---------------------------\n\n",
@@ -183,6 +185,7 @@ dmn_sampling <- function( net_data,
   if( !directed & !weighted ) {
     dmn_mcmc <- mcmc_d_0_w_0( y_ijtk=y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
+                              time_all_idx_net=time_all_idx_net,
                               
                               pred_all=pred_all,
                               pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
@@ -194,7 +197,7 @@ dmn_sampling <- function( net_data,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
-                              out_file=out_file, log_file=log_file,
+                              rds_file=rds_file, log_file=log_file,
                               quiet_mcmc=quiet_mcmc,
                               parallel_mcmc=parallel_mcmc )
   } else if( directed & !weighted ) {
@@ -212,7 +215,7 @@ dmn_sampling <- function( net_data,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
-                              out_file=out_file, log_file=log_file,
+                              rds_file=rds_file, log_file=log_file,
                               quiet_mcmc=quiet_mcmc,
                               parallel_mcmc=parallel_mcmc )
   } else {
