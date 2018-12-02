@@ -92,15 +92,18 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   beta_t_cov_prior_inv <- solve(beta_t_cov_prior)
   
   # Latent coordinates #
-  # shared: hth coordinate of actor v at time t shared across the different layers
+  # shared coordinates #
+  # hth coordinate of actor v at time t shared across the different layers #
   x_ith_shared <- array( #data=0,
     data=runif(V_net*T_net*H_dim,-1,1),
     dim=c(V_net,T_net,H_dim) )
   
   x_ith_shared_mcmc <- array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out))
   
+  # layer-specific coordinates #
+  # layer-specific: hth coordinate of actor v at time t specific to layer k #
   if( K_net>1 ){
-    # by layer: hth coordinate of actor v at time t specific to layer k
+    
     x_ithk <- array( #data=0,
       data=runif(V_net*T_net*R_dim*K_net),
       dim=c(V_net,T_net,R_dim,K_net) )
@@ -109,6 +112,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     x_ithk <- NULL
     x_ithk_mcmc <- NULL
   }
+  
   # Covariance matrix prior for coordinates x_t
   x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
   diag(x_t_sigma_prior) <- diag(x_t_sigma_prior) + 1e-3 # numerical stability
