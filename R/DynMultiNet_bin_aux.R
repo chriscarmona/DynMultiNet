@@ -37,7 +37,7 @@ bounce_limit <- function(x,a,b){
 
 
 
-#' @keywords internal
+#' @export
 get_y_ijtk_from_edges <- function( net_data,
                                    directed=TRUE,
                                    weighted=TRUE,

@@ -16,6 +16,7 @@ Imports:
     dplyr,
     foreach,
     ggplot2,
+    MCMCpack,
     mvtnorm,
     Rcpp,
     RcppArmadillo

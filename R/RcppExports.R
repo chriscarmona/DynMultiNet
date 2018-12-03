@@ -25,6 +25,46 @@ sample_x_ith_shared_DynMultiNet_bin_dir_cpp <- function(x_ith_shared_send, x_ith
     .Call(`_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_dir_cpp`, x_ith_shared_send, x_ith_shared_receive, x_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, w_ijtk, s_ijtk, check_Y)
 }
 
+c_initialize1 <- function(Data, DIMS, Yy, XSCALE, BETAIN, BETAOUT, WW) {
+    .Call(`_DynMultiNet_c_initialize1`, Data, DIMS, Yy, XSCALE, BETAIN, BETAOUT, WW)
+}
+
+c_initialize1_grad <- function(Data, DIMS, Yy, XSCALE, BETAIN, BETAOUT, WW) {
+    .Call(`_DynMultiNet_c_initialize1_grad`, Data, DIMS, Yy, XSCALE, BETAIN, BETAOUT, WW)
+}
+
+c_update2 <- function(Xitm1, DIMS, TUNEX, Yy, BETAIN, BETAOUT, TUNEBIO, WW, t2X, s2X, xiBIN, xiBOUT, nuBIN, nuBOUT, CAUCHY, RNORMS, RNORMSBIO, ELOUT, ELIN, SUBSEQ, DEG) {
+    .Call(`_DynMultiNet_c_update2`, Xitm1, DIMS, TUNEX, Yy, BETAIN, BETAOUT, TUNEBIO, WW, t2X, s2X, xiBIN, xiBOUT, nuBIN, nuBOUT, CAUCHY, RNORMS, RNORMSBIO, ELOUT, ELIN, SUBSEQ, DEG)
+}
+
+c_update1 <- function(Xitm1, DIMS, TUNEX, Yy, BETAIN, BETAOUT, TUNEBIO, WW, t2X, s2X, xiBIN, xiBOUT, nuBIN, nuBOUT, CAUCHY, RNORMS, RNORMSBIO) {
+    .Call(`_DynMultiNet_c_update1`, Xitm1, DIMS, TUNEX, Yy, BETAIN, BETAOUT, TUNEBIO, WW, t2X, s2X, xiBIN, xiBOUT, nuBIN, nuBOUT, CAUCHY, RNORMS, RNORMSBIO)
+}
+
+c_t2s2Parms <- function(DATA, DIMS, THETAT, THETAS, PHIT, PHIS) {
+    .Call(`_DynMultiNet_c_t2s2Parms`, DATA, DIMS, THETAT, THETAS, PHIT, PHIS)
+}
+
+c_WAccProb2 <- function(Data, DIMS, Yy, BETAIN, BETAOUT, TUNEW, WWOld, WWNew, ELOUT, ELIN, SUBSEQ, DEG) {
+    .Call(`_DynMultiNet_c_WAccProb2`, Data, DIMS, Yy, BETAIN, BETAOUT, TUNEW, WWOld, WWNew, ELOUT, ELIN, SUBSEQ, DEG)
+}
+
+c_WAccProb1 <- function(Data, DIMS, Yy, BETAIN, BETAOUT, TUNEW, WWOld, WWNew) {
+    .Call(`_DynMultiNet_c_WAccProb1`, Data, DIMS, Yy, BETAIN, BETAOUT, TUNEW, WWOld, WWNew)
+}
+
+c_missing <- function(Data, DIMS, MMM, Yy, Ttt, BETAIN, BETAOUT, WW) {
+    .Call(`_DynMultiNet_c_missing`, Data, DIMS, MMM, Yy, Ttt, BETAIN, BETAOUT, WW)
+}
+
+c_postzeroprob <- function(Xi1, Xi2, Xj1, Xj2, SS2, LAM, PP0) {
+    .Call(`_DynMultiNet_c_postzeroprob`, Xi1, Xi2, Xj1, Xj2, SS2, LAM, PP0)
+}
+
+c_prediction <- function(EX, SIG2, X1T, X2T, BIN, BOUT, WW) {
+    .Call(`_DynMultiNet_c_prediction`, EX, SIG2, X1T, X2T, BIN, BOUT, WW)
+}
+
 # Register entry points for exported C++ functions
 methods::setLoadAction(function(ns) {
     .Call('_DynMultiNet_RcppExport_registerCCallable', PACKAGE = 'DynMultiNet')

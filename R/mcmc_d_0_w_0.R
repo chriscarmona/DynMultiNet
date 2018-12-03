@@ -32,6 +32,8 @@
 #' @import foreach
 #' @import BayesLogit
 #' 
+#' @importFrom MCMCpack procrustes
+#' 
 #' @keywords internal
 #' 
 
@@ -266,6 +268,21 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                          w_ijtk=w_ijtk,
                                                          s_ijtk=s_ijtk,
                                                          check_Y=check_Y )
+    # Procrustres transform
+    if(iter_i==n_burn) {
+      x_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
+        x_ith_shared[,t,]
+      }
+    } else if(iter_i>n_burn) {
+      x_ith_shared_temp <- foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+        x_ith_shared[,t,]
+      }
+      # procr <- vegan::procrustes(X=x_ith_shared_ref,Y=x_ith_shared_temp,scale=FALSE)$Yrot
+      procr <- MCMCpack::procrustes(X=x_ith_shared_temp,Xstar=x_ith_shared_ref)$X.new
+      for(t in 1:T_net){ # t<-2
+        x_ith_shared[,t,] <- procr[((t-1)*V_net)+(1:V_net),]
+      }; rm(t)
+    }
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
@@ -292,6 +309,25 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                s_ijtk=s_ijtk,
                                                parallel_mcmc=parallel_mcmc,
                                                check_Y=check_Y )
+      # Procrustres transform
+      if(iter_i==n_burn) {
+        x_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+          foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+            x_ithk[,t,,k]
+          }
+      } else if(iter_i>n_burn) {
+        x_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+        foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+          x_ithk[,t,,k]
+        }
+        # all.equal(x_ithk[,t,,k],x_ithk_tmp[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),])
+        # procr <- vegan::procrustes(X=x_ithk_ref,Y=x_ithk_tmp,scale=FALSE)$Yrot
+        procr <- MCMCpack::procrustes(X=x_ithk_tmp, Xstar=x_ithk_ref )$X.new
+        for(k in 1:K_net){
+          for(t in 1:T_net){
+            x_ithk[,t,,k] <- procr[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),]
+        }}; rm(t,k)
+      }
       
       if(is.element(iter_i,iter_out_mcmc)){
         x_ithk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- x_ithk

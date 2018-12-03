@@ -4,7 +4,7 @@
 #' @description
 #'    \code{dmn_sampling} Implements model from Carmona and Martinez-Jaramillo, 2018
 #'
-#' @param net_data Data frame.Network information.
+#' @param y_ijtk Array. Network information, should be dimension (V_net,V_net,T_net,K_net).
 #' @param pred_data Data frame. Linked predictors information.
 #' @param directed Boolean. Indicates if the provided network is directed, i.e. the adjacency matrix is assymetrical.
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
@@ -71,7 +71,7 @@
 #' @export
 #' 
 
-dmn_sampling <- function( net_data,
+dmn_sampling <- function( y_ijtk,
                           pred_data=NULL,
                           directed=FALSE, weighted=FALSE,
                           H_dim=10, R_dim=10,
@@ -88,26 +88,32 @@ dmn_sampling <- function( net_data,
   
   mcmc_clock <- Sys.time()
   
-  if(!is.null(pred_data)) {
-    if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
-      stop('Layers in "pred_data" must be one of layers in "net_data"')
-    }
-  }
+  # if(!is.null(pred_data)) {
+  #   if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
+  #     stop('Layers in "pred_data" must be one of layers in "net_data"')
+  #   }
+  # }
   if( !is.null(rds_file) & substr(rds_file,nchar(rds_file)-3,nchar(rds_file))!=".rds" ) {
     rds_file<-paste(rds_file,".rds",sep="")
   }
   #### Start: Processing data ####
   ### Network data ###
-  y_ijtk <- get_y_ijtk_from_edges( net_data,
-                                   directed=directed,
-                                   weighted=weighted,
-                                   self_edges=FALSE )
-  node_all <- sort(unique(unlist(net_data[,c("source","target")])))
-  V_net <- length(node_all)
-  time_net <- sort(unique(unlist(net_data$time)))
-  T_net <- length(time_net)
-  layer_all <- sort(unique(unlist(net_data$layer)))
-  K_net <- length(layer_all)
+  
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  K_net <- dim(y_ijtk)[4]
+  
+  node_all <- dimnames(y_ijtk)[[1]]
+  if(is.null(node_all)){node_all<-1:V_net; dimnames(y_ijtk)[[1]]<-dimnames(y_ijtk)[[2]]<-node_all}
+  
+  time_net <- dimnames(y_ijtk)[[3]]
+  if(is.null(time_net)){time_net<-1:T_net; dimnames(y_ijtk)[[3]]<-time_net}
+  time_net <- as.numeric(time_net)
+  if(any(is.na(time_net))){stop("dimnames(y_ijtk)[[3]] should be NULL or able to transform to a numeric value")}
+  
+  layer_all <- dimnames(y_ijtk)[[4]]
+  if(is.null(layer_all)){layer_all<-1:K_net; dimnames(y_ijtk)[[3]]<-layer_all}
+  
   
   if(any(is.element(time_fc,time_net))) {
     warning('Some elements in "time_fc" are already in the network observed data.')
