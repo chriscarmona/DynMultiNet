@@ -43,6 +43,7 @@ LSMDN <- function( Y, p=2,
   if(!llApprox) n0<-NULL
   
   # This software only deal with binary edges
+  Y_orig <- Y
   Y[Y>0] <- 1
   
   
@@ -309,10 +310,11 @@ LSMDN <- function( Y, p=2,
     
     
     if( !is.null(out_rds) & is.element(it, floor(N*seq(0,1,0.25)[-1]) ) ) {
-      out <- list( Y=Y,
+      out <- list( Y=Y_orig,
                    p=p, TT=TT, n=n,
                    MissData=MissData,
                    X=X, # Latent coordinates
+                   N=N, burnin=burnin, n0=n0,
                    Bin=Bin, Bout=Bout, # beta_in and beta_out
                    s2=s2, # sigma
                    t2=t2, # tau
@@ -324,7 +326,7 @@ LSMDN <- function( Y, p=2,
     setTxtProgressBar(pb,it)
   }
   
-  out <- list( Y=Y,
+  out <- list( Y=Y_orig,
                p=p, TT=TT, n=n,
                MissData=MissData,
                X=X, # Latent coordinates
