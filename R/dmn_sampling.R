@@ -13,6 +13,7 @@
 #' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
 #' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
 #' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
+#' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param time_fc Numeric vector. Specifies times in the networks to be forecasted.
@@ -74,9 +75,11 @@
 dmn_sampling <- function( y_ijtk,
                           pred_data=NULL,
                           directed=FALSE, weighted=FALSE,
-                          H_dim=10, R_dim=10,
                           
+                          H_dim=10, R_dim=10,
                           k_x=0.10, k_mu=0.10, k_p=0.10,
+                          
+                          shrink_lat_space=TRUE,
                           a_1=2, a_2=2.5,
                           
                           time_fc=NULL,
@@ -200,6 +203,8 @@ dmn_sampling <- function( y_ijtk,
                               
                               H_dim=H_dim, R_dim=R_dim,
                               k_x=k_x, k_mu=k_mu, k_p=k_p,
+                              
+                              shrink_lat_space=shrink_lat_space,
                               a_1=a_1, a_2=a_2,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
@@ -218,6 +223,8 @@ dmn_sampling <- function( y_ijtk,
                               
                               H_dim=H_dim, R_dim=R_dim,
                               k_x=k_x, k_mu=k_mu, k_p=k_p,
+                              
+                              shrink_lat_space=shrink_lat_space,
                               a_1=a_1, a_2=a_2,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,

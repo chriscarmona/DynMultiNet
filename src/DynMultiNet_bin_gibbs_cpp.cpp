@@ -16,8 +16,7 @@ arma::mat sample_mu_t_DynMultiNet_bin_cpp( arma::colvec mu_t,
                                            const arma::cube y_ijt,
                                            const arma::cube w_ijt,
                                            const arma::cube s_ijt,
-                                           const bool directed=false,
-                                           bool check_Y=false ) {
+                                           const bool directed=false ) {
   // Auxiliar objects
   unsigned int i=0;
   unsigned int j=0;
@@ -98,13 +97,6 @@ arma::mat sample_mu_t_DynMultiNet_bin_cpp( arma::colvec mu_t,
   Y.shed_row(0); W.shed_row(0); S.shed_row(0);
   Omega_sp.diag() = W;
   
-  if(check_Y) {
-    // verifies that not all values of Y are equal
-    bad_Y = true;
-    for( j=1; j<Y.n_rows; j++ ) { bad_Y = bad_Y & (Y(0)==Y(j)); }
-    if(bad_Y){ throw std::range_error("All values of Y are equal. Logistic regression is singular"); }
-  }
-  
   mu_t_cov_inv = X_sp.t() * Omega_sp * X_sp;
   mu_t_cov_inv = mu_t_cov_inv + mu_t_cov_prior_inv;
   
@@ -129,8 +121,7 @@ arma::mat sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
                                                    const arma::cube y_ijt,
                                                    const arma::cube w_ijt,
                                                    const arma::cube s_ijt,
-                                                   const bool directed=false,
-                                                   bool check_Y=false ) {
+                                                   const bool directed=false ) {
   // Auxiliar objects
   unsigned int i=0;
   unsigned int j=0;
@@ -209,13 +200,6 @@ arma::mat sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
   Y.shed_row(0); W.shed_row(0); S.shed_row(0);
   Omega_sp.diag() = W;
   
-  if(check_Y) {
-    // verifies that not all values of Y are equal
-    bad_Y = true;
-    for( j=1; j<Y.n_rows; j++ ) { bad_Y = bad_Y & (Y(0)==Y(j)); }
-    if(bad_Y){ throw std::range_error("All values of Y are equal. Logistic regression is singular"); }
-  }
-  
   beta_t_cov_inv = X_sp.t() * Omega_sp * X_sp;
   beta_t_cov_inv = beta_t_cov_inv + beta_t_cov_prior_inv;
   
@@ -239,8 +223,7 @@ arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
                                              const arma::colvec tau_h,
                                              const arma::cube y_ijt,
                                              const arma::cube w_ijt,
-                                             const arma::cube s_ijt,
-                                             bool check_Y=false ) {
+                                             const arma::cube s_ijt ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -315,16 +298,6 @@ arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
     
     Omega_sp.diag() = W;
     
-    if(check_Y) {
-      // verifies that not all values of Y are equal
-      bad_Y = true;
-      for( j=1; j<Y.n_rows; j++ ) { bad_Y = bad_Y & (Y(0)==Y(j)); }
-      if(bad_Y){
-        Rcpp::Rcout << "In node i=" << i+1 << " out of " << V_net << std::endl;
-        throw std::range_error("All values of Y are equal. Logistic regression is singular");
-      }
-    }
-    
     // X
     X_sp = X_all_sp;
     X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
@@ -354,8 +327,7 @@ arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
                                                     const arma::colvec tau_h,
                                                     const arma::field<arma::cube> y_ijtk,
                                                     const arma::field<arma::cube> w_ijtk,
-                                                    const arma::field<arma::cube> s_ijtk,
-                                                    bool check_Y=false ) {
+                                                    const arma::field<arma::cube> s_ijtk ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -443,16 +415,6 @@ arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
     }
     Omega_sp.diag() = W;
     
-    if(check_Y) {
-      // verifies that not all values of Y are equal
-      bad_Y = true;
-      for( j=1; j<Y.n_rows; j++ ) { bad_Y = bad_Y & (Y(0)==Y(j)); }
-      if(bad_Y){
-        Rcpp::Rcout << "In node i=" << i+1 << " out of " << V_net << std::endl;
-        throw std::range_error("All values of Y are equal. Logistic regression is singular");
-      }
-    }
-    
     // X
     X_sp = X_all_sp;
     X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
@@ -486,8 +448,7 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
                                                  const arma::colvec tau_h_receive,
                                                  const arma::cube y_ijt,
                                                  const arma::cube w_ijt,
-                                                 const arma::cube s_ijt,
-                                                 bool check_Y=false  ) {
+                                                 const arma::cube s_ijt ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -622,16 +583,6 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
         throw std::range_error("direction not supported");
       }
       
-      if(check_Y) {
-        // verifies that not all values of Y are equal
-        bad_Y = true;
-        for( j=1; j<Y.n_rows; j++ ) { bad_Y = bad_Y & (Y(0)==Y(j)); }
-        if(bad_Y){
-          Rcpp::Rcout << "In node i=" << i+1 << " out of " << V_net << std::endl;
-          throw std::range_error("All values of Y are equal. Logistic regression is singular");
-        }
-      }
-      
       Omega_sp.diag() = W;
       
       x_i_cov_prior = kron( tau_h_diag, x_t_sigma_prior_inv );
@@ -676,8 +627,7 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
                                                         const arma::colvec tau_h_shared_receive,
                                                         const arma::field<arma::cube> y_ijtk,
                                                         const arma::field<arma::cube> w_ijtk,
-                                                        const arma::field<arma::cube> s_ijtk,
-                                                        bool check_Y=false ) {
+                                                        const arma::field<arma::cube> s_ijtk ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -815,16 +765,6 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
           aux_mat_1 = aux_mat_1.t();
           aux_mat_1.reshape((V_net-1)*T_net,1);
           S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
-        }
-        
-        if(check_Y) {
-          // verifies that not all values of Y are equal
-          bad_Y = true;
-          for( j=1; j<Y.n_rows; j++ ) { bad_Y = bad_Y & (Y(0)==Y(j)); }
-          if(bad_Y){
-            Rcpp::Rcout << "In node i=" << i+1 << " out of " << V_net << std::endl;
-            throw std::range_error("All values of Y are equal. Logistic regression is singular");
-          }
         }
         
         // X

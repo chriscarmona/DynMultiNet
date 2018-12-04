@@ -3,6 +3,9 @@
   library.dynam.unload("DynMultiNet", libpath)
 }
 
+#' @keywords internal
+nato0 <- function(x){x[is.na(x)]<-0;x}
+
 #' @importFrom stats var
 #' @keywords internal
 R_hat.mcmc <- function(x,m) {

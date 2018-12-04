@@ -49,7 +49,7 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                           H_dim=10, R_dim=10,
                           k_x=0.10, k_mu=0.10, k_p=0.10,
                           
-                          shrink_lat_space=FALSE,
+                          shrink_lat_space=TRUE,
                           a_1=2, a_2=2.5,
                           
                           n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,

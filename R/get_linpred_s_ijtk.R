@@ -100,9 +100,9 @@ get_linpred_s_ijtk <- function( y_ijtk, mu_tk,
     rm(row_i,k,p,t)
   }
   
-  s_ijtk[is.na(y_ijtk)]<-NA
+  # s_ijtk[is.na(y_ijtk)]<-NA
   
-  if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to edge predictors)')}
+  # if(any(is.na(s_ijtk[!is.na(y_ijtk)]))){stop('There is a problem creating "s_ijtk" (perhaps related to edge predictors)')}
   
   return(s_ijtk)
 }

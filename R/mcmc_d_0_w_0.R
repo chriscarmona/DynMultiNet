@@ -57,6 +57,30 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
   
+  # This software only deal with binary edges (non-weighted)
+  y_ijtk_orig <- y_ijtk
+  y_ijtk[y_ijtk>0] <- 1
+  
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  K_net <- dim(y_ijtk)[4]
+  
+  # assume no self-edges
+  diag_y_idx <- matrix(FALSE,V_net,V_net); diag(diag_y_idx)<-TRUE
+  diag_y_idx <- array(diag_y_idx,dim=dim(y_ijtk))
+  y_ijtk[diag_y_idx] <- 0
+  
+  # Symmetric adjacency matrices
+  for( k in 1:K_net) {
+    for( t in 1:T_net) { #t<-1;k<-1
+      if(!isSymmetric(y_ijtk[,,t,k])){
+        aux <- nato0(y_ijtk[,,t,k])+nato0(t(y_ijtk[,,t,k]))
+        aux[is.na(y_ijtk[,,t,k])&is.na(t(y_ijtk[,,t,k]))] <- NA
+        y_ijtk[,,t,k] <- 1*(aux>0)
+      }
+    }
+  }; rm(k,t)
+  
   time_net <- time_all[time_all_idx_net]
   
   V_net <- length(node_all)
@@ -75,7 +99,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   
   # Augmented Polya-gamma data
   w_ijtk <- y_ijtk
-  w_ijtk[!is.na(w_ijtk)] <- 0
+  w_ijtk[] <- 0
   
   # Baseline parameter #
   # at time t for layer k
@@ -152,7 +176,6 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   
   
   ## Shrinkage Parameters ##
-  browser()
   # shared #
   v_shrink_shared <- matrix(1, nrow=H_dim, ncol=1 )
   if(shrink_lat_space){
@@ -201,24 +224,21 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   for ( iter_i in 1:n_iter_mcmc) {
     #cat(iter_i,",")
     
-    # Check singularity of implicit logistic regression for mu and x_ith, in the first iteration
-    check_Y<-FALSE
-    if(iter_i==2) {check_Y<-FALSE}
-    
-    
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
     w_ijtk <- sample_w_ijtk_DynMultiNet_bin( w_ijtk=w_ijtk,
-                                             s_ijtk=s_ijtk )
+                                             s_ijtk=s_ijtk,
+                                             directed=FALSE )
     
     
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
+    browser()
     mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                            mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                           directed=FALSE,
                                            use_cpp=TRUE,
-                                           parallel_mcmc=parallel_mcmc,
-                                           check_Y=check_Y )
+                                           parallel_mcmc=parallel_mcmc )
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
@@ -242,8 +262,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                              z_tkp, pred_id_layer, pred_all, layer_all,
                                                              y_ijtk, w_ijtk, s_ijtk,
                                                              beta_t_cov_prior_inv,
-                                                             use_cpp=TRUE,
-                                                             check_Y=check_Y )
+                                                             use_cpp=TRUE )
         if(is.element(iter_i,iter_out_mcmc)){
           beta_z_layer_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_z_layer
         }
@@ -284,8 +303,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                          tau_h=tau_h_shared,
                                                          y_ijtk=y_ijtk,
                                                          w_ijtk=w_ijtk,
-                                                         s_ijtk=s_ijtk,
-                                                         check_Y=check_Y )
+                                                         s_ijtk=s_ijtk )
     # Procrustres transform
     if(iter_i==n_burn) {
       x_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
@@ -325,8 +343,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                y_ijtk=y_ijtk,
                                                w_ijtk=w_ijtk,
                                                s_ijtk=s_ijtk,
-                                               parallel_mcmc=parallel_mcmc,
-                                               check_Y=check_Y )
+                                               parallel_mcmc=parallel_mcmc )
       # Procrustres transform
       if(iter_i==n_burn) {
         x_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%

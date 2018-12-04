@@ -6,20 +6,24 @@ sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk,
                                            directed=FALSE ) {
   
   ### Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
-  
   V_net <- dim(w_ijtk)[1]
   T_net <- dim(w_ijtk)[3]
   K_net <- dim(w_ijtk)[4]
   
-  s_aux <- c(s_ijtk); s_aux <- s_aux[!is.na(s_aux)]
   if(directed){
-    n_sim <- K_net*T_net*V_net*(V_net-1)
+    idx_tmp <- matrix(TRUE,V_net,V_net); diag(idx_tmp)<-FALSE
+    idx_tmp <- array(idx_tmp,dim=dim(s_ijtk))
+    # s_aux <- s_ijtk[idx_tmp]
+    # n_sim <- K_net*T_net*V_net*(V_net-1)
   } else {
-    n_sim <- K_net*T_net*V_net*(V_net-1)/2
+    idx_tmp <- array(lower.tri(s_ijtk[,,1,1]),dim=dim(s_ijtk))
+    # s_aux <- s_ijtk[idx_tmp]
+    # n_sim <- K_net*T_net*V_net*(V_net-1)/2
   }
-  if( length(s_aux)!=n_sim ){ stop("There was an error sampling w_ijtk") }
+  # if( length(s_aux)!=n_sim ){ stop("There was an error sampling w_ijtk") }
   
-  w_ijtk[!is.na(s_ijtk)] <- BayesLogit::rpg.devroye( num=length(s_aux), n=1, z=s_aux )
+  w_ijtk[idx_tmp] <- BayesLogit::rpg.devroye( num=sum(idx_tmp), n=1, z=s_ijtk[idx_tmp] )
+  w_ijtk[!idx_tmp] <- NA
   
   return(w_ijtk)
   
@@ -34,81 +38,29 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           directed=FALSE,
                                           use_cpp=TRUE,
                                           parallel_mcmc=FALSE,
-                                          calc_method_R=1,
-                                          check_Y=FALSE ) {
+                                          calc_method_R=1 ) {
   ### Sample mu_t from its conditional N-variate Gaussian posterior ###
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
   K_net <- dim(y_ijtk)[4]
   
-  if(use_cpp) {
-    if(parallel_mcmc) {
-      mu_tk <- foreach( k=1:K_net, .combine=cbind, .inorder=TRUE ) %dopar% { # k<-1
-        sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
-                                         mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                         y_ijt=y_ijtk[,,,k],
-                                         w_ijt=w_ijtk[,,,k],
-                                         s_ijt=s_ijtk[,,,k],
-                                         directed=directed,
-                                         check_Y=check_Y )
-      }
-    } else {
-      for( k in 1:K_net ) { # k<-1
-        mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
-                                                      mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                                      y_ijt=y_ijtk[,,,k],
-                                                      w_ijt=w_ijtk[,,,k],
-                                                      s_ijt=s_ijtk[,,,k],
-                                                      directed=directed,
-                                                      check_Y=check_Y )
-      }
+  if(parallel_mcmc) {
+    mu_tk <- foreach( k=1:K_net, .combine=cbind, .inorder=TRUE ) %dopar% { # k<-1
+      sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=FALSE],
+                                       mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                       y_ijt=y_ijtk[,,,k],
+                                       w_ijt=w_ijtk[,,,k],
+                                       s_ijt=s_ijtk[,,,k],
+                                       directed=directed )
     }
   } else {
-    if(directed){
-      stop("mu_tk sampling not supported in R code for directed networks.")
-    } else {
-      for( k in 1:K_net ) { # k<-1
-        mu_t=mu_tk[,k,drop=F]
-        y_ijt=y_ijtk[,,,k]
-        w_ijt=w_ijtk[,,,k]
-        s_ijt=s_ijtk[,,,k]
-        
-        if(calc_method_R==1){
-          # Option 1: [Durante, 2014]
-          aux_sum_w_t <- apply(w_ijt,3,sum,na.rm=T)
-          aux_mat <- solve( diag(aux_sum_w_t) + mu_t_cov_prior_inv )
-          if(!isSymmetric(aux_mat)) {aux_mat[upper.tri(aux_mat)] <- t(aux_mat)[upper.tri(aux_mat)]}
-          mu_t_cov <- aux_mat
-          
-          mu_t_aux <- array( rep(as.numeric(mu_t),each=V_net^2),
-                             dim=c(V_net,V_net,T_net) )
-          aux_vec_mean <- apply(y_ijt[,,] - 0.5 - w_ijt[,,] * (s_ijt[,,]-mu_t_aux),3,sum,na.rm=T)
-          aux_vec_mean <- matrix(aux_vec_mean,nrow=T_net,ncol=1)
-        } else if(calc_method_R==2) {
-          # Option 2: direct linear model
-          X <- kronecker(matrix(1,V_net*(V_net-1)/2,1),diag(T_net))
-          Y<-NULL; W<-NULL; S<-NULL
-          for(i in 2:V_net) {
-            #i<-3
-            Y <- rbind( Y,
-                        matrix(c(t(matrix(y_ijt[i,1:i,],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
-            W <- rbind( W,
-                        matrix(c(t(matrix(w_ijt[i,1:i,],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
-            S <- rbind( S,
-                        matrix(c(t(matrix(s_ijt[i,1:i,],nrow=i,ncol=T_net)[-i,,drop=F])),T_net*(i-1),ncol=1) )
-          }
-          
-          S_minus <- kronecker(matrix(1,V_net*(V_net-1)/2,1),matrix(mu_t,T_net,1))
-          W_diag <- diag(as.numeric(W))
-          Z <- (Y - 0.5)/W-(S-S_minus)
-          mu_t_cov <- solve( t(X) %*% W_diag %*%  X + mu_t_cov_prior_inv )
-          aux_vec_mean <- t(X) %*% W_diag %*% Z
-        }
-        
-        mu_tk[,k] <- mvtnorm::rmvnorm( n=1,
-                                       mean=mu_t_cov %*% aux_vec_mean,
-                                       sigma=mu_t_cov )
-      }
+    for( k in 1:K_net ) { # k<-1
+      mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=F],
+                                                    mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                                    y_ijt=y_ijtk[,,,k],
+                                                    w_ijt=w_ijtk[,,,k],
+                                                    s_ijt=s_ijtk[,,,k],
+                                                    directed=directed )
     }
   }
   
@@ -160,8 +112,7 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
                                                  y_ijtk, w_ijtk, s_ijtk,
                                                  beta_t_cov_prior_inv,
                                                  use_cpp = TRUE,
-                                                 directed = FALSE,
-                                                 check_Y=FALSE ) {
+                                                 directed = FALSE ) {
   ### Sample beta_z_layer from its conditional N-variate Gaussian posterior ###
   ### output ###
   # beta_z_layer <- matrix(0,nrow=T_net,ncol=nrow(pred_id_layer))
@@ -180,8 +131,7 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
                                                                        y_ijt=y_ijtk[,,,k],
                                                                        w_ijt=w_ijtk[,,,k],
                                                                        s_ijt=s_ijtk[,,,k],
-                                                                       directed=directed,
-                                                                       check_Y=check_Y )
+                                                                       directed=directed )
     } else {
       if(directed) {
         stop("beta_z_layer sampling not supported in R code for directed networks.")
@@ -222,8 +172,7 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
 sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
                                                  x_t_sigma_prior_inv, tau_h,
                                                  y_ijtk, w_ijtk, s_ijtk,
-                                                 directed=FALSE,
-                                                 check_Y=FALSE ) {
+                                                 directed=FALSE ) {
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
   V_net <- dim(x_ith_shared)[1]
@@ -247,16 +196,14 @@ sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
                                                                  tau_h_shared_receive = tau_h[[2]],
                                                                  y_ijtk = y_ijtk_list,
                                                                  w_ijtk = w_ijtk_list,
-                                                                 s_ijtk = s_ijtk_list,
-                                                                 check_Y=check_Y )
+                                                                 s_ijtk = s_ijtk_list )
   } else {
     x_ith_shared <- sample_x_ith_shared_DynMultiNet_bin_cpp( x_ith_shared = x_ith_shared,
                                                              x_t_sigma_prior_inv = x_t_sigma_prior_inv,
                                                              tau_h = tau_h,
                                                              y_ijtk = y_ijtk_list,
                                                              w_ijtk = w_ijtk_list,
-                                                             s_ijtk = s_ijtk_list,
-                                                             check_Y=check_Y )
+                                                             s_ijtk = s_ijtk_list )
   }
   
   return( x_ith_shared )
@@ -269,8 +216,7 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                            x_t_sigma_prior_inv, tau_h,
                                            y_ijtk, w_ijtk, s_ijtk,
                                            directed=FALSE,
-                                           parallel_mcmc=FALSE,
-                                           check_Y=FALSE ) {
+                                           parallel_mcmc=FALSE ) {
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
   
@@ -292,8 +238,7 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                               tau_h_receive = tau_h[[2]][,k],
                                               y_ijt = y_ijtk[,,,k],
                                               w_ijt = w_ijtk[,,,k],
-                                              s_ijt = s_ijtk[,,,k],
-                                              check_Y=check_Y )
+                                              s_ijt = s_ijtk[,,,k] )
       }
     } else {
       for(k in 1:K_net){ # k<-1
@@ -304,8 +249,7 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                                             tau_h_receive = tau_h[[2]][,k],
                                                             y_ijt = y_ijtk[,,,k],
                                                             w_ijt = w_ijtk[,,,k],
-                                                            s_ijt = s_ijtk[,,,k],
-                                                            check_Y=check_Y )
+                                                            s_ijt = s_ijtk[,,,k] )
         x_ithk[[1]][,,,k] <- x_ithk_aux[[1]]
         x_ithk[[2]][,,,k] <- x_ithk_aux[[2]]
       }
@@ -323,8 +267,7 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                           tau_h = tau_h[,k],
                                           y_ijt = y_ijtk[,,,k],
                                           w_ijt = w_ijtk[,,,k],
-                                          s_ijt = s_ijtk[,,,k],
-                                          check_Y=check_Y )
+                                          s_ijt = s_ijtk[,,,k] )
       }
     } else {
       for(k in 1:K_net){ # k<-1
@@ -333,8 +276,7 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                                           tau_h = tau_h[,k],
                                                           y_ijt = y_ijtk[,,,k],
                                                           w_ijt = w_ijtk[,,,k],
-                                                          s_ijt = s_ijtk[,,,k],
-                                                          check_Y=check_Y )
+                                                          s_ijt = s_ijtk[,,,k] )
       }
     }
   }
