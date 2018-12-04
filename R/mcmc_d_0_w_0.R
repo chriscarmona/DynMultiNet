@@ -181,7 +181,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     tau_h_k <- NULL
     tau_h_k_mcmc <- NULL
   }
-  }
+  
   #### End: MCMC initialization ####
   
   
