@@ -19,6 +19,7 @@
 #' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
 #' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
 #' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
+#' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
@@ -31,6 +32,7 @@
 #' 
 #' @import foreach
 #' @import BayesLogit
+#' @importFrom MCMCpack procrustes
 #' 
 #' @keywords internal
 #' 
@@ -46,6 +48,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                           
                           H_dim=10, R_dim=10,
                           k_x=0.10, k_mu=0.10, k_p=0.10,
+                          
+                          shrink_lat_space=FALSE,
                           a_1=2, a_2=2.5,
                           
                           n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
@@ -300,6 +304,24 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                          y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                                          directed=TRUE,
                                                          check_Y=check_Y )
+    if(F){ # TO BE IMPLEMENTED
+      # Procrustres transform
+      if(iter_i==n_burn) {
+        x_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
+          x_ith_shared[,t,]
+        }
+      } else if(iter_i>n_burn) {
+        x_ith_shared_temp <- foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+          x_ith_shared[,t,]
+        }
+        # procr <- vegan::procrustes(X=x_ith_shared_ref,Y=x_ith_shared_temp,scale=FALSE)$Yrot
+        procr <- MCMCpack::procrustes(X=x_ith_shared_temp,Xstar=x_ith_shared_ref)$X.new
+        for(t in 1:T_net){ # t<-2
+          x_ith_shared[,t,] <- procr[((t-1)*V_net)+(1:V_net),]
+        }; rm(t)
+      }
+    }
+    
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       x_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- x_ith_shared[[1]]
@@ -326,6 +348,28 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                directed=TRUE,
                                                parallel_mcmc=parallel_mcmc,
                                                check_Y=check_Y )
+      
+      if(F) { # TO BE IMPLEMENTED
+      # Procrustres transform
+      if(iter_i==n_burn) {
+        x_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+          foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+            x_ithk[,t,,k]
+          }
+      } else if(iter_i>n_burn) {
+        x_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+          foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+            x_ithk[,t,,k]
+          }
+        # all.equal(x_ithk[,t,,k],x_ithk_tmp[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),])
+        # procr <- vegan::procrustes(X=x_ithk_ref,Y=x_ithk_tmp,scale=FALSE)$Yrot
+        procr <- MCMCpack::procrustes(X=x_ithk_tmp, Xstar=x_ithk_ref )$X.new
+        for(k in 1:K_net){
+          for(t in 1:T_net){
+            x_ithk[,t,,k] <- procr[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),]
+          }}; rm(t,k)
+      }
+      }
       
       # MCMC chain for x_ithk #
       if(is.element(iter_i,iter_out_mcmc)){

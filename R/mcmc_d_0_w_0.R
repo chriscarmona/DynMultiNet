@@ -19,6 +19,7 @@
 #' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
 #' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
 #' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
+#' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
@@ -31,7 +32,6 @@
 #' 
 #' @import foreach
 #' @import BayesLogit
-#' 
 #' @importFrom MCMCpack procrustes
 #' 
 #' @keywords internal
@@ -47,6 +47,8 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           
                           H_dim=10, R_dim=10,
                           k_x=0.10, k_mu=0.10, k_p=0.10,
+                          
+                          shrink_lat_space=TRUE,
                           a_1=2, a_2=2.5,
                           
                           n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
@@ -148,21 +150,37 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   #pi_ijt[,,1]
   # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
   
-  # Shrinkage Parameters
-  v_shrink_shared <- matrix(NA, nrow=H_dim, ncol=1 )
-  v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  
+  ## Shrinkage Parameters ##
+  browser()
+  # shared #
+  v_shrink_shared <- matrix(1, nrow=H_dim, ncol=1 )
+  if(shrink_lat_space){
+    v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  }
   tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
-  tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
-  # 1/tau_h
+  if(shrink_lat_space){
+    tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
+  } else {
+    tau_h_shared_mcmc <- NULL
+  }
+  # layer-specific #
   if( K_net>1 ){
-    v_shrink_k <- matrix(NA, nrow=R_dim, ncol=K_net )
-    v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+    v_shrink_k <- matrix(1, nrow=R_dim, ncol=K_net )
+    if(shrink_lat_space){
+      v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+    }
     tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
-    tau_h_k_mcmc <- array( NA, dim=c(R_dim,K_net,n_iter_mcmc_out) )
+    if(shrink_lat_space){
+      tau_h_k_mcmc <- array( NA, dim=c(R_dim,K_net,n_iter_mcmc_out) )
+    } else {
+      tau_h_k_mcmc <- NULL
+    }
   } else {
     v_shrink_k <- NULL
     tau_h_k <- NULL
     tau_h_k_mcmc <- NULL
+  }
   }
   #### End: MCMC initialization ####
   
@@ -352,6 +370,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
+    if(shrink_lat_space){
     v_shrink_shared <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared,
                                                         a_1, a_2,
                                                         x_ith_shared,
@@ -371,6 +390,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
       if(is.element(iter_i,iter_out_mcmc)){
         tau_h_k_mcmc[,,match(iter_i,iter_out_mcmc)] <- tau_h_k
       }
+    }
     }
     
     # display MCMC progress #
