@@ -102,6 +102,14 @@ dmn_sampling <- function( y_ijtk,
   #### Start: Processing data ####
   ### Network data ###
   
+  if(dim(y_ijtk)[1]!=dim(y_ijtk)[2]){
+    stop("y_ijtk should be an array with the same cardinality for dimensions 1 and 2")
+  }
+  if(length(dim(y_ijtk))==3){
+    warning("y_ijtk was declared with only 3 dimensions, a single layer will be assumed")
+    y_ijtk <- array(y_ijtk,dim=c(dim(y_ijtk),1))
+  }
+  
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
   K_net <- dim(y_ijtk)[4]
@@ -113,10 +121,8 @@ dmn_sampling <- function( y_ijtk,
   if(is.null(time_net)){time_net<-1:T_net; dimnames(y_ijtk)[[3]]<-time_net}
   time_net <- as.numeric(time_net)
   if(any(is.na(time_net))){stop("dimnames(y_ijtk)[[3]] should be NULL or able to transform to a numeric value")}
-  
   layer_all <- dimnames(y_ijtk)[[4]]
-  if(is.null(layer_all)){layer_all<-1:K_net; dimnames(y_ijtk)[[3]]<-layer_all}
-  
+  if(is.null(layer_all)){layer_all<-1:K_net; dimnames(y_ijtk)[[4]]<-layer_all}
   
   if(any(is.element(time_fc,time_net))) {
     warning('Some elements in "time_fc" are already in the network observed data.')

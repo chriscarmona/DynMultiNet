@@ -19,9 +19,6 @@ arma::mat sample_mu_t_DynMultiNet_bin_cpp( arma::colvec mu_t,
                                            const bool directed=false ) {
   // Auxiliar objects
   unsigned int i=0;
-  unsigned int j=0;
-  
-  bool bad_Y=true;
   
   arma::cube aux_cube_1;
   arma::mat aux_mat_1;
@@ -48,9 +45,8 @@ arma::mat sample_mu_t_DynMultiNet_bin_cpp( arma::colvec mu_t,
   
   if( directed ){
     X_sp = repmat(X_sp,2,1);
-    Omega_sp=arma::speye<arma::sp_mat>(T_net*V_net*(V_net-1),T_net*V_net*(V_net-1));
+    Omega_sp=arma::speye<arma::sp_mat>(T_net*V_net*(V_net-1),T_net*V_net*(V_net-1)); // too large
   }
-  
   
   arma::mat mu_t_cov_inv;
   arma::mat mu_t_cov;
@@ -112,10 +108,132 @@ arma::mat sample_mu_t_DynMultiNet_bin_cpp( arma::colvec mu_t,
   return mu_t;
 }
 
-
+// [[Rcpp::export]]
+arma::mat sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
+                                              const arma::mat mu_t_cov_prior_inv,
+                                              const arma::cube y_ijt,
+                                              const arma::cube w_ijt,
+                                              const arma::cube s_ijt,
+                                              const bool directed=false ) {
+  // Auxiliar objects
+  unsigned int i=0;
+  unsigned int t=0;
+  unsigned int aux_int=0;
+  
+  arma::cube aux_cube_1;
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
+  arma::uvec aux_uvec_1;
+  
+  // Network and latent space dimensions
+  unsigned int V_net = y_ijt.n_rows;
+  unsigned int T_net = y_ijt.n_slices;
+  
+  arma::colvec Y;
+  arma::colvec W;
+  arma::colvec S;
+  
+  arma::colvec C = arma::zeros<arma::colvec>(1);
+  arma::colvec Z = arma::zeros<arma::colvec>(1);
+  
+  aux_mat_1 = arma::zeros<arma::mat>(T_net,T_net); aux_mat_1.eye();
+  if( directed ){
+    aux_mat_2 = arma::ones<arma::mat>(V_net*(V_net-1),1);
+  } else {
+    aux_mat_2 = arma::ones<arma::mat>(V_net*(V_net-1)/2,1);
+  }
+  arma::mat X = arma::kron( aux_mat_1, aux_mat_2 );
+  arma::sp_mat X_sp = arma::sp_mat(X);
+  
+  arma::mat mu_t_cov_inv;
+  arma::mat mu_t_cov;
+  arma::colvec aux_vec_mean = arma::zeros<arma::colvec>(T_net);
+  
+  if( directed ){
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = y_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+      aux_mat_2.shed_row(i);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+    Y = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = w_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+      aux_mat_2.shed_row(i);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+    W = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = s_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+      aux_mat_2.shed_row(i);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+    S = aux_mat_1;
+  } else {
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = y_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+    Y = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = w_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+    W = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = s_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+    S = aux_mat_1;
+  }
+  
+  // Omega_sp.diag() = W;
+  // mu_t_cov_inv = X_sp.t() * Omega_sp * X_sp;
+  // more efficient:
+  mu_t_cov_inv = arma::zeros<arma::mat>(T_net,T_net);
+  if( directed ){
+    aux_int = V_net*(V_net-1);
+  } else {
+    aux_int = V_net*(V_net-1)/2;
+  }
+  for( t=0; t<T_net; t++ ) { mu_t_cov_inv(t,t) = sum( W.subvec( t*aux_int, (t+1)*aux_int-1  ) ); }
+  mu_t_cov_inv = mu_t_cov_inv + mu_t_cov_prior_inv;
+  mu_t_cov = arma::inv_sympd(mu_t_cov_inv);
+  
+  C = S - (X_sp * mu_t);
+  
+  Z = (Y-0.5)/W - C;
+  
+  aux_vec_mean = X_sp.t() * (W % Z);
+  
+  mu_t = arma::mvnrnd( mu_t_cov*aux_vec_mean , mu_t_cov );
+  
+  return mu_t;
+}
 
 // [[Rcpp::export]]
-arma::mat sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
+arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
                                                    arma::colvec z_t,
                                                    const arma::mat beta_t_cov_prior_inv,
                                                    const arma::cube y_ijt,
@@ -124,8 +242,7 @@ arma::mat sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
                                                    const bool directed=false ) {
   // Auxiliar objects
   unsigned int i=0;
-  unsigned int j=0;
-  bool bad_Y=true;
+  
   arma::cube aux_cube_1;
   arma::mat aux_mat_1;
   arma::mat aux_mat_2;
@@ -227,9 +344,8 @@ arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
   
   // Auxiliar objects
   unsigned int i=0;
-  unsigned int j=0;
   unsigned int t=0;
-  bool bad_Y=true;
+  
   arma::mat aux_mat_1;
   arma::mat aux_mat_2;
   
@@ -309,7 +425,7 @@ arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
     C = S - X_sp * trans(x_ith_mat.row(i));
     Z = (Y-0.5)/W - C;
     
-    aux_vec_mean = X_sp.t() * (Omega_sp * Z);
+    aux_vec_mean = X_sp.t() * (W % Z);
     
     x_ith_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
   }
@@ -331,11 +447,8 @@ arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
   
   // Auxiliar objects
   unsigned int i=0;
-  unsigned int j=0;
   unsigned int k=0;
   unsigned int t=0;
-  
-  bool bad_Y=true;
   
   arma::mat aux_mat_1;
   arma::mat aux_mat_2;
@@ -427,7 +540,7 @@ arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
     C = S - X_sp * trans(x_ith_shared_mat.row(i));
     Z = (Y-0.5)/W - C;
     
-    aux_vec_mean = X_sp.t() * (Omega_sp * Z);
+    aux_vec_mean = X_sp.t() * (W % Z);
     
     x_ith_shared_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
   }
@@ -452,10 +565,7 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
   
   // Auxiliar objects
   unsigned int i=0;
-  unsigned int j=0;
   unsigned int t=0;
-  
-  bool bad_Y=true;
   
   unsigned int dir=0;
   
@@ -594,12 +704,12 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
       if( dir==0 ) {
         C = S - X_sp * trans(x_ith_send_mat.row(i));
         Z = (Y-0.5)/W - C;
-        aux_vec_mean = X_sp.t() * (Omega_sp * Z);
+        aux_vec_mean = X_sp.t() * (W % Z);
         x_ith_send_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
       } else if( dir==1 ) {
         C = S - X_sp * trans(x_ith_receive_mat.row(i));
         Z = (Y-0.5)/W - C;
-        aux_vec_mean = X_sp.t() * (Omega_sp * Z);
+        aux_vec_mean = X_sp.t() * (W % Z);
         x_ith_receive_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
       } else {
         throw std::range_error("direction not supported");
@@ -631,10 +741,9 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
   
   // Auxiliar objects
   unsigned int i=0;
-  unsigned int j=0;
   unsigned int k=0;
   unsigned int t=0;
-  bool bad_Y=true;
+  
   unsigned int dir=0;
   
   arma::mat aux_mat_1;
@@ -789,12 +898,12 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
       if( dir==0 ) {
         C = S - X_sp * trans(x_ith_shared_send_mat.row(i));
         Z = (Y-0.5)/W - C;
-        aux_vec_mean = X_sp.t() * (Omega_sp * Z);
+        aux_vec_mean = X_sp.t() * (W % Z);
         x_ith_shared_send_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
       } else if( dir==1 ) {
         C = S - X_sp * trans(x_ith_shared_receive_mat.row(i));
         Z = (Y-0.5)/W - C;
-        aux_vec_mean = X_sp.t() * (Omega_sp * Z);
+        aux_vec_mean = X_sp.t() * (W % Z);
         x_ith_shared_receive_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
       } else {
         throw std::range_error("direction not supported");

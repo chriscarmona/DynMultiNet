@@ -86,13 +86,10 @@ plot_dmn_mcmc <- function( x,
   V_net <- dim(x$y_ijtk)[1]
   T_net <- dim(x$y_ijtk)[3]
   K_net <- dim(x$y_ijtk)[4]
-  if(directed){
-    H_dim <- dim(x$tau_h_shared_mcmc[[1]])[1]
-    R_dim <- dim(x$tau_h_k_mcmc[[1]])[1]
-  } else {
-    H_dim <- dim(x$tau_h_shared_mcmc)[1]
-    R_dim <- dim(x$tau_h_k_mcmc)[1]
-  }
+  
+  H_dim <- x$H_dim
+  R_dim <- x$R_dim
+  
   if( !weighted & is.element( param , c( "r_ijtk_mcmc","sigma_w_k",
                                          "lambda_tk_mcmc","u_ith_shared_mcmc","u_ithk_mcmc",
                                          "rho_h_shared_mcmc","rho_h_k_mcmc" ) ) ) {stop("param=",param," not applicable for unweighted networks.")}
@@ -208,7 +205,7 @@ plot_dmn_mcmc <- function( x,
     
   }
   
-  cred_int_probs = c(0.05,0.50)
+  cred_int_probs = c(0.05,0.25)
   cred_int_quantiles = sort(c(cred_int_probs/2,1-cred_int_probs/2))
   
   summary_mcmc <- summary(param_mcmc_chain,quantiles=cred_int_quantiles)
@@ -231,14 +228,14 @@ plot_dmn_mcmc <- function( x,
       #                   ymax=Mean+SD,
       #                   x=time ),
       #              fill="grey80", data=summary_mcmc ) +
-      # geom_ribbon( aes( ymin=get(paste("qmcmc_",100*cred_int_probs[1]/2,sep="")),
-      #                   ymax=get(paste("qmcmc_",100*(1-cred_int_probs[1]/2),sep="")),
-      #                   x=time ),
-      #              fill="grey80", data=summary_mcmc ) +
+      geom_ribbon( aes( ymin=get(paste("qmcmc_",100*cred_int_probs[1]/2,sep="")),
+                        ymax=get(paste("qmcmc_",100*(1-cred_int_probs[1]/2),sep="")),
+                        x=time ),
+                   fill="grey50", data=summary_mcmc, alpha=0.25 ) +
       geom_ribbon( aes( ymin=get(paste("qmcmc_",100*cred_int_probs[2]/2,sep="")),
                         ymax=get(paste("qmcmc_",100*(1-cred_int_probs[2]/2),sep="")),
                         x=time ),
-                   fill="grey60", data=summary_mcmc ) +
+                   fill="grey50", data=summary_mcmc, alpha=0.50 ) +
       geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc )
     
   } else if( is.element(cred_int_type,"norm") ){
@@ -246,11 +243,11 @@ plot_dmn_mcmc <- function( x,
       geom_ribbon( aes( ymin=get(paste("qnorm_",100*cred_int_probs[1]/2,sep="")),
                         ymax=get(paste("qnorm_",100*(1-cred_int_probs[1]/2),sep="")),
                         x=time ),
-                   fill="grey80", data=summary_mcmc ) +
+                   fill="grey50", data=summary_mcmc, alpha=0.25 ) +
       geom_ribbon( aes( ymin=get(paste("qnorm_",100*cred_int_probs[2]/2,sep="")),
                         ymax=get(paste("qnorm_",100*(1-cred_int_probs[2]/2),sep="")),
                         x=time ),
-                   fill="grey60", data=summary_mcmc ) +
+                   fill="grey50", data=summary_mcmc, alpha=0.50 ) +
       geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc )
   }
   

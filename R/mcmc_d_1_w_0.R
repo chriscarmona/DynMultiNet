@@ -162,13 +162,19 @@ mcmc_d_1_w_0 <- function( y_ijtk,
   #pi_ijt[,,1]
   # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
   
-  # Shrinkage Parameters
-  v_shrink_shared <- matrix(NA, nrow=H_dim, ncol=1 )
-  v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  ## Shrinkage Parameters ##
+  # shared #
+  v_shrink_shared <- matrix(1, nrow=H_dim, ncol=1 )
+  if(shrink_lat_space){
+    v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  }
   tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
-  tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
-  
-  # One latent space for each direction #
+  if(shrink_lat_space){
+    tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
+  } else {
+    tau_h_shared_mcmc <- NULL
+  }
+  # duplicate, one latent space for each direction #
   v_shrink_shared <- list( send=v_shrink_shared,
                            receive=v_shrink_shared )
   tau_h_shared <- list( send=tau_h_shared,
@@ -176,13 +182,20 @@ mcmc_d_1_w_0 <- function( y_ijtk,
   tau_h_shared_mcmc <- list( send=tau_h_shared_mcmc,
                              receive=tau_h_shared_mcmc )
   
-  # 1/tau_h
+  # layer-specific #
   if( K_net>1 ){
-    v_shrink_k <- matrix(NA, nrow=R_dim, ncol=K_net )
-    v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+    v_shrink_k <- matrix(1, nrow=R_dim, ncol=K_net )
+    if(shrink_lat_space){
+      v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+    }
     tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
-    tau_h_k_mcmc <- array( NA, dim=c(R_dim,K_net,n_iter_mcmc_out) )
-    # One latent space for each direction #
+    if(shrink_lat_space){
+      tau_h_k_mcmc <- array( NA, dim=c(R_dim,K_net,n_iter_mcmc_out) )
+    } else {
+      tau_h_k_mcmc <- NULL
+    }
+    
+    # duplicate, one latent space for each direction #
     v_shrink_k <- list( send=v_shrink_k,
                         receive=v_shrink_k )
     tau_h_k <- list( send=tau_h_k,
@@ -208,15 +221,24 @@ mcmc_d_1_w_0 <- function( y_ijtk,
         file=log_file, append=T )
   }
   
+  # Missing links
+  y_ijtk_miss <- FALSE
+  y_ijtk_miss_idx <- NULL
+  y_ijtk_imp_mcmc <- NULL
+  if( any(is.na(y_ijtk)) ) {
+    y_ijtk_miss <- TRUE
+    y_ijtk_orig <- y_ijtk
+    y_ijtk_miss_idx <- which( is.na(y_ijtk), arr.ind=TRUE )
+    
+    # Imputing y_ijtk
+    y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
+    y_ijtk[y_ijtk_miss_idx] <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
+  }
   
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
   
   for ( iter_i in 1:n_iter_mcmc) { # iter_i <- 1
-    
-    # Check singularity of implicit logistic regression for mu and x_ith, in the first iteration
-    check_Y<-FALSE
-    if(iter_i==2) {check_Y<-FALSE}
     
     #cat(iter_i,",")
     
@@ -230,13 +252,13 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
+    if(iter_i==1) {browser()}
     mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                            mu_t_cov_prior_inv=mu_t_cov_prior_inv,
                                            directed=TRUE,
                                            use_cpp=TRUE,
-                                           parallel_mcmc=parallel_mcmc,
-                                           check_Y=check_Y )
+                                           parallel_mcmc=parallel_mcmc )
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
@@ -261,8 +283,7 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                              z_tkp, pred_id_layer, pred_all, layer_all,
                                                              y_ijtk, w_ijtk, s_ijtk,
                                                              beta_t_cov_prior_inv,
-                                                             use_cpp=TRUE,
-                                                             check_Y=check_Y )
+                                                             use_cpp=TRUE )
         if(is.element(iter_i,iter_out_mcmc)){
           beta_z_layer_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_z_layer
         }
@@ -302,22 +323,24 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                          x_t_sigma_prior_inv=x_t_sigma_prior_inv,
                                                          tau_h=tau_h_shared,
                                                          y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
-                                                         directed=TRUE,
-                                                         check_Y=check_Y )
-    if(F){ # TO BE IMPLEMENTED
-      # Procrustres transform
-      if(iter_i==n_burn) {
-        x_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
-          x_ith_shared[,t,]
+                                                         directed=TRUE )
+    
+    # Procrustres transform
+    if(iter_i==n_burn) {
+      x_ith_shared_ref <- foreach::foreach(dir_i=1:2) %:%
+        foreach::foreach(t=1:T_net,.combine="rbind") %do%{
+          x_ith_shared[[dir_i]][,t,]
         }
-      } else if(iter_i>n_burn) {
+    } else if(iter_i>n_burn) {
+      browser()
+      for( dir_i in 1:2) {
         x_ith_shared_temp <- foreach::foreach(t=1:T_net,.combine="rbind") %do% {
-          x_ith_shared[,t,]
+          x_ith_shared[[dir_i]][,t,]
         }
         # procr <- vegan::procrustes(X=x_ith_shared_ref,Y=x_ith_shared_temp,scale=FALSE)$Yrot
-        procr <- MCMCpack::procrustes(X=x_ith_shared_temp,Xstar=x_ith_shared_ref)$X.new
+        procr <- MCMCpack::procrustes(X=x_ith_shared_temp,Xstar=x_ith_shared_ref[[dir_i]])$X.new
         for(t in 1:T_net){ # t<-2
-          x_ith_shared[,t,] <- procr[((t-1)*V_net)+(1:V_net),]
+          x_ith_shared[[dir_i]][,t,] <- procr[((t-1)*V_net)+(1:V_net),]
         }; rm(t)
       }
     }
@@ -346,30 +369,32 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                tau_h=tau_h_k,
                                                y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                                directed=TRUE,
-                                               parallel_mcmc=parallel_mcmc,
-                                               check_Y=check_Y )
+                                               parallel_mcmc=parallel_mcmc )
       
-      if(F) { # TO BE IMPLEMENTED
       # Procrustres transform
       if(iter_i==n_burn) {
-        x_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+        x_ithk_ref <- foreach::foreach(dir_i=1:2) %:%
+          foreach::foreach(k=1:K_net,.combine="rbind") %:%
           foreach::foreach(t=1:T_net,.combine="rbind") %do% {
-            x_ithk[,t,,k]
+            x_ithk[[dir_i]][,t,,k]
           }
       } else if(iter_i>n_burn) {
-        x_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
-          foreach::foreach(t=1:T_net,.combine="rbind") %do% {
-            x_ithk[,t,,k]
-          }
-        # all.equal(x_ithk[,t,,k],x_ithk_tmp[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),])
-        # procr <- vegan::procrustes(X=x_ithk_ref,Y=x_ithk_tmp,scale=FALSE)$Yrot
-        procr <- MCMCpack::procrustes(X=x_ithk_tmp, Xstar=x_ithk_ref )$X.new
-        for(k in 1:K_net){
-          for(t in 1:T_net){
-            x_ithk[,t,,k] <- procr[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),]
-          }}; rm(t,k)
+        browser()
+        for( dir_i in 1:2 ){
+          x_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+            foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+              x_ithk[[dir_i]][,t,,k]
+            }
+          # all.equal(x_ithk[,t,,k],x_ithk_tmp[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),])
+          # procr <- vegan::procrustes(X=x_ithk_ref,Y=x_ithk_tmp,scale=FALSE)$Yrot
+          procr <- MCMCpack::procrustes(X=x_ithk_tmp, Xstar=x_ithk_ref[[dir_i]] )$X.new
+          for(k in 1:K_net){
+            for(t in 1:T_net){
+              x_ithk[[dir_i]][,t,,k] <- procr[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),]
+            }}; rm(t,k)
+        }
       }
-      }
+      
       
       # MCMC chain for x_ithk #
       if(is.element(iter_i,iter_out_mcmc)){
@@ -397,29 +422,30 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-    for( dir_i in 1:2 ) {
-      v_shrink_shared[[dir_i]] <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared[[dir_i]],
-                                                                   a_1, a_2,
-                                                                   x_ith_shared[[dir_i]],
-                                                                   x_t_sigma_prior_inv )
-      tau_h_shared[[dir_i]] <- matrix(cumprod(v_shrink_shared[[dir_i]]), nrow=H_dim, ncol=1 )
-      if(is.element(iter_i,iter_out_mcmc)){
-        tau_h_shared_mcmc[[dir_i]][,match(iter_i,iter_out_mcmc)] <- tau_h_shared[[dir_i]]
-      }
-    }
-    
-    
-    if(K_net>1){
+    if(shrink_lat_space){
       for( dir_i in 1:2 ) {
-        for(k in 1:K_net) {
-          v_shrink_k[[dir_i]][,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[[dir_i]][,k,drop=F],
-                                                                      a_1, a_2,
-                                                                      x_ithk[[dir_i]][,,,k],
-                                                                      x_t_sigma_prior_inv )
-        }
-        tau_h_k[[dir_i]] <- matrix(apply(v_shrink_k[[dir_i]],2,cumprod), nrow=R_dim, ncol=K_net )
+        v_shrink_shared[[dir_i]] <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared[[dir_i]],
+                                                                     a_1, a_2,
+                                                                     x_ith_shared[[dir_i]],
+                                                                     x_t_sigma_prior_inv )
+        tau_h_shared[[dir_i]] <- matrix(cumprod(v_shrink_shared[[dir_i]]), nrow=H_dim, ncol=1 )
         if(is.element(iter_i,iter_out_mcmc)){
-          tau_h_k_mcmc[[dir_i]][,,match(iter_i,iter_out_mcmc)] <- tau_h_k[[dir_i]]
+          tau_h_shared_mcmc[[dir_i]][,match(iter_i,iter_out_mcmc)] <- tau_h_shared[[dir_i]]
+        }
+      }
+      
+      if(K_net>1){
+        for( dir_i in 1:2 ) {
+          for(k in 1:K_net) {
+            v_shrink_k[[dir_i]][,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[[dir_i]][,k,drop=F],
+                                                                        a_1, a_2,
+                                                                        x_ithk[[dir_i]][,,,k],
+                                                                        x_t_sigma_prior_inv )
+          }
+          tau_h_k[[dir_i]] <- matrix(apply(v_shrink_k[[dir_i]],2,cumprod), nrow=R_dim, ncol=K_net )
+          if(is.element(iter_i,iter_out_mcmc)){
+            tau_h_k_mcmc[[dir_i]][,,match(iter_i,iter_out_mcmc)] <- tau_h_k[[dir_i]]
+          }
         }
       }
     }

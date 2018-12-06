@@ -217,6 +217,19 @@ mcmc_d_0_w_0 <- function( y_ijtk,
         file=log_file, append=T )
   }
   
+  # Missing links
+  y_ijtk_miss <- FALSE
+  y_ijtk_miss_idx <- NULL
+  y_ijtk_imp_mcmc <- NULL
+  if( any(is.na(y_ijtk)) ) {
+    y_ijtk_miss <- TRUE
+    y_ijtk_orig <- y_ijtk
+    y_ijtk_miss_idx <- which( is.na(y_ijtk), arr.ind=TRUE )
+    
+    # Imputing y_ijtk
+    y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
+    y_ijtk[y_ijtk_miss_idx] <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
+  }
   
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
@@ -232,7 +245,6 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
-    browser()
     mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                            mu_t_cov_prior_inv=mu_t_cov_prior_inv,
@@ -305,7 +317,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                          w_ijtk=w_ijtk,
                                                          s_ijtk=s_ijtk )
     # Procrustres transform
-    if(iter_i==n_burn) {
+    if( (iter_i==n_burn) | (iter_i==1 & n_burn==0) ) {
       x_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
         x_ith_shared[,t,]
       }
@@ -345,7 +357,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                s_ijtk=s_ijtk,
                                                parallel_mcmc=parallel_mcmc )
       # Procrustres transform
-      if(iter_i==n_burn) {
+      if( (iter_i==n_burn) | (iter_i==1 & n_burn==0) ) {
         x_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
           foreach::foreach(t=1:T_net,.combine="rbind") %do% {
             x_ithk[,t,,k]
@@ -384,30 +396,38 @@ mcmc_d_0_w_0 <- function( y_ijtk,
       pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(s_ijtk)
     }
     
-    
+    # Impute missing links #
+    if( y_ijtk_miss ) {
+      y_ijtk[y_ijtk_miss_idx] <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- y_ijtk[y_ijtk_miss_idx]
+      }
+    }
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
     if(shrink_lat_space){
-    v_shrink_shared <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared,
-                                                        a_1, a_2,
-                                                        x_ith_shared,
-                                                        x_t_sigma_prior_inv )
-    tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
-    if(is.element(iter_i,iter_out_mcmc)){
-      tau_h_shared_mcmc[,match(iter_i,iter_out_mcmc)] <- tau_h_shared
-    }
-    
-    if(K_net>1){
-      for(k in 1:K_net) {
-        v_shrink_k[,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[,k,drop=F], a_1, a_2,
-                                                           x_ithk[,,,k],
-                                                           x_t_sigma_prior_inv )
-      }
-      tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
+      v_shrink_shared <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared,
+                                                          a_1, a_2,
+                                                          x_ith_shared,
+                                                          x_t_sigma_prior_inv )
+      tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
       if(is.element(iter_i,iter_out_mcmc)){
-        tau_h_k_mcmc[,,match(iter_i,iter_out_mcmc)] <- tau_h_k
+        tau_h_shared_mcmc[,match(iter_i,iter_out_mcmc)] <- tau_h_shared
       }
-    }
+      
+      if(K_net>1){
+        for(k in 1:K_net) {
+          v_shrink_k[,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[,k,drop=F], a_1, a_2,
+                                                             x_ithk[,,,k],
+                                                             x_t_sigma_prior_inv )
+        }
+        tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
+        if(is.element(iter_i,iter_out_mcmc)){
+          tau_h_k_mcmc[,,match(iter_i,iter_out_mcmc)] <- tau_h_k
+        }
+      }
     }
     
     # display MCMC progress #
@@ -432,8 +452,11 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                           time_all_idx_net=time_all_idx_net,
                           
-                          a_1=a_1, a_2=a_2,
+                          H_dim=H_dim, R_dim=R_dim,
                           k_x=k_x, k_mu=k_mu, k_p=k_p,
+                          
+                          shrink_lat_space=shrink_lat_space,
+                          a_1=a_1, a_2=a_2,
                           
                           node_all=node_all, time_all=time_all, layer_all=layer_all,
                           
@@ -445,10 +468,13 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           tau_h_shared_mcmc=tau_h_shared_mcmc,
                           tau_h_k_mcmc=tau_h_k_mcmc,
                           
+                          # imputed links
+                          y_ijtk_miss_idx=y_ijtk_miss_idx,
+                          y_ijtk_imp_mcmc=y_ijtk_imp_mcmc,
+                          
                           # For link weights #
                           r_ijtk_mcmc = NULL,
                           sigma_w_k_mcmc = NULL,
-                          
                           lambda_tk_mcmc = NULL,
                           u_ith_shared_mcmc = NULL,
                           u_ithk_mcmc = NULL,
@@ -481,8 +507,11 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                     n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                     time_all_idx_net=time_all_idx_net,
                     
-                    a_1=a_1, a_2=a_2,
+                    H_dim=H_dim, R_dim=R_dim,
                     k_x=k_x, k_mu=k_mu, k_p=k_p,
+                    
+                    shrink_lat_space=shrink_lat_space,
+                    a_1=a_1, a_2=a_2,
                     
                     node_all=node_all, time_all=time_all, layer_all=layer_all,
                     
@@ -494,10 +523,13 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                     tau_h_shared_mcmc=tau_h_shared_mcmc,
                     tau_h_k_mcmc=tau_h_k_mcmc,
                     
+                    # imputed links
+                    y_ijtk_miss_idx=y_ijtk_miss_idx,
+                    y_ijtk_imp_mcmc=y_ijtk_imp_mcmc,
+                    
                     # For link weights #
                     r_ijtk_mcmc = NULL,
                     sigma_w_k_mcmc = NULL,
-                    
                     lambda_tk_mcmc = NULL,
                     u_ith_shared_mcmc = NULL,
                     u_ithk_mcmc = NULL,
