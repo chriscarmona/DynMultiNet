@@ -109,11 +109,11 @@ arma::mat sample_mu_t_DynMultiNet_bin_cpp( arma::colvec mu_t,
 }
 
 // [[Rcpp::export]]
-arma::mat sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
+Rcpp::List sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
                                               const arma::mat mu_t_cov_prior_inv,
                                               const arma::cube y_ijt,
                                               const arma::cube w_ijt,
-                                              const arma::cube s_ijt,
+                                              arma::cube s_ijt,
                                               const bool directed=false ) {
   // Auxiliar objects
   unsigned int i=0;
@@ -123,6 +123,7 @@ arma::mat sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
   arma::cube aux_cube_1;
   arma::mat aux_mat_1;
   arma::mat aux_mat_2;
+  arma::mat aux_mat_3;
   arma::uvec aux_uvec_1;
   
   // Network and latent space dimensions
@@ -229,7 +230,26 @@ arma::mat sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
   
   mu_t = arma::mvnrnd( mu_t_cov*aux_vec_mean , mu_t_cov );
   
-  return mu_t;
+  // return mu_t;
+  
+  // Recalculate S with the new values of mu
+  S = X_sp * mu_t + C;
+  // Rearrange s_ijt with the new values of S
+  if( directed ){
+    aux_mat_1 = S;
+    aux_mat_1.reshape(V_net*(V_net-1),T_net);
+  } else {
+    aux_mat_1 = S;
+    aux_mat_1.reshape(V_net*(V_net-1)/2,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = aux_mat_1.rows((i-1)*V_net-((i-1)*i)/2,i*V_net-(i*(i+1))/2-1);
+      s_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1) = aux_mat_2;
+    }
+  }
+  
+  return Rcpp::List::create( Rcpp::Named("mu_t") = mu_t,
+                             Rcpp::Named("s_ijt") = s_ijt );
+  
 }
 
 // [[Rcpp::export]]

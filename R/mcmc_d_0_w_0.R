@@ -245,25 +245,37 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
-    mu_tk <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
+    browser()
+    
+    s_ijtk_new <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                      x_ith_shared=x_ith_shared, x_ithk=x_ithk,
+                                      pred_all=pred_all, layer_all=layer_all,
+                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+    all.equal(s_ijtk,s_ijtk_new)
+    out_aux <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                            mu_t_cov_prior_inv=mu_t_cov_prior_inv,
                                            directed=FALSE,
                                            use_cpp=TRUE,
                                            parallel_mcmc=parallel_mcmc )
+    mu_tk <- out_aux$mu_tk
+    s_ijtk_new2 <- out_aux$s_ijtk
+    
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
     }
     
     # update linear predictor
-    s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                  x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                  pred_all=pred_all, layer_all=layer_all,
-                                  z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                  beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                  pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-    
+    s_ijtk_new3 <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                       x_ith_shared=x_ith_shared, x_ithk=x_ithk,
+                                       pred_all=pred_all, layer_all=layer_all,
+                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                       beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                       pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+    all.equal(s_ijtk_new2,s_ijtk_new3)
     
     
     ### Step 2_beta. Sample beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###

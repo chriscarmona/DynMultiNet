@@ -55,16 +55,20 @@ sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
     }
   } else {
     for( k in 1:K_net ) { # k<-1
-      mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
-                                                       mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                                       y_ijt=y_ijtk[,,,k],
-                                                       w_ijt=w_ijtk[,,,k],
-                                                       s_ijt=s_ijtk[,,,k],
-                                                       directed=directed )
+      # mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
+      out_aux <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
+                                                     mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                                     y_ijt=y_ijtk[,,,k],
+                                                     w_ijt=w_ijtk[,,,k],
+                                                     s_ijt=s_ijtk[,,,k],
+                                                     directed=directed )
+      mu_tk[,k] <- out_aux$mu_t
+      s_ijtk[,,,k] <- out_aux$s_ijt
     }
   }
   
-  return(mu_tk);
+  return( list( mu_tk=mu_tk,
+                s_ijtk=s_ijtk ) );
 }
 
 

@@ -46,11 +46,11 @@ namespace DynMultiNet {
         return Rcpp::as<arma::mat >(rcpp_result_gen);
     }
 
-    inline arma::mat sample_mu_t_DynMultiNet_bin_v2_cpp(arma::colvec mu_t, const arma::mat mu_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt, const bool directed = false) {
+    inline Rcpp::List sample_mu_t_DynMultiNet_bin_v2_cpp(arma::colvec mu_t, const arma::mat mu_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube s_ijt, const bool directed = false) {
         typedef SEXP(*Ptr_sample_mu_t_DynMultiNet_bin_v2_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_mu_t_DynMultiNet_bin_v2_cpp p_sample_mu_t_DynMultiNet_bin_v2_cpp = NULL;
         if (p_sample_mu_t_DynMultiNet_bin_v2_cpp == NULL) {
-            validateSignature("arma::mat(*sample_mu_t_DynMultiNet_bin_v2_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const bool)");
+            validateSignature("Rcpp::List(*sample_mu_t_DynMultiNet_bin_v2_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,arma::cube,const bool)");
             p_sample_mu_t_DynMultiNet_bin_v2_cpp = (Ptr_sample_mu_t_DynMultiNet_bin_v2_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_mu_t_DynMultiNet_bin_v2_cpp");
         }
         RObject rcpp_result_gen;
@@ -64,7 +64,7 @@ namespace DynMultiNet {
             throw Rcpp::LongjumpException(rcpp_result_gen);
         if (rcpp_result_gen.inherits("try-error"))
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<arma::mat >(rcpp_result_gen);
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
     inline arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp(arma::colvec beta_t, arma::colvec z_t, const arma::mat beta_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt, const bool directed = false) {

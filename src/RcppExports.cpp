@@ -49,7 +49,7 @@ RcppExport SEXP _DynMultiNet_sample_mu_t_DynMultiNet_bin_cpp(SEXP mu_tSEXP, SEXP
     return rcpp_result_gen;
 }
 // sample_mu_t_DynMultiNet_bin_v2_cpp
-arma::mat sample_mu_t_DynMultiNet_bin_v2_cpp(arma::colvec mu_t, const arma::mat mu_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt, const bool directed);
+Rcpp::List sample_mu_t_DynMultiNet_bin_v2_cpp(arma::colvec mu_t, const arma::mat mu_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube s_ijt, const bool directed);
 static SEXP _DynMultiNet_sample_mu_t_DynMultiNet_bin_v2_cpp_try(SEXP mu_tSEXP, SEXP mu_t_cov_prior_invSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP s_ijtSEXP, SEXP directedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -57,7 +57,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::mat >::type mu_t_cov_prior_inv(mu_t_cov_prior_invSEXP);
     Rcpp::traits::input_parameter< const arma::cube >::type y_ijt(y_ijtSEXP);
     Rcpp::traits::input_parameter< const arma::cube >::type w_ijt(w_ijtSEXP);
-    Rcpp::traits::input_parameter< const arma::cube >::type s_ijt(s_ijtSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type s_ijt(s_ijtSEXP);
     Rcpp::traits::input_parameter< const bool >::type directed(directedSEXP);
     rcpp_result_gen = Rcpp::wrap(sample_mu_t_DynMultiNet_bin_v2_cpp(mu_t, mu_t_cov_prior_inv, y_ijt, w_ijt, s_ijt, directed));
     return rcpp_result_gen;
@@ -723,7 +723,7 @@ static int _DynMultiNet_RcppExport_validate(const char* sig) {
     static std::set<std::string> signatures;
     if (signatures.empty()) {
         signatures.insert("arma::mat(*sample_mu_t_DynMultiNet_bin_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const bool)");
-        signatures.insert("arma::mat(*sample_mu_t_DynMultiNet_bin_v2_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const bool)");
+        signatures.insert("Rcpp::List(*sample_mu_t_DynMultiNet_bin_v2_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,arma::cube,const bool)");
         signatures.insert("arma::colvec(*sample_beta_z_layer_DynMultiNet_bin_cpp)(arma::colvec,arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const bool)");
         signatures.insert("arma::cube(*sample_x_ith_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::cube,const arma::cube,const arma::cube)");
         signatures.insert("arma::cube(*sample_x_ith_shared_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,const arma::field<arma::cube>)");
