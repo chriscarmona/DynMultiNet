@@ -489,6 +489,8 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           shrink_lat_space=shrink_lat_space,
                           a_1=a_1, a_2=a_2,
                           
+                          procrustes_lat=procrustes_lat,
+                          
                           node_all=node_all, time_all=time_all, layer_all=layer_all,
                           
                           # For link probabilities #
@@ -544,6 +546,8 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                     shrink_lat_space=shrink_lat_space,
                     a_1=a_1, a_2=a_2,
                     
+                    procrustes_lat=procrustes_lat,
+                    
                     node_all=node_all, time_all=time_all, layer_all=layer_all,
                     
                     # For link probabilities #
@@ -570,6 +574,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                     pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
                     beta_z_layer_mcmc=beta_z_layer_mcmc,
                     beta_z_edge_mcmc=beta_z_edge_mcmc )
+  
   dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
   
   return( dmn_mcmc )

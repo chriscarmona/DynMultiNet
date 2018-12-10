@@ -499,8 +499,13 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                           time_all_idx_net=time_all_idx_net,
                           
-                          a_1=a_1, a_2=a_2,
+                          H_dim=H_dim, R_dim=R_dim,
                           k_x=k_x, k_mu=k_mu, k_p=k_p,
+                          
+                          shrink_lat_space=shrink_lat_space,
+                          a_1=a_1, a_2=a_2,
+                          
+                          procrustes_lat=procrustes_lat,
                           
                           node_all=node_all, time_all=time_all, layer_all=layer_all,
                           
@@ -512,10 +517,13 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                           tau_h_shared_mcmc=tau_h_shared_mcmc,
                           tau_h_k_mcmc=tau_h_k_mcmc,
                           
+                          # imputed links
+                          y_ijtk_miss_idx=y_ijtk_miss_idx,
+                          y_ijtk_imp_mcmc=y_ijtk_imp_mcmc,
+                          
                           # For link weights #
                           r_ijtk_mcmc = NULL,
                           sigma_w_k_mcmc = NULL,
-                          
                           lambda_tk_mcmc = NULL,
                           u_ith_shared_mcmc = NULL,
                           u_ithk_mcmc = NULL,
@@ -547,8 +555,13 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                     n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                     time_all_idx_net=time_all_idx_net,
                     
-                    a_1=a_1, a_2=a_2,
+                    H_dim=H_dim, R_dim=R_dim,
                     k_x=k_x, k_mu=k_mu, k_p=k_p,
+                    
+                    shrink_lat_space=shrink_lat_space,
+                    a_1=a_1, a_2=a_2,
+                    
+                    procrustes_lat=procrustes_lat,
                     
                     node_all=node_all, time_all=time_all, layer_all=layer_all,
                     
@@ -560,10 +573,13 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                     tau_h_shared_mcmc=tau_h_shared_mcmc,
                     tau_h_k_mcmc=tau_h_k_mcmc,
                     
+                    # imputed links
+                    y_ijtk_miss_idx=y_ijtk_miss_idx,
+                    y_ijtk_imp_mcmc=y_ijtk_imp_mcmc,
+                    
                     # For link weights #
                     r_ijtk_mcmc = NULL,
                     sigma_w_k_mcmc = NULL,
-                    
                     lambda_tk_mcmc = NULL,
                     u_ith_shared_mcmc = NULL,
                     u_ithk_mcmc = NULL,
