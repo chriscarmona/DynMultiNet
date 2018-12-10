@@ -16,6 +16,7 @@
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
+#' @param procrustes_lat Boolean. Indicates if the latent coordinates should be stabilised using the procustres transformation.
 #' @param time_fc Numeric vector. Specifies times in the networks to be forecasted.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
@@ -81,6 +82,8 @@ dmn_sampling <- function( y_ijtk,
                           
                           shrink_lat_space=TRUE,
                           a_1=2, a_2=2.5,
+                          
+                          procrustes_lat=TRUE,
                           
                           time_fc=NULL,
                           
@@ -178,8 +181,11 @@ dmn_sampling <- function( y_ijtk,
         "k_x = ",k_x,"\n",
         "k_mu = ",k_mu,"\n",
         "k_p = ",k_p,"\n",
+        "shrink_lat_space = ",shrink_lat_space,"\n",
         "a_1 = ",a_1,"\n",
         "a_2 = ",a_2,"\n",
+        "procrustes_lat = ",procrustes_lat,"\n",
+        
         "----- MCMC parameters -----\n",
         "n_iter_mcmc = ",n_iter_mcmc,"\n",
         "n_burn = ",n_burn,"\n",
@@ -213,6 +219,8 @@ dmn_sampling <- function( y_ijtk,
                               shrink_lat_space=shrink_lat_space,
                               a_1=a_1, a_2=a_2,
                               
+                              procrustes_lat=procrustes_lat,
+                              
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
                               rds_file=rds_file, log_file=log_file,
@@ -232,6 +240,8 @@ dmn_sampling <- function( y_ijtk,
                               
                               shrink_lat_space=shrink_lat_space,
                               a_1=a_1, a_2=a_2,
+                              
+                              procrustes_lat=procrustes_lat,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               

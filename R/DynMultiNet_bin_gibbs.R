@@ -193,7 +193,7 @@ sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
   }
   
   if( directed ) {
-    x_ith_shared <- sample_x_ith_shared_DynMultiNet_bin_dir_cpp( x_ith_shared_send = x_ith_shared[[1]],
+    out_aux <- sample_x_ith_shared_DynMultiNet_bin_dir_cpp( x_ith_shared_send = x_ith_shared[[1]],
                                                                  x_ith_shared_receive = x_ith_shared[[2]],
                                                                  x_t_sigma_prior_inv = x_t_sigma_prior_inv,
                                                                  tau_h_shared_send = tau_h[[1]],
@@ -201,16 +201,22 @@ sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
                                                                  y_ijtk = y_ijtk_list,
                                                                  w_ijtk = w_ijtk_list,
                                                                  s_ijtk = s_ijtk_list )
+    x_ith_shared <- out_aux$x_ith_shared
+    for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
+    
   } else {
-    x_ith_shared <- sample_x_ith_shared_DynMultiNet_bin_cpp( x_ith_shared = x_ith_shared,
-                                                             x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                             tau_h = tau_h,
-                                                             y_ijtk = y_ijtk_list,
-                                                             w_ijtk = w_ijtk_list,
-                                                             s_ijtk = s_ijtk_list )
+    out_aux <- sample_x_ith_shared_DynMultiNet_bin_cpp( x_ith_shared = x_ith_shared,
+                                                        x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                        tau_h = tau_h,
+                                                        y_ijtk = y_ijtk_list,
+                                                        w_ijtk = w_ijtk_list,
+                                                        s_ijtk = s_ijtk_list )
+    x_ith_shared <- out_aux$x_ith_shared
+    for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
   }
   
-  return( x_ith_shared )
+  return( list(x_ith_shared=x_ith_shared,
+               s_ijtk=s_ijtk ) )
 }
 
 
@@ -230,61 +236,41 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
     H_dim <- dim(x_ithk[[1]])[3]
     K_net <- dim(x_ithk[[1]])[4]
     
-    if(parallel_mcmc) {
-      x_ithk <- foreach( k=1:K_net,
-                         .combine=function(x,y){ list( abind::abind(x[[1]],y[[1]],along=4),
-                                                       abind::abind(x[[2]],y[[2]],along=4) ) }
-      ) %dopar% { # k<-1
-        sample_x_ith_DynMultiNet_bin_dir_cpp( x_ith_send = x_ithk[[1]][,,,k],
-                                              x_ith_receive = x_ithk[[2]][,,,k],
-                                              x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                              tau_h_send = tau_h[[1]][,k],
-                                              tau_h_receive = tau_h[[2]][,k],
-                                              y_ijt = y_ijtk[,,,k],
-                                              w_ijt = w_ijtk[,,,k],
-                                              s_ijt = s_ijtk[,,,k] )
-      }
-    } else {
-      for(k in 1:K_net){ # k<-1
-        x_ithk_aux <- sample_x_ith_DynMultiNet_bin_dir_cpp( x_ith_send = x_ithk[[1]][,,,k],
-                                                            x_ith_receive = x_ithk[[2]][,,,k],
-                                                            x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                            tau_h_send = tau_h[[1]][,k],
-                                                            tau_h_receive = tau_h[[2]][,k],
-                                                            y_ijt = y_ijtk[,,,k],
-                                                            w_ijt = w_ijtk[,,,k],
-                                                            s_ijt = s_ijtk[,,,k] )
-        x_ithk[[1]][,,,k] <- x_ithk_aux[[1]]
-        x_ithk[[2]][,,,k] <- x_ithk_aux[[2]]
-      }
+    for(k in 1:K_net){ # k<-1
+      browser()
+      out_aux <- sample_x_ith_DynMultiNet_bin_dir_cpp( x_ith_send = x_ithk[[1]][,,,k],
+                                                       x_ith_receive = x_ithk[[2]][,,,k],
+                                                       x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                       tau_h_send = tau_h[[1]][,k],
+                                                       tau_h_receive = tau_h[[2]][,k],
+                                                       y_ijt = y_ijtk[,,,k],
+                                                       w_ijt = w_ijtk[,,,k],
+                                                       s_ijt = s_ijtk[,,,k] )
+      x_ithk[[1]][,,,k] <- out_aux$x_ithk_aux[[1]]
+      x_ithk[[2]][,,,k] <- out_aux$x_ithk_aux[[2]]
+      for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
     }
+    
   } else {
     V_net <- dim(x_ithk)[1]
     T_net <- dim(x_ithk)[2]
     H_dim <- dim(x_ithk)[3]
     K_net <- dim(x_ithk)[4]
     
-    if(parallel_mcmc) {
-      x_ithk <- foreach( k=1:K_net, .combine=function(x,y){abind::abind(x,y,along=4)} ) %dopar% {
-        sample_x_ith_DynMultiNet_bin_cpp( x_ith = x_ithk[,,,k],
-                                          x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                          tau_h = tau_h[,k],
-                                          y_ijt = y_ijtk[,,,k],
-                                          w_ijt = w_ijtk[,,,k],
-                                          s_ijt = s_ijtk[,,,k] )
-      }
-    } else {
-      for(k in 1:K_net){ # k<-1
-        x_ithk[,,,k] <- sample_x_ith_DynMultiNet_bin_cpp( x_ith = x_ithk[,,,k],
-                                                          x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                          tau_h = tau_h[,k],
-                                                          y_ijt = y_ijtk[,,,k],
-                                                          w_ijt = w_ijtk[,,,k],
-                                                          s_ijt = s_ijtk[,,,k] )
-      }
+    for(k in 1:K_net){ # k<-1
+      out_aux <- sample_x_ith_DynMultiNet_bin_cpp( x_ith = x_ithk[,,,k],
+                                                   x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                   tau_h = tau_h[,k],
+                                                   y_ijt = y_ijtk[,,,k],
+                                                   w_ijt = w_ijtk[,,,k],
+                                                   s_ijt = s_ijtk[,,,k] )
+      x_ithk[,,,k] <- out_aux$x_ith
+      s_ijtk[,,,k] <- out_aux$s_ijt
     }
+    
   }
-  return( x_ithk )
+  return( list( x_ithk=x_ithk,
+                s_ijtk=s_ijtk) )
 }
 
 

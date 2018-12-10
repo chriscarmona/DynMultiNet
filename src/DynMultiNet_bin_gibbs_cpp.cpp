@@ -234,10 +234,15 @@ Rcpp::List sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
   
   // Recalculate S with the new values of mu
   S = X_sp * mu_t + C;
-  // Rearrange s_ijt with the new values of S
+  // Redefine s_ijt with the new values of S
   if( directed ){
     aux_mat_1 = S;
     aux_mat_1.reshape(V_net*(V_net-1),T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = aux_mat_1.rows(i*(V_net-1),(i+1)*(V_net-1)-1);
+      aux_mat_2.insert_rows(i,arma::zeros<arma::mat>(1,T_net));
+      s_ijt.subcube(0,i,0, V_net-1,i,T_net-1) = aux_mat_2;
+    }
   } else {
     aux_mat_1 = S;
     aux_mat_1.reshape(V_net*(V_net-1)/2,T_net);
@@ -249,7 +254,6 @@ Rcpp::List sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
   
   return Rcpp::List::create( Rcpp::Named("mu_t") = mu_t,
                              Rcpp::Named("s_ijt") = s_ijt );
-  
 }
 
 // [[Rcpp::export]]
@@ -353,14 +357,14 @@ arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
 }
 
 
-
+// to be checked
 // [[Rcpp::export]]
-arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
+Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
                                              const arma::mat x_t_sigma_prior_inv,
                                              const arma::colvec tau_h,
                                              const arma::cube y_ijt,
                                              const arma::cube w_ijt,
-                                             const arma::cube s_ijt ) {
+                                             arma::cube s_ijt ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -395,17 +399,17 @@ arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
   
   arma::colvec aux_vec_mean = arma::zeros<arma::colvec>(T_net*H_dim);
   
+  // Performing polya-gamma sampling in x_ith...
+  // The rows in x_ith_mat will act as the targeted "coefficients"
+  // The columns in X_all will act as the "covariates"
+  // The order of the response s_ijth and the latent w_ijtk will depend on the order of rows in X_all
+  
   arma::mat X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
   arma::uvec aux_uvec_1 = T_net * arma::regspace<arma::uvec>( 0, V_net-1 );
   arma::uvec aux_uvec_2 = T_net * arma::regspace<arma::uvec>( 0, H_dim-1 );
   arma::uvec aux_uvec_3 = arma::regspace<arma::uvec>( 0, V_net-1 );
   
-  for( t=0; t<T_net; t++ ) {
-    X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_mat.submat( aux_uvec_3, aux_uvec_2+t );
-  }
-  
-  arma::sp_mat X_all_sp = arma::sp_mat(X_all);
-  arma::sp_mat X_sp = X_all_sp;
+  arma::sp_mat X_sp = arma::sp_mat(X_all);
   
   for( i=0; i<V_net; i++ ) {
     aux_mat_1 = y_ijt.subcube(i,0,0, i,i,T_net-1);
@@ -435,7 +439,11 @@ arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
     Omega_sp.diag() = W;
     
     // X
-    X_sp = X_all_sp;
+    X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
+    for( t=0; t<T_net; t++ ) {
+      X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_mat.submat( aux_uvec_3, aux_uvec_2+t );
+    }
+    X_sp = arma::sp_mat(X_all);
     X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
     
     x_i_cov_inv = X_sp.t() * Omega_sp * X_sp;
@@ -448,22 +456,34 @@ arma::cube sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
     aux_vec_mean = X_sp.t() * (W % Z);
     
     x_ith_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
+    
+    // Recalculate S with the new values of x_ith_mat
+    S = X_sp * trans(x_ith_mat.row(i)) + C;
+    // Redefine s_ijt with the new values of S
+    aux_mat_1 = S;
+    aux_mat_1.reshape(T_net,(V_net-1));
+    aux_mat_1 = aux_mat_1.t();
+    aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
+    s_ijt.subcube(i,0,0, i,i,T_net-1) = aux_mat_1.rows(0,i);
+    s_ijt.subcube(i,i,0, V_net-1,i,T_net-1) = aux_mat_1.rows(i,V_net-1);
   }
   
   // get x_ith from x_ith_mat
   x_ith.slice(0)=x_ith_mat;
   x_ith = reshape(x_ith,V_net,T_net,H_dim);
   
-  return x_ith;
+  return Rcpp::List::create( Rcpp::Named("x_ith") = x_ith,
+                             Rcpp::Named("s_ijt") = s_ijt );
 }
 
+// to be checked
 // [[Rcpp::export]]
-arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
+Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
                                                     const arma::mat x_t_sigma_prior_inv,
                                                     const arma::colvec tau_h,
                                                     const arma::field<arma::cube> y_ijtk,
                                                     const arma::field<arma::cube> w_ijtk,
-                                                    const arma::field<arma::cube> s_ijtk ) {
+                                                    arma::field<arma::cube> s_ijtk ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -509,14 +529,10 @@ arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
   arma::uvec aux_uvec_2 = T_net * arma::regspace<arma::uvec>( 0, H_dim-1 );
   arma::uvec aux_uvec_3 = arma::regspace<arma::uvec>( 0, V_net-1 );
   
-  for( t=0; t<T_net; t++ ) {
-    X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_shared_mat.submat( aux_uvec_3, aux_uvec_2+t );
-  }
-  
-  arma::sp_mat X_all_sp = arma::sp_mat(X_all);
-  arma::sp_mat X_sp = X_all_sp;
+  arma::sp_mat X_sp = arma::sp_mat(X_all);
   
   for( i=0; i<V_net; i++ ) {
+    
     for( k=0; k<K_net; k++ ) {
       
       y_ijt = y_ijtk(k);
@@ -545,11 +561,18 @@ arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
       aux_mat_1 = aux_mat_1.t();
       aux_mat_1.reshape((V_net-1)*T_net,1);
       S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
+      
+      
     }
     Omega_sp.diag() = W;
     
     // X
-    X_sp = X_all_sp;
+    // Update matrix with covariate X
+    X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
+    for( t=0; t<T_net; t++ ) {
+      X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_shared_mat.submat( aux_uvec_3, aux_uvec_2+t );
+    }
+    X_sp = arma::sp_mat(X_all);
     X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
     X_sp = repmat(X_sp,K_net,1);
     
@@ -563,16 +586,35 @@ arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
     aux_vec_mean = X_sp.t() * (W % Z);
     
     x_ith_shared_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
+    
+    // Rcpp::Rcout << i << std::endl;
+    
+    // Recalculate S with the new values of x_ith_shared_mat
+    S = X_sp * trans(x_ith_shared_mat.row(i)) + C;
+    // Redefine s_ijtk with the new values of S
+    for( k=0; k<K_net; k++ ) {
+      aux_mat_1 = S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
+      aux_mat_1.reshape(T_net,V_net-1);
+      aux_mat_1 = aux_mat_1.t();
+      aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
+      
+      s_ijt = s_ijtk(k);
+      s_ijt.subcube(i,0,0, i,i,T_net-1) = aux_mat_1.rows(0,i);
+      s_ijt.subcube(i,i,0, V_net-1,i,T_net-1) = aux_mat_1.rows(i,V_net-1);
+      s_ijtk(k)=s_ijt;
+    }
+    
   }
   
   // get x_ith_shared from x_ith_shared_mat
   x_ith_shared.slice(0)=x_ith_shared_mat;
   x_ith_shared = reshape(x_ith_shared,V_net,T_net,H_dim);
   
-  return x_ith_shared;
+  return Rcpp::List::create( Rcpp::Named("x_ith_shared") = x_ith_shared,
+                             Rcpp::Named("s_ijtk") = s_ijtk );
 }
 
-
+// to be corrected
 // [[Rcpp::export]]
 Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
                                                  arma::cube x_ith_receive,
@@ -581,7 +623,7 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
                                                  const arma::colvec tau_h_receive,
                                                  const arma::cube y_ijt,
                                                  const arma::cube w_ijt,
-                                                 const arma::cube s_ijt ) {
+                                                 arma::cube s_ijt ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -745,10 +787,11 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
   x_ith_receive = reshape(x_ith_receive,V_net,T_net,H_dim);
   
   return Rcpp::List::create( Rcpp::Named("send") = x_ith_send,
-                             Rcpp::Named("receive") = x_ith_receive );
+                             Rcpp::Named("receive") = x_ith_receive,
+                             Rcpp::Named("s_ijt") = s_ijt );
 }
 
-
+// to be corrected
 // [[Rcpp::export]]
 Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_send,
                                                         arma::cube x_ith_shared_receive,
@@ -757,7 +800,7 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
                                                         const arma::colvec tau_h_shared_receive,
                                                         const arma::field<arma::cube> y_ijtk,
                                                         const arma::field<arma::cube> w_ijtk,
-                                                        const arma::field<arma::cube> s_ijtk ) {
+                                                        arma::field<arma::cube> s_ijtk ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -939,5 +982,6 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
   x_ith_shared_receive = reshape(x_ith_shared_receive,V_net,T_net,H_dim);
   
   return Rcpp::List::create( Rcpp::Named("send") = x_ith_shared_send,
-                             Rcpp::Named("receive") = x_ith_shared_receive );
+                             Rcpp::Named("receive") = x_ith_shared_receive,
+                             Rcpp::Named("s_ijtk") = s_ijtk );
 }

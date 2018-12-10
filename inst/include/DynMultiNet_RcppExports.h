@@ -88,11 +88,11 @@ namespace DynMultiNet {
         return Rcpp::as<arma::colvec >(rcpp_result_gen);
     }
 
-    inline arma::cube sample_x_ith_DynMultiNet_bin_cpp(arma::cube x_ith, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt) {
+    inline Rcpp::List sample_x_ith_DynMultiNet_bin_cpp(arma::cube x_ith, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube s_ijt) {
         typedef SEXP(*Ptr_sample_x_ith_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_x_ith_DynMultiNet_bin_cpp p_sample_x_ith_DynMultiNet_bin_cpp = NULL;
         if (p_sample_x_ith_DynMultiNet_bin_cpp == NULL) {
-            validateSignature("arma::cube(*sample_x_ith_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::cube,const arma::cube,const arma::cube)");
+            validateSignature("Rcpp::List(*sample_x_ith_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::cube,const arma::cube,arma::cube)");
             p_sample_x_ith_DynMultiNet_bin_cpp = (Ptr_sample_x_ith_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_DynMultiNet_bin_cpp");
         }
         RObject rcpp_result_gen;
@@ -106,14 +106,14 @@ namespace DynMultiNet {
             throw Rcpp::LongjumpException(rcpp_result_gen);
         if (rcpp_result_gen.inherits("try-error"))
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<arma::cube >(rcpp_result_gen);
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline arma::cube sample_x_ith_shared_DynMultiNet_bin_cpp(arma::cube x_ith_shared, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, const arma::field<arma::cube> s_ijtk) {
+    inline Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp(arma::cube x_ith_shared, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> s_ijtk) {
         typedef SEXP(*Ptr_sample_x_ith_shared_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_x_ith_shared_DynMultiNet_bin_cpp p_sample_x_ith_shared_DynMultiNet_bin_cpp = NULL;
         if (p_sample_x_ith_shared_DynMultiNet_bin_cpp == NULL) {
-            validateSignature("arma::cube(*sample_x_ith_shared_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,const arma::field<arma::cube>)");
+            validateSignature("Rcpp::List(*sample_x_ith_shared_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
             p_sample_x_ith_shared_DynMultiNet_bin_cpp = (Ptr_sample_x_ith_shared_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_cpp");
         }
         RObject rcpp_result_gen;
@@ -127,14 +127,14 @@ namespace DynMultiNet {
             throw Rcpp::LongjumpException(rcpp_result_gen);
         if (rcpp_result_gen.inherits("try-error"))
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<arma::cube >(rcpp_result_gen);
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp(arma::cube x_ith_send, arma::cube x_ith_receive, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h_send, const arma::colvec tau_h_receive, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt) {
+    inline Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp(arma::cube x_ith_send, arma::cube x_ith_receive, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h_send, const arma::colvec tau_h_receive, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube s_ijt) {
         typedef SEXP(*Ptr_sample_x_ith_DynMultiNet_bin_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_x_ith_DynMultiNet_bin_dir_cpp p_sample_x_ith_DynMultiNet_bin_dir_cpp = NULL;
         if (p_sample_x_ith_DynMultiNet_bin_dir_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_x_ith_DynMultiNet_bin_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,const arma::cube,const arma::cube)");
+            validateSignature("Rcpp::List(*sample_x_ith_DynMultiNet_bin_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,const arma::cube,arma::cube)");
             p_sample_x_ith_DynMultiNet_bin_dir_cpp = (Ptr_sample_x_ith_DynMultiNet_bin_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_DynMultiNet_bin_dir_cpp");
         }
         RObject rcpp_result_gen;
@@ -151,11 +151,11 @@ namespace DynMultiNet {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp(arma::cube x_ith_shared_send, arma::cube x_ith_shared_receive, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, const arma::field<arma::cube> s_ijtk) {
+    inline Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp(arma::cube x_ith_shared_send, arma::cube x_ith_shared_receive, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> s_ijtk) {
         typedef SEXP(*Ptr_sample_x_ith_shared_DynMultiNet_bin_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_x_ith_shared_DynMultiNet_bin_dir_cpp p_sample_x_ith_shared_DynMultiNet_bin_dir_cpp = NULL;
         if (p_sample_x_ith_shared_DynMultiNet_bin_dir_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_x_ith_shared_DynMultiNet_bin_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,const arma::field<arma::cube>)");
+            validateSignature("Rcpp::List(*sample_x_ith_shared_DynMultiNet_bin_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
             p_sample_x_ith_shared_DynMultiNet_bin_dir_cpp = (Ptr_sample_x_ith_shared_DynMultiNet_bin_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_dir_cpp");
         }
         RObject rcpp_result_gen;
