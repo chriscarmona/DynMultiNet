@@ -108,29 +108,23 @@ mcmc_d_1_w_0 <- function( y_ijtk,
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
-  x_ith_shared <- array( #data=0,
-    data=runif(V_net*T_net*H_dim,-1,1),
-    dim=c(V_net,T_net,H_dim) )
-  x_ith_shared_mcmc <- array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out))
-  
   # One latent space for each direction #
-  x_ith_shared <- list( send=x_ith_shared,
-                        receive=x_ith_shared )
-  x_ith_shared_mcmc <- list( send=x_ith_shared_mcmc,
-                             receive=x_ith_shared_mcmc )
+  x_ith_shared <- list( send=array( data=runif(V_net*T_net*H_dim,-1,1),
+                                    dim=c(V_net,T_net,H_dim) ),
+                        receive=array( data=runif(V_net*T_net*H_dim,-1,1),
+                                       dim=c(V_net,T_net,H_dim) ) )
+  x_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
+                             receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
   
   # by layer: hth coordinate of actor v at time t specific to layer k
   if( K_net>1 ){
-    x_ithk <- array( #data=0,
-      data=runif(V_net*T_net*R_dim*K_net),
-      dim=c(V_net,T_net,R_dim,K_net) )
-    x_ithk_mcmc <- array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out))
-    
     # One latent space for each direction #
-    x_ithk <- list( send=x_ithk,
-                    receive=x_ithk )
-    x_ithk_mcmc <- list( send=x_ithk_mcmc,
-                         receive=x_ithk_mcmc )
+    x_ithk <- list( send=array( data=runif(V_net*T_net*R_dim*K_net),
+                                dim=c(V_net,T_net,R_dim,K_net) ),
+                    receive=array( data=runif(V_net*T_net*R_dim*K_net),
+                                   dim=c(V_net,T_net,R_dim,K_net) ) )
+    x_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
+                         receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
   } else {
     x_ithk <- NULL
     x_ithk_mcmc <- NULL
@@ -280,17 +274,6 @@ mcmc_d_1_w_0 <- function( y_ijtk,
       mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
     }
     
-    # update linear predictor
-    # not needed if updated when sampling mu
-    # s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-    #                               x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-    #                               pred_all=pred_all, layer_all=layer_all,
-    #                               z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-    #                               beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-    #                               pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-    #                               directed=TRUE )
-    # s_ijtk[diag_y_idx] <- NA
-    
     
     ### Step 2_beta. Sample beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###
     if(!is.null(pred_all)){
@@ -337,6 +320,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
     browser()
+    s_ijtk_old <- s_ijtk
+    s_ijtk_old[diag_y_idx] <- NA
     out_aux <- sample_x_ith_shared_DynMultiNet_bin( x_ith_shared=x_ith_shared,
                                                     x_t_sigma_prior_inv=x_t_sigma_prior_inv,
                                                     tau_h=tau_h_shared,
@@ -345,7 +330,9 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                     s_ijtk=s_ijtk,
                                                     directed=TRUE )
     x_ith_shared <- out_aux$x_ith_shared
-    s_ijtk <- out_aux$x_ith_shared
+    s_ijtk <- out_aux$s_ijtk
+    s_ijtk[diag_y_idx] <- NA
+    all.equal(s_ijtk_old, s_ijtk)
     
     # Procrustres transform
     if( procrustes_lat ){
@@ -368,13 +355,17 @@ mcmc_d_1_w_0 <- function( y_ijtk,
         }
         
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                      x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                      pred_all=pred_all, layer_all=layer_all,
-                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                      directed=TRUE )
+        s_ijtk_new <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                          x_ith_shared=x_ith_shared, x_ithk=x_ithk,
+                                          pred_all=pred_all, layer_all=layer_all,
+                                          z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                          beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                          pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                                          directed=TRUE )
+        s_ijtk_new[diag_y_idx] <- NA
+        all.equal(s_ijtk,s_ijtk_new)
+        s_ijtk[1:5,1:5,1,1]
+        s_ijtk_new[1:5,1:5,1,1]
       }
       
     }

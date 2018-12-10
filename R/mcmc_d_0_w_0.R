@@ -175,6 +175,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                 z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                 beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
                                 pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+  s_ijtk[!lowtri_y_idx] <- NA
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
@@ -275,15 +276,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
       mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
     }
     
-    # update linear predictor
-    # not needed if updated when sampling mu
-    # s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-    #                               x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-    #                               pred_all=pred_all, layer_all=layer_all,
-    #                               z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-    #                               beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-    #                               pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-    # s_ijtk[!lowtri_y_idx] <- NA
+    
     
     ### Step 2_beta. Sample beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###
     if(!is.null(pred_all)){
@@ -305,6 +298,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                       beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
                                       pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+        # s_ijtk[!lowtri_y_idx] <- NA
       }
       # Edge specific
       if(!is.null(beta_z_edge)&!is.null(pred_id_edge)){
@@ -322,6 +316,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                       beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
                                       pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
+        # s_ijtk[!lowtri_y_idx] <- NA
       }
     }
     
@@ -361,7 +356,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                       beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
                                       pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-        s_ijtk[!lowtri_y_idx] <- NA
+        # s_ijtk[!lowtri_y_idx] <- NA
       }
       
     }
@@ -413,7 +408,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                         z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                                         beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
                                         pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-          s_ijtk[!lowtri_y_idx] <- NA
+          # s_ijtk[!lowtri_y_idx] <- NA
         }
       }
       

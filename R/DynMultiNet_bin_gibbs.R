@@ -194,16 +194,16 @@ sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
   
   if( directed ) {
     out_aux <- sample_x_ith_shared_DynMultiNet_bin_dir_cpp( x_ith_shared_send = x_ith_shared[[1]],
-                                                                 x_ith_shared_receive = x_ith_shared[[2]],
-                                                                 x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                                 tau_h_shared_send = tau_h[[1]],
-                                                                 tau_h_shared_receive = tau_h[[2]],
-                                                                 y_ijtk = y_ijtk_list,
-                                                                 w_ijtk = w_ijtk_list,
-                                                                 s_ijtk = s_ijtk_list )
-    x_ith_shared <- out_aux$x_ith_shared
+                                                            x_ith_shared_receive = x_ith_shared[[2]],
+                                                            x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                            tau_h_shared_send = tau_h[[1]],
+                                                            tau_h_shared_receive = tau_h[[2]],
+                                                            y_ijtk = y_ijtk_list,
+                                                            w_ijtk = w_ijtk_list,
+                                                            s_ijtk = s_ijtk_list )
+    x_ith_shared[[1]] <- out_aux$x_ith_shared_send
+    x_ith_shared[[2]] <- out_aux$x_ith_shared_receive
     for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
-    
   } else {
     out_aux <- sample_x_ith_shared_DynMultiNet_bin_cpp( x_ith_shared = x_ith_shared,
                                                         x_t_sigma_prior_inv = x_t_sigma_prior_inv,

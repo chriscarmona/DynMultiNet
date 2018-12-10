@@ -103,6 +103,7 @@ arma::mat sample_mu_t_DynMultiNet_bin_cpp( arma::colvec mu_t,
   
   aux_vec_mean = X_sp.t() * (Omega_sp * Z);
   
+  // Sampling mu_t
   mu_t = arma::mvnrnd( mu_t_cov*aux_vec_mean , mu_t_cov );
   
   return mu_t;
@@ -228,6 +229,7 @@ Rcpp::List sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
   
   aux_vec_mean = X_sp.t() * (W % Z);
   
+  // Sampling mu_t
   mu_t = arma::mvnrnd( mu_t_cov*aux_vec_mean , mu_t_cov );
   
   // return mu_t;
@@ -351,13 +353,13 @@ arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
   
   aux_vec_mean = X_sp.t() * (Omega_sp * Z);
   
+  // Sampling beta_t
   beta_t = arma::mvnrnd( beta_t_cov*aux_vec_mean , beta_t_cov );
   
   return beta_t;
 }
 
 
-// to be checked
 // [[Rcpp::export]]
 Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
                                              const arma::mat x_t_sigma_prior_inv,
@@ -455,6 +457,7 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
     
     aux_vec_mean = X_sp.t() * (W % Z);
     
+    // Sampling x_ith_mat
     x_ith_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
     
     // Recalculate S with the new values of x_ith_mat
@@ -476,7 +479,7 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
                              Rcpp::Named("s_ijt") = s_ijt );
 }
 
-// to be checked
+
 // [[Rcpp::export]]
 Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
                                                     const arma::mat x_t_sigma_prior_inv,
@@ -585,6 +588,7 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
     
     aux_vec_mean = X_sp.t() * (W % Z);
     
+    // Sampling x_ith_shared_mat
     x_ith_shared_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
     
     // Rcpp::Rcout << i << std::endl;
@@ -767,11 +771,15 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
         C = S - X_sp * trans(x_ith_send_mat.row(i));
         Z = (Y-0.5)/W - C;
         aux_vec_mean = X_sp.t() * (W % Z);
+        
+        // Sampling x_ith_send_mat
         x_ith_send_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
       } else if( dir==1 ) {
         C = S - X_sp * trans(x_ith_receive_mat.row(i));
         Z = (Y-0.5)/W - C;
         aux_vec_mean = X_sp.t() * (W % Z);
+        
+        // Sampling x_ith_receive_mat
         x_ith_receive_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
       } else {
         throw std::range_error("direction not supported");
@@ -848,22 +856,12 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
   
   // Model matrix for all senders, made out of receiver coordinates
   arma::mat X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
-  for( t=0; t<T_net; t++ ) {
-    X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_shared_receive_mat.submat( aux_uvec_3, aux_uvec_2+t );
-  }
-  arma::sp_mat X_all_sp_send = arma::sp_mat(X_all);
-  
-  // Model matrix for all receivers, made out of sender coordinates
-  X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
-  for( t=0; t<T_net; t++ ) {
-    X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_shared_send_mat.submat( aux_uvec_3, aux_uvec_2+t );
-  }
-  arma::sp_mat X_all_sp_receive = arma::sp_mat(X_all);
   
   // Model matrix that will be changed (V_net*2 times) for each node in the cycle, in their two positions: sender/receiver
-  arma::sp_mat X_sp = X_all_sp_send;
+  arma::sp_mat X_sp = arma::sp_mat(X_all);
   
   for( dir=0; dir<2; dir++ ) {
+    // Rcpp::Rcout << dir << std::endl;
     
     Y = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
     W = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
@@ -872,7 +870,10 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
     Z = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
     
     for( i=0; i<V_net; i++ ) {
+      // Rcpp::Rcout << i << std::endl;
+      
       if( dir==0 ) {
+        // Updating Y, W, S as vectors, lower triangular adjacency
         for( k=0; k<K_net; k++ ) {
           
           y_ijt = y_ijtk(k);
@@ -902,14 +903,23 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
           aux_mat_1.reshape((V_net-1)*T_net,1);
           S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
         }
-        // X
-        X_sp = X_all_sp_send;
-        X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
-        X_sp = repmat(X_sp,K_net,1);
-        
+        // X_sp
+        if(i==0){
+          // The matrix of covariates X will only be updated at the beginning of the cycle
+          // as it does not change with the newly sampled values
+          X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
+          for( t=0; t<T_net; t++ ) {
+            X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_shared_receive_mat.submat( aux_uvec_3, aux_uvec_2+t );
+          }
+          X_sp = arma::sp_mat(X_all);
+          
+          X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
+          X_sp = repmat(X_sp,K_net,1);
+        }
         tau_h_diag.diag() = tau_h_shared_send;
         
       } else if( dir==1 ) {
+        // Updating Y, W, S as vectors, upper triangular adjacency
         for( k=0; k<K_net; k++ ) {
           y_ijt = y_ijtk(k);
           aux_mat_1 = y_ijt.subcube(0,i,0, i,i,T_net-1);
@@ -938,12 +948,19 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
           aux_mat_1.reshape((V_net-1)*T_net,1);
           S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
         }
-        
-        // X
-        X_sp = X_all_sp_receive;
-        X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
-        X_sp = repmat(X_sp,K_net,1);
-        
+        // X_sp
+        if(i==0){
+          // The matrix of covariates X will only be updated at the beginning of the cycle
+          // as it does not change with the newly sampled values
+          X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
+          for( t=0; t<T_net; t++ ) {
+            X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_shared_send_mat.submat( aux_uvec_3, aux_uvec_2+t );
+          }
+          X_sp = arma::sp_mat(X_all);
+          
+          X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
+          X_sp = repmat(X_sp,K_net,1);
+        }
         tau_h_diag.diag() = tau_h_shared_receive;
         
       } else {
@@ -962,12 +979,47 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
         C = S - X_sp * trans(x_ith_shared_send_mat.row(i));
         Z = (Y-0.5)/W - C;
         aux_vec_mean = X_sp.t() * (W % Z);
+        
+        // Sampling x_ith_shared_send_mat
         x_ith_shared_send_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
+        
+        // Recalculate S with the new values of x_ith_shared_send_mat
+        S = X_sp * trans(x_ith_shared_send_mat.row(i)) + C;
+        // Redefine s_ijt with the new values of S
+        for( k=0; k<K_net; k++ ) {
+          aux_mat_1 = S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
+          aux_mat_1.reshape(T_net,(V_net-1));
+          aux_mat_1 = aux_mat_1.t();
+          aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
+          
+          s_ijt = s_ijtk(k);
+          s_ijt.subcube(i,0,0, i,i,T_net-1) = aux_mat_1.rows(0,i);
+          s_ijt.subcube(i,i,0, V_net-1,i,T_net-1) = aux_mat_1.rows(i,V_net-1);
+          s_ijtk(k)= s_ijt;
+        }
+        
       } else if( dir==1 ) {
         C = S - X_sp * trans(x_ith_shared_receive_mat.row(i));
         Z = (Y-0.5)/W - C;
         aux_vec_mean = X_sp.t() * (W % Z);
+        
+        // Sampling x_ith_shared_receive_mat
         x_ith_shared_receive_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
+        
+        // Recalculate S with the new values of x_ith_shared_receive_mat
+        S = X_sp * trans(x_ith_shared_receive_mat.row(i)) + C;
+        // Redefine s_ijt with the new values of S
+        for( k=0; k<K_net; k++ ) {
+          aux_mat_1 = S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
+          aux_mat_1.reshape(T_net,(V_net-1));
+          aux_mat_1 = aux_mat_1.t();
+          aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
+          
+          s_ijt = s_ijtk(k);
+          s_ijt.subcube(0,i,0, i,i,T_net-1) = aux_mat_1.rows(0,i);
+          s_ijt.subcube(i,i,0, i,V_net-1,T_net-1) = aux_mat_1.rows(i,V_net-1);
+          s_ijtk(k)= s_ijt;
+        }
       } else {
         throw std::range_error("direction not supported");
       }
@@ -981,7 +1033,7 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
   x_ith_shared_receive.slice(0)=x_ith_shared_receive_mat;
   x_ith_shared_receive = reshape(x_ith_shared_receive,V_net,T_net,H_dim);
   
-  return Rcpp::List::create( Rcpp::Named("send") = x_ith_shared_send,
-                             Rcpp::Named("receive") = x_ith_shared_receive,
+  return Rcpp::List::create( Rcpp::Named("x_ith_shared_send") = x_ith_shared_send,
+                             Rcpp::Named("x_ith_shared_receive") = x_ith_shared_receive,
                              Rcpp::Named("s_ijtk") = s_ijtk );
 }
