@@ -260,11 +260,11 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
-                                           y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
-                                           mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                           directed=TRUE,
-                                           use_cpp=TRUE,
-                                           parallel_mcmc=parallel_mcmc )
+                                             y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
+                                             mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                             directed=TRUE,
+                                             use_cpp=TRUE,
+                                             parallel_mcmc=parallel_mcmc )
     mu_tk <- out_aux$mu_tk
     s_ijtk <- out_aux$s_ijtk # This updates s_ijtk except for the diagonal
     s_ijtk[diag_y_idx] <- NA
@@ -338,8 +338,9 @@ mcmc_d_1_w_0 <- function( y_ijtk,
             x_ith_shared[[dir_i]][,t,]
           }
       } else if(iter_i>n_burn) {
-        browser()
+        
         for( dir_i in 1:2) {
+          # dir_i<-1
           x_ith_shared_temp <- foreach::foreach(t=1:T_net,.combine="rbind") %do% {
             x_ith_shared[[dir_i]][,t,]
           }
@@ -398,8 +399,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
               x_ithk[[dir_i]][,t,,k]
             }
         } else if(iter_i>n_burn) {
-          browser()
           for( dir_i in 1:2 ){
+            # dir_i=1
             x_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
               foreach::foreach(t=1:T_net,.combine="rbind") %do% {
                 x_ithk[[dir_i]][,t,,k]
