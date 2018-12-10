@@ -319,9 +319,6 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
-    browser()
-    s_ijtk_old <- s_ijtk
-    s_ijtk_old[diag_y_idx] <- NA
     out_aux <- sample_x_ith_shared_DynMultiNet_bin( x_ith_shared=x_ith_shared,
                                                     x_t_sigma_prior_inv=x_t_sigma_prior_inv,
                                                     tau_h=tau_h_shared,
@@ -331,8 +328,7 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                                     directed=TRUE )
     x_ith_shared <- out_aux$x_ith_shared
     s_ijtk <- out_aux$s_ijtk
-    s_ijtk[diag_y_idx] <- NA
-    all.equal(s_ijtk_old, s_ijtk)
+    # s_ijtk[diag_y_idx] <- NA
     
     # Procrustres transform
     if( procrustes_lat ){
@@ -355,20 +351,22 @@ mcmc_d_1_w_0 <- function( y_ijtk,
         }
         
         # update linear predictor
-        s_ijtk_new <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                          x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                          pred_all=pred_all, layer_all=layer_all,
-                                          z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                          beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                          pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                          directed=TRUE )
-        s_ijtk_new[diag_y_idx] <- NA
-        all.equal(s_ijtk,s_ijtk_new)
-        s_ijtk[1:5,1:5,1,1]
-        s_ijtk_new[1:5,1:5,1,1]
+        # browser()
+        # s_ijtk_old <- s_ijtk
+        # s_ijtk_old[diag_y_idx] <- NA
+        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
+                                      x_ith_shared=x_ith_shared, x_ithk=x_ithk,
+                                      pred_all=pred_all, layer_all=layer_all,
+                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
+                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
+                                      directed=TRUE )
+        s_ijtk[diag_y_idx] <- NA
+        # all.equal(s_ijtk,s_ijtk_old)
       }
       
     }
+    
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
@@ -377,15 +375,19 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     }
     
     
+    
     ### LAYER SPECIFIC Latent Coordinates ###
     if( K_net>1 ) {
       ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates x_ithk ###
-      x_ithk <- sample_x_ithk_DynMultiNet_bin( x_ithk=x_ithk,
-                                               x_t_sigma_prior_inv=x_t_sigma_prior_inv,
-                                               tau_h=tau_h_k,
-                                               y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
-                                               directed=TRUE,
-                                               parallel_mcmc=parallel_mcmc )
+      out_aux <- sample_x_ithk_DynMultiNet_bin( x_ithk=x_ithk,
+                                                x_t_sigma_prior_inv=x_t_sigma_prior_inv,
+                                                tau_h=tau_h_k,
+                                                y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
+                                                directed=TRUE,
+                                                parallel_mcmc=parallel_mcmc )
+      x_ithk <- out_aux$x_ithk
+      s_ijtk <- out_aux$s_ijtk
+      # s_ijtk[diag_y_idx] <- NA
       
       # Procrustres transform
       if( procrustes_lat ){
@@ -412,6 +414,9 @@ mcmc_d_1_w_0 <- function( y_ijtk,
           }
           
           # update linear predictor
+          # browser()
+          # s_ijtk_old <- s_ijtk
+          # s_ijtk_old[diag_y_idx] <- NA
           s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
                                         x_ith_shared=x_ith_shared, x_ithk=x_ithk,
                                         pred_all=pred_all, layer_all=layer_all,
@@ -419,6 +424,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                                         beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
                                         pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
                                         directed=TRUE )
+          # s_ijtk[diag_y_idx] <- NA
+          # all.equal(s_ijtk,s_ijtk_old)
         }
       }
       

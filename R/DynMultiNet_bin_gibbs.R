@@ -201,6 +201,7 @@ sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
                                                             y_ijtk = y_ijtk_list,
                                                             w_ijtk = w_ijtk_list,
                                                             s_ijtk = s_ijtk_list )
+    
     x_ith_shared[[1]] <- out_aux$x_ith_shared_send
     x_ith_shared[[2]] <- out_aux$x_ith_shared_receive
     for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
@@ -237,7 +238,6 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
     K_net <- dim(x_ithk[[1]])[4]
     
     for(k in 1:K_net){ # k<-1
-      browser()
       out_aux <- sample_x_ith_DynMultiNet_bin_dir_cpp( x_ith_send = x_ithk[[1]][,,,k],
                                                        x_ith_receive = x_ithk[[2]][,,,k],
                                                        x_t_sigma_prior_inv = x_t_sigma_prior_inv,
@@ -246,9 +246,9 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                                        y_ijt = y_ijtk[,,,k],
                                                        w_ijt = w_ijtk[,,,k],
                                                        s_ijt = s_ijtk[,,,k] )
-      x_ithk[[1]][,,,k] <- out_aux$x_ithk_aux[[1]]
-      x_ithk[[2]][,,,k] <- out_aux$x_ithk_aux[[2]]
-      for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
+      x_ithk[[1]][,,,k] <- out_aux$x_ith_send
+      x_ithk[[2]][,,,k] <- out_aux$x_ith_receive
+      s_ijtk[,,,k] <- out_aux$s_ijt
     }
     
   } else {

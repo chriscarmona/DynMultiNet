@@ -83,7 +83,7 @@ dmn_sampling <- function( y_ijtk,
                           shrink_lat_space=TRUE,
                           a_1=2, a_2=2.5,
                           
-                          procrustes_lat=TRUE,
+                          procrustes_lat=FALSE,
                           
                           time_fc=NULL,
                           
