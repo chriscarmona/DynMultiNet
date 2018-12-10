@@ -241,8 +241,19 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]>y_ijtk_miss_idx[,2],]
     
     # Imputing y_ijtk
+    # We will initialise the imputation using the average number of links for every pair in a given layer
+    for(k in 1:K_net){ # k <-1
+      idx_aux <- y_ijtk_miss_idx[,4]==k
+      if(sum(idx_aux)>0){
+        probs_aux <- apply(y_ijtk[,,,k],1:2,mean,na.rm=T)
+        y_ijtk[y_ijtk_miss_idx[idx_aux,]] <- rbinom( n=sum(idx_aux),
+                                                     size = 1,
+                                                     prob=probs_aux[y_ijtk_miss_idx[idx_aux,1:2]] )
+        
+      }
+    }
+    # MCMC chain for missing values #
     y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
-    y_ijtk[y_ijtk_miss_idx] <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
   }
   
   #### Start: MCMC Sampling ####
@@ -422,12 +433,15 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     
     
-    # Edge probabilities #
+    ### Edge probabilities ###
     if(is.element(iter_i,iter_out_mcmc)){
+      s_ijtk[!lowtri_y_idx] <- NA
       pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(s_ijtk)
     }
     
-    # Impute missing links #
+    
+    
+    ### Impute missing links ###
     if( y_ijtk_miss ) {
       y_ijtk[y_ijtk_miss_idx] <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
       
@@ -436,6 +450,8 @@ mcmc_d_0_w_0 <- function( y_ijtk,
         y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- y_ijtk[y_ijtk_miss_idx]
       }
     }
+    
+    
     
     ### Step 4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
     if(shrink_lat_space){

@@ -233,14 +233,29 @@ mcmc_d_1_w_0 <- function( y_ijtk,
   
   if( any(is.na(y_ijtk)) ) {
     y_ijtk_miss <- TRUE
-    y_ijtk_miss_idx <- which( is.na(y_ijtk), arr.ind=TRUE )
     
-    # Only consider missing data in the lower diagonal adjacency
-    # y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]>y_ijtk_miss_idx[,2],]
+    # identifies missing data indices
+    y_ijtk_miss_idx <- which( is.na(y_ijtk), arr.ind=TRUE )
+    colnames(y_ijtk_miss_idx) <- c("i","j","t","k")
+    
+    # Only consider missing data outside the diagonal
+    y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]!=y_ijtk_miss_idx[,2],]
     
     # Imputing y_ijtk
+    # We will initialise the imputation using the average number of links for every pair in a given layer
+    for(k in 1:K_net){ # k <-1
+      idx_aux <- y_ijtk_miss_idx[,4]==k
+      if(sum(idx_aux)>0){
+        probs_aux <- apply(y_ijtk[,,,k],1:2,mean,na.rm=T)
+        y_ijtk[y_ijtk_miss_idx[idx_aux,]] <- rbinom( n=sum(idx_aux),
+                                                     size = 1,
+                                                     prob=probs_aux[y_ijtk_miss_idx[idx_aux,1:2]] )
+                                                     
+      }
+    }
+    # MCMC chain for missing values #
     y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
-    y_ijtk[y_ijtk_miss_idx] <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
+    
   }
   
   #### Start: MCMC Sampling ####
@@ -441,9 +456,22 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     
     
-    # Edge probabilities #
+    ### Edge probabilities ###
     if(is.element(iter_i,iter_out_mcmc)){
+      s_ijtk[!lowtri_y_idx] <- NA
       pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(s_ijtk)
+    }
+    
+    
+    
+    ### Impute missing links ###
+    if( y_ijtk_miss ) {
+      y_ijtk[y_ijtk_miss_idx] <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- y_ijtk[y_ijtk_miss_idx]
+      }
     }
     
     
