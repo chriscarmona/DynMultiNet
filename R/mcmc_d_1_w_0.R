@@ -458,7 +458,7 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     ### Edge probabilities ###
     if(is.element(iter_i,iter_out_mcmc)){
-      s_ijtk[!lowtri_y_idx] <- NA
+      s_ijtk[diag_y_idx] <- NA
       pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(s_ijtk)
     }
     
