@@ -60,7 +60,7 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                           rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
-  # This software only deal with binary edges (non-weighted)
+  # This function only deal with binary edges (non-weighted)
   y_ijtk[y_ijtk>0] <- 1
   
   time_net <- time_all[time_all_idx_net]
@@ -267,17 +267,17 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
-    w_ijtk <- sample_w_ijtk_DynMultiNet_bin( w_ijtk=w_ijtk,
-                                             s_ijtk=s_ijtk,
-                                             directed=TRUE )
+    w_ijtk <- sample_pg_w_ijtk_link( w_ijtk=w_ijtk,
+                                     s_ijtk=s_ijtk,
+                                     directed=TRUE )
     
     
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
-    out_aux <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
-                                             y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
-                                             mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                             directed=TRUE )
+    out_aux <- sample_baseline_tk_link( mu_tk=mu_tk,
+                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
+                                        mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                        directed=TRUE )
     mu_tk <- out_aux$mu_tk
     s_ijtk <- out_aux$s_ijtk # This updates s_ijtk except for the diagonal
     s_ijtk[diag_y_idx] <- NA

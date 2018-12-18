@@ -1,9 +1,9 @@
 
 #' @import BayesLogit
 #' @keywords internal
-sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk,
-                                           s_ijtk,
-                                           directed=FALSE ) {
+sample_pg_w_ijtk_link <- function( w_ijtk,
+                                   s_ijtk,
+                                   directed=FALSE ) {
   
   ### Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
   V_net <- dim(w_ijtk)[1]
@@ -32,23 +32,27 @@ sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk,
 
 #' @import foreach
 #' @keywords internal
-sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
-                                          y_ijtk, w_ijtk, s_ijtk,
-                                          mu_t_cov_prior_inv,
-                                          directed=FALSE ) {
+sample_baseline_tk_link <- function( mu_tk,
+                                     y_ijtk, w_ijtk, s_ijtk,
+                                     mu_t_cov_prior_inv,
+                                     directed=FALSE ) {
+  
+  # This function only deals with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
+  y_ijtk[y_ijtk<0] <- NA
+  
   ### Sample mu_t from its conditional N-variate Gaussian posterior ###
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
   K_net <- dim(y_ijtk)[4]
   
   for( k in 1:K_net ) { # k<-1
-    # mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
-    out_aux <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
-                                                   mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                                   y_ijt=y_ijtk[,,,k],
-                                                   w_ijt=w_ijtk[,,,k],
-                                                   s_ijt=s_ijtk[,,,k],
-                                                   directed=directed )
+    out_aux <- sample_baseline_t_link_cpp( mu_t=mu_tk[,k,drop=F],
+                                           mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                           y_ijt=y_ijtk[,,,k],
+                                           w_ijt=w_ijtk[,,,k],
+                                           s_ijt=s_ijtk[,,,k],
+                                           directed=directed )
     mu_tk[,k] <- out_aux$mu_t
     s_ijtk[,,,k] <- out_aux$s_ijt
   }
@@ -63,6 +67,10 @@ sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
                                                  x_t_sigma_prior_inv, tau_h,
                                                  y_ijtk, w_ijtk, s_ijtk,
                                                  directed=FALSE ) {
+  
+  # This function only deals with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
+  y_ijtk[y_ijtk<0] <- NA
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
   V_net <- dim(x_ith_shared)[1]
@@ -113,6 +121,10 @@ sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
                                            x_t_sigma_prior_inv, tau_h,
                                            y_ijtk, w_ijtk, s_ijtk,
                                            directed=FALSE ) {
+  
+  # This function only deals with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
+  y_ijtk[y_ijtk<0] <- NA
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
   
@@ -245,6 +257,11 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
                                                  beta_t_cov_prior_inv,
                                                  use_cpp = TRUE,
                                                  directed = FALSE ) {
+  
+  # This function only deals with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
+  y_ijtk[y_ijtk<0] <- NA
+  
   ### Sample beta_z_layer from its conditional N-variate Gaussian posterior ###
   ### output ###
   # beta_z_layer <- matrix(0,nrow=T_net,ncol=nrow(pred_id_layer))

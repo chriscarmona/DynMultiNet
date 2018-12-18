@@ -265,17 +265,17 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
-    w_ijtk <- sample_w_ijtk_DynMultiNet_bin( w_ijtk=w_ijtk,
-                                             s_ijtk=s_ijtk,
-                                             directed=FALSE )
+    w_ijtk <- sample_pg_w_ijtk_link( w_ijtk=w_ijtk,
+                                     s_ijtk=s_ijtk,
+                                     directed=FALSE )
     
     
     
     ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
-    out_aux <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
-                                             y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
-                                             mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                             directed=FALSE )
+    out_aux <- sample_baseline_tk_link( mu_tk=mu_tk,
+                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
+                                        mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                        directed=FALSE )
     mu_tk <- out_aux$mu_tk
     s_ijtk <- out_aux$s_ijtk # This updates ONLY the lower triangular matrices in s_ijtk
     s_ijtk[!lowtri_y_idx] <- NA

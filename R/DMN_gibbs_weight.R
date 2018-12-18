@@ -89,12 +89,8 @@ sample_coord_ithk_weight <- function( uv_ithk,
   
   ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
   
+  K_net <- dim(y_ijtk)[4]
   if( directed ) {
-    V_net <- dim(uv_ithk[[1]])[1]
-    T_net <- dim(uv_ithk[[1]])[2]
-    H_dim <- dim(uv_ithk[[1]])[3]
-    K_net <- dim(uv_ithk[[1]])[4]
-    
     for(k in 1:K_net){ # k<-1
       out_aux <- sample_coord_ith_weight_dir_cpp( u_ith = uv_ithk[[1]][,,,k],
                                                   v_ith = uv_ithk[[2]][,,,k],
@@ -106,15 +102,9 @@ sample_coord_ithk_weight <- function( uv_ithk,
                                                   sigma_k=sigma_k[k])
       uv_ithk[[1]][,,,k] <- out_aux$u_ith
       uv_ithk[[2]][,,,k] <- out_aux$v_ith
-      mu_ijtk[,,,k] <- out_aux$mu_ijtk
+      mu_ijtk[,,,k] <- out_aux$mu_ijt
     }
-    
   } else {
-    V_net <- dim(uv_ithk)[1]
-    T_net <- dim(uv_ithk)[2]
-    H_dim <- dim(uv_ithk)[3]
-    K_net <- dim(uv_ithk)[4]
-    
     for(k in 1:K_net){ # k<-1
       out_aux <- sample_coord_ith_weight_cpp( uv_ith = uv_ithk[,,,k],
                                               uv_t_sigma_prior_inv = uv_t_sigma_prior_inv,
@@ -131,3 +121,21 @@ sample_coord_ithk_weight <- function( uv_ithk,
                 mu_ijtk=mu_ijtk) )
 }
 
+
+#' @keywords internal
+sample_var_weight <- function( sigma_k,
+                               sigma_k_prop_int,
+                               y_ijtk, mu_ijtk,
+                               directed=FALSE ) {
+  
+  K_net <- dim(y_ijtk)[4]
+  
+  for(k in 1:K_net){ # k<-1
+    sigma_k[k] <- sample_var_weight_cpp( sigma_k=sigma_k[k],
+                                         sigma_k_prop_int=sigma_k_prop_int[k],
+                                         y_ijt=y_ijtk[,,,k], mu_ijt=mu_ijtk[,,,k],
+                                         directed=TRUE )
+  }
+  
+  return( sigma_k )
+}

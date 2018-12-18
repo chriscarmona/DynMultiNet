@@ -16,17 +16,17 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
                                           arma::cube mu_ijt,
                                           const double sigma_k,
                                           const bool directed=false ) {
-  // Auxiliar objects
-  unsigned int i=0;
-  
-  arma::cube aux_cube_1;
-  arma::mat aux_mat_1;
-  arma::mat aux_mat_2;
-  arma::uvec aux_uvec_1;
   
   // Network and latent space dimensions
   unsigned int V_net = y_ijt.n_rows;
   unsigned int T_net = y_ijt.n_slices;
+  
+  // Auxiliar objects
+  unsigned int i=0;
+  arma::cube aux_cube_1;
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
+  arma::uvec aux_uvec_1;
   
   // column matrix for the continuous response
   arma::colvec Y = arma::zeros<arma::colvec>(1);
@@ -107,8 +107,8 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
   C = linpred - ( X_sp * theta_t );
   
   // identifies valid obs
-  Y.elem( find_nonfinite(Y) ).zeros(); // change NAs to zero
-  valid_obs = find(Y); // find elements different than zero
+  Y.replace(0, arma::datum::nan); // replace 0 with NA
+  valid_obs = find_finite(Y); // find valid elements
   Y_valid = Y.rows(valid_obs);
   X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   C_valid = C.rows(valid_obs);
@@ -497,8 +497,8 @@ Rcpp::List sample_coord_ith_weight_dir_cpp( arma::cube u_ith,
       }
       
       // identifies valid obs
-      Y.elem( find_nonfinite(Y) ).zeros(); // change NAs to zero
-      valid_obs = find(Y); // find elements different than zero
+      Y.replace(0, arma::datum::nan); // replace 0 with NA
+      valid_obs = find_finite(Y); // find valid elements
       Y_valid = Y.rows(valid_obs);
       X_sp_valid = arma::sp_mat(X.rows(valid_obs));
       
@@ -611,7 +611,9 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
   
   // Variance associated with each observation in Y
   arma::colvec sigma_Y_inv = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
-  for( k=0; k<K_net; k++ ) { sigma_Y_inv.subvec( k*(V_net-1)*T_net+1,(k+1)*(V_net-1)*T_net).fill(1/sigma_k(k)); }
+  for( k=0; k<K_net; k++ ) {
+    sigma_Y_inv.rows( k*(V_net-1)*T_net,(k+1)*(V_net-1)*T_net-1 ).fill( 1/sigma_k(k) );
+  }
   
   arma::mat tau_h_diag(tau_h_shared_send.n_rows,tau_h_shared_send.n_rows); tau_h_diag.eye();
   arma::mat uv_i_cov_prior = kron( tau_h_diag, uv_t_sigma_prior_inv );
@@ -722,8 +724,8 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
       }
       
       // identifies valid obs
-      Y.elem( find_nonfinite(Y) ).zeros(); // change NAs to zero
-      valid_obs = find(Y); // find elements different than zero
+      Y.replace(0, arma::datum::nan); // replace 0 with NA
+      valid_obs = find_finite(Y); // find valid elements
       Y_valid = Y.rows(valid_obs);
       X_sp_valid = arma::sp_mat(X.rows(valid_obs));
       sigma_Y_inv_valid = sigma_Y_inv.rows(valid_obs);
@@ -805,3 +807,110 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
                              Rcpp::Named("mu_ijtk") = mu_ijtk );
 }
 
+// To be checked
+// [[Rcpp::export]]
+double sample_var_weight_cpp( double sigma_k,
+                              double sigma_k_prop_int,
+                              const arma::cube y_ijt,
+                              const arma::cube mu_ijt,
+                              
+                              const bool directed=false ) {
+  
+  // Network and latent space dimensions
+  unsigned int V_net = y_ijt.n_rows;
+  unsigned int T_net = y_ijt.n_slices;
+  
+  // column matrix for the continuous response
+  arma::colvec Y = arma::zeros<arma::colvec>(1);
+  
+  // column matrix with the linear predictor
+  arma::colvec linpred = arma::zeros<arma::colvec>(1);
+    
+  // vector that identifies valid observation for the model
+  // in this case, where Y!=0 and is not NA
+  arma::uvec valid_obs;
+  arma::colvec Y_valid = Y;
+  arma::colvec linpred_valid = linpred;
+  
+  // Auxiliar objects
+  unsigned int i=0;
+  double aux_double;
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
+  
+  // Variables for MH
+  double sigma_k_prop = sigma_k; // proposal value
+  double rho = 0; // auxiliar value for the proposal random walk
+  double prop_probs;
+  double cur_probs;
+  double MH_ratio;
+  
+  if( directed ){
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = y_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+      aux_mat_2.shed_row(i);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+    Y = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = mu_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+      aux_mat_2.shed_row(i);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+    linpred = aux_mat_1;
+  } else {
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = y_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+    Y = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = mu_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+    linpred = aux_mat_1;
+  }
+  
+  // identifies valid obs
+  Y.replace(0, arma::datum::nan); // replace 0 with NA
+  valid_obs = find_finite(Y); // find valid elements
+  Y_valid = Y.rows(valid_obs);
+  linpred_valid = linpred.rows(valid_obs);
+  
+  // Propose a new value for sigma_k
+  rho = R::runif(1/sigma_k_prop_int,sigma_k_prop_int);
+  sigma_k_prop = rho * sigma_k;
+  
+  for( i=0; i<Y_valid.n_rows; i++ ) {
+    prop_probs += R::dnorm( Y_valid(i), linpred_valid(i), sigma_k_prop,1);
+    cur_probs += R::dnorm( Y_valid(i), linpred_valid(i), sigma_k,1);
+  }
+  
+  // Metropolis-Hastings ratio
+  MH_ratio = prop_probs - cur_probs + log( sigma_k_prop / sigma_k );
+  //Rcpp::Rcout << MH_ratio << std::endl ;
+  aux_double = log( R::runif(0,1) );
+  if( aux_double < MH_ratio ) {
+    // New value accepted!
+    // Rcpp::Rcout << "accept!" << std::endl ;
+    
+    // Updating current values of the MCMC
+    sigma_k = sigma_k_prop;
+  }
+  
+  return( sigma_k );
+}
