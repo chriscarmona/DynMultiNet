@@ -9,10 +9,6 @@ sample_mu_t_DynMultiNet_bin_v2_cpp <- function(mu_t, mu_t_cov_prior_inv, y_ijt, 
     .Call(`_DynMultiNet_sample_mu_t_DynMultiNet_bin_v2_cpp`, mu_t, mu_t_cov_prior_inv, y_ijt, w_ijt, s_ijt, directed)
 }
 
-sample_beta_z_layer_DynMultiNet_bin_cpp <- function(beta_t, z_t, beta_t_cov_prior_inv, y_ijt, w_ijt, s_ijt, directed = FALSE) {
-    .Call(`_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp`, beta_t, z_t, beta_t_cov_prior_inv, y_ijt, w_ijt, s_ijt, directed)
-}
-
 sample_x_ith_DynMultiNet_bin_cpp <- function(x_ith, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt) {
     .Call(`_DynMultiNet_sample_x_ith_DynMultiNet_bin_cpp`, x_ith, x_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, s_ijt)
 }
@@ -27,6 +23,30 @@ sample_x_ith_DynMultiNet_bin_dir_cpp <- function(x_ith_send, x_ith_receive, x_t_
 
 sample_x_ith_shared_DynMultiNet_bin_dir_cpp <- function(x_ith_shared_send, x_ith_shared_receive, x_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, w_ijtk, s_ijtk) {
     .Call(`_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_dir_cpp`, x_ith_shared_send, x_ith_shared_receive, x_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, w_ijtk, s_ijtk)
+}
+
+sample_beta_z_layer_DynMultiNet_bin_cpp <- function(beta_t, z_t, beta_t_cov_prior_inv, y_ijt, w_ijt, s_ijt, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp`, beta_t, z_t, beta_t_cov_prior_inv, y_ijt, w_ijt, s_ijt, directed)
+}
+
+sample_baseline_tk_weight_cpp <- function(theta_t, theta_t_cov_prior_inv, y_ijt, mu_ijt, sigma_k, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_baseline_tk_weight_cpp`, theta_t, theta_t_cov_prior_inv, y_ijt, mu_ijt, sigma_k, directed)
+}
+
+sample_coord_ith_weight_cpp <- function(uv_ith_shared, uv_t_sigma_prior_inv, tau_h, y_ijt, mu_ijt, sigma_k) {
+    .Call(`_DynMultiNet_sample_coord_ith_weight_cpp`, uv_ith_shared, uv_t_sigma_prior_inv, tau_h, y_ijt, mu_ijt, sigma_k)
+}
+
+sample_coord_ith_shared_weight_cpp <- function(uv_ith_shared, uv_t_sigma_prior_inv, tau_h, y_ijtk, mu_ijtk, sigma_k) {
+    .Call(`_DynMultiNet_sample_coord_ith_shared_weight_cpp`, uv_ith_shared, uv_t_sigma_prior_inv, tau_h, y_ijtk, mu_ijtk, sigma_k)
+}
+
+sample_coord_ith_weight_dir_cpp <- function(u_ith, v_ith, uv_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijt, mu_ijt, sigma_k) {
+    .Call(`_DynMultiNet_sample_coord_ith_weight_dir_cpp`, u_ith, v_ith, uv_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijt, mu_ijt, sigma_k)
+}
+
+sample_coord_ith_shared_weight_dir_cpp <- function(u_ith_shared, v_ith_shared, uv_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, mu_ijtk, sigma_k) {
+    .Call(`_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp`, u_ith_shared, v_ith_shared, uv_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, mu_ijtk, sigma_k)
 }
 
 c_initialize1 <- function(Data, DIMS, Yy, XSCALE, BETAIN, BETAOUT, WW) {

@@ -10,9 +10,7 @@
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
-#' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
-#' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
+#' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -78,7 +76,7 @@ dmn_sampling <- function( y_ijtk,
                           directed=FALSE, weighted=FALSE,
                           
                           H_dim=10, R_dim=10,
-                          k_x=0.10, k_mu=0.10, k_p=0.10,
+                          delta=36,
                           
                           shrink_lat_space=TRUE,
                           a_1=2, a_2=2.5,
@@ -93,6 +91,9 @@ dmn_sampling <- function( y_ijtk,
                           parallel_mcmc=FALSE ) {
   
   mcmc_clock <- Sys.time()
+  
+  # old smoothing parameter
+  k_x <- k_mu <- k_p <- 1/delta^2
   
   # if(!is.null(pred_data)) {
   #   if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
@@ -237,6 +238,23 @@ dmn_sampling <- function( y_ijtk,
                               
                               H_dim=H_dim, R_dim=R_dim,
                               k_x=k_x, k_mu=k_mu, k_p=k_p,
+                              
+                              shrink_lat_space=shrink_lat_space,
+                              a_1=a_1, a_2=a_2,
+                              
+                              procrustes_lat=procrustes_lat,
+                              
+                              n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                              
+                              rds_file=rds_file, log_file=log_file,
+                              quiet_mcmc=quiet_mcmc,
+                              parallel_mcmc=parallel_mcmc )
+  } else if( directed & weighted ) {
+    dmn_mcmc <- mcmc_d_1_w_1( y_ijtk=y_ijtk,
+                              node_all=node_all, time_all=time_all, layer_all=layer_all,
+                              
+                              H_dim=H_dim, R_dim=R_dim,
+                              delta=delta,
                               
                               shrink_lat_space=shrink_lat_space,
                               a_1=a_1, a_2=a_2,

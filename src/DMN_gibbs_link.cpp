@@ -261,108 +261,6 @@ Rcpp::List sample_mu_t_DynMultiNet_bin_v2_cpp( arma::colvec mu_t,
 
 
 // [[Rcpp::export]]
-arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
-                                                   arma::colvec z_t,
-                                                   const arma::mat beta_t_cov_prior_inv,
-                                                   const arma::cube y_ijt,
-                                                   const arma::cube w_ijt,
-                                                   const arma::cube s_ijt,
-                                                   const bool directed=false ) {
-  // Auxiliar objects
-  unsigned int i=0;
-  
-  arma::cube aux_cube_1;
-  arma::mat aux_mat_1;
-  arma::mat aux_mat_2;
-  arma::uvec aux_uvec_1;
-  
-  // Network and latent space dimensions
-  unsigned int V_net = y_ijt.n_rows;
-  unsigned int T_net = y_ijt.n_slices;
-  
-  arma::colvec Y = arma::zeros<arma::colvec>(1);
-  arma::colvec W = arma::zeros<arma::colvec>(1);
-  arma::colvec S = arma::zeros<arma::colvec>(1);
-  
-  arma::colvec C = arma::zeros<arma::colvec>(1);
-  arma::colvec Z = arma::zeros<arma::colvec>(1);
-  
-  aux_mat_1 = arma::ones<arma::mat>(V_net*(V_net-1)/2,1);
-  aux_mat_2 = arma::zeros<arma::mat>(T_net,T_net); aux_mat_2.diag()=z_t;
-  arma::mat X = arma::kron( aux_mat_1, aux_mat_2 );
-  arma::sp_mat X_sp = arma::sp_mat(X);
-  
-  arma::sp_mat Omega_sp = arma::speye<arma::sp_mat>(T_net*V_net*(V_net-1)/2,T_net*V_net*(V_net-1)/2);
-  
-  if( directed ){
-    X_sp = repmat(X_sp,2,1);
-    Omega_sp=arma::speye<arma::sp_mat>(T_net*V_net*(V_net-1),T_net*V_net*(V_net-1));
-  }
-  
-  
-  arma::mat beta_t_cov_inv;
-  arma::mat beta_t_cov;
-  arma::colvec aux_vec_mean = arma::zeros<arma::colvec>(T_net);
-  
-  if( directed ){
-    for( i=0; i<V_net; i++ ) {
-      aux_mat_1 = y_ijt.subcube(i,0,0, i,V_net-1,T_net-1);
-      aux_mat_1.shed_row(i);
-      aux_mat_1 = aux_mat_1.t();
-      aux_mat_1.reshape((V_net-1)*T_net,1);
-      Y.insert_rows( Y.n_rows, aux_mat_1);
-      
-      aux_mat_1 = w_ijt.subcube(i,0,0, i,V_net-1,T_net-1);
-      aux_mat_1.shed_row(i);
-      aux_mat_1 = aux_mat_1.t();
-      aux_mat_1.reshape((V_net-1)*T_net,1);
-      W.insert_rows( W.n_rows, aux_mat_1);
-      
-      aux_mat_1 = s_ijt.subcube(i,0,0, i,V_net-1,T_net-1);
-      aux_mat_1.shed_row(i);
-      aux_mat_1 = aux_mat_1.t();
-      aux_mat_1.reshape((V_net-1)*T_net,1);
-      S.insert_rows( S.n_rows, aux_mat_1);
-    }
-  } else {
-    for( i=1; i<V_net; i++ ) {
-      aux_mat_1 = y_ijt.subcube(i,0,0, i,i-1,T_net-1);
-      aux_mat_1 = aux_mat_1.t();
-      aux_mat_1.reshape(i*T_net,1);
-      Y.insert_rows( Y.n_rows, aux_mat_1);
-      
-      aux_mat_1 = w_ijt.subcube(i,0,0, i,i-1,T_net-1);
-      aux_mat_1 = aux_mat_1.t();
-      aux_mat_1.reshape(i*T_net,1);
-      W.insert_rows( W.n_rows, aux_mat_1);
-      
-      aux_mat_1 = s_ijt.subcube(i,0,0, i,i-1,T_net-1);
-      aux_mat_1 = aux_mat_1.t();
-      aux_mat_1.reshape(i*T_net,1);
-      S.insert_rows( S.n_rows, aux_mat_1);
-    }
-  }
-  Y.shed_row(0); W.shed_row(0); S.shed_row(0);
-  Omega_sp.diag() = W;
-  
-  beta_t_cov_inv = X_sp.t() * Omega_sp * X_sp;
-  beta_t_cov_inv = beta_t_cov_inv + beta_t_cov_prior_inv;
-  
-  beta_t_cov = arma::inv_sympd(beta_t_cov_inv);
-  
-  C = S - (X_sp * beta_t);
-  Z = (Y-0.5)/W - C;
-  
-  aux_vec_mean = X_sp.t() * (Omega_sp * Z);
-  
-  // Sampling beta_t
-  beta_t = arma::mvnrnd( beta_t_cov*aux_vec_mean , beta_t_cov );
-  
-  return beta_t;
-}
-
-
-// [[Rcpp::export]]
 Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
                                              const arma::mat x_t_sigma_prior_inv,
                                              const arma::colvec tau_h,
@@ -1038,4 +936,106 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
   return Rcpp::List::create( Rcpp::Named("x_ith_shared_send") = x_ith_shared_send,
                              Rcpp::Named("x_ith_shared_receive") = x_ith_shared_receive,
                              Rcpp::Named("s_ijtk") = s_ijtk );
+}
+
+
+// [[Rcpp::export]]
+arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp( arma::colvec beta_t,
+                                                      arma::colvec z_t,
+                                                      const arma::mat beta_t_cov_prior_inv,
+                                                      const arma::cube y_ijt,
+                                                      const arma::cube w_ijt,
+                                                      const arma::cube s_ijt,
+                                                      const bool directed=false ) {
+  // Auxiliar objects
+  unsigned int i=0;
+  
+  arma::cube aux_cube_1;
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
+  arma::uvec aux_uvec_1;
+  
+  // Network and latent space dimensions
+  unsigned int V_net = y_ijt.n_rows;
+  unsigned int T_net = y_ijt.n_slices;
+  
+  arma::colvec Y = arma::zeros<arma::colvec>(1);
+  arma::colvec W = arma::zeros<arma::colvec>(1);
+  arma::colvec S = arma::zeros<arma::colvec>(1);
+  
+  arma::colvec C = arma::zeros<arma::colvec>(1);
+  arma::colvec Z = arma::zeros<arma::colvec>(1);
+  
+  aux_mat_1 = arma::ones<arma::mat>(V_net*(V_net-1)/2,1);
+  aux_mat_2 = arma::zeros<arma::mat>(T_net,T_net); aux_mat_2.diag()=z_t;
+  arma::mat X = arma::kron( aux_mat_1, aux_mat_2 );
+  arma::sp_mat X_sp = arma::sp_mat(X);
+  
+  arma::sp_mat Omega_sp = arma::speye<arma::sp_mat>(T_net*V_net*(V_net-1)/2,T_net*V_net*(V_net-1)/2);
+  
+  if( directed ){
+    X_sp = repmat(X_sp,2,1);
+    Omega_sp=arma::speye<arma::sp_mat>(T_net*V_net*(V_net-1),T_net*V_net*(V_net-1));
+  }
+  
+  
+  arma::mat beta_t_cov_inv;
+  arma::mat beta_t_cov;
+  arma::colvec aux_vec_mean = arma::zeros<arma::colvec>(T_net);
+  
+  if( directed ){
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_1 = y_ijt.subcube(i,0,0, i,V_net-1,T_net-1);
+      aux_mat_1.shed_row(i);
+      aux_mat_1 = aux_mat_1.t();
+      aux_mat_1.reshape((V_net-1)*T_net,1);
+      Y.insert_rows( Y.n_rows, aux_mat_1);
+      
+      aux_mat_1 = w_ijt.subcube(i,0,0, i,V_net-1,T_net-1);
+      aux_mat_1.shed_row(i);
+      aux_mat_1 = aux_mat_1.t();
+      aux_mat_1.reshape((V_net-1)*T_net,1);
+      W.insert_rows( W.n_rows, aux_mat_1);
+      
+      aux_mat_1 = s_ijt.subcube(i,0,0, i,V_net-1,T_net-1);
+      aux_mat_1.shed_row(i);
+      aux_mat_1 = aux_mat_1.t();
+      aux_mat_1.reshape((V_net-1)*T_net,1);
+      S.insert_rows( S.n_rows, aux_mat_1);
+    }
+  } else {
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_1 = y_ijt.subcube(i,0,0, i,i-1,T_net-1);
+      aux_mat_1 = aux_mat_1.t();
+      aux_mat_1.reshape(i*T_net,1);
+      Y.insert_rows( Y.n_rows, aux_mat_1);
+      
+      aux_mat_1 = w_ijt.subcube(i,0,0, i,i-1,T_net-1);
+      aux_mat_1 = aux_mat_1.t();
+      aux_mat_1.reshape(i*T_net,1);
+      W.insert_rows( W.n_rows, aux_mat_1);
+      
+      aux_mat_1 = s_ijt.subcube(i,0,0, i,i-1,T_net-1);
+      aux_mat_1 = aux_mat_1.t();
+      aux_mat_1.reshape(i*T_net,1);
+      S.insert_rows( S.n_rows, aux_mat_1);
+    }
+  }
+  Y.shed_row(0); W.shed_row(0); S.shed_row(0);
+  Omega_sp.diag() = W;
+  
+  beta_t_cov_inv = X_sp.t() * Omega_sp * X_sp;
+  beta_t_cov_inv = beta_t_cov_inv + beta_t_cov_prior_inv;
+  
+  beta_t_cov = arma::inv_sympd(beta_t_cov_inv);
+  
+  C = S - (X_sp * beta_t);
+  Z = (Y-0.5)/W - C;
+  
+  aux_vec_mean = X_sp.t() * (Omega_sp * Z);
+  
+  // Sampling beta_t
+  beta_t = arma::mvnrnd( beta_t_cov*aux_vec_mean , beta_t_cov );
+  
+  return beta_t;
 }

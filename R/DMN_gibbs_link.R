@@ -35,40 +35,168 @@ sample_w_ijtk_DynMultiNet_bin <- function( w_ijtk,
 sample_mu_tk_DynMultiNet_bin <- function( mu_tk,
                                           y_ijtk, w_ijtk, s_ijtk,
                                           mu_t_cov_prior_inv,
-                                          directed=FALSE,
-                                          use_cpp=TRUE,
-                                          parallel_mcmc=FALSE,
-                                          calc_method_R=1 ) {
+                                          directed=FALSE ) {
   ### Sample mu_t from its conditional N-variate Gaussian posterior ###
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
   K_net <- dim(y_ijtk)[4]
   
-  if(parallel_mcmc) {
-    mu_tk <- foreach( k=1:K_net, .combine=cbind, .inorder=TRUE ) %dopar% { # k<-1
-      sample_mu_t_DynMultiNet_bin_cpp( mu_t=mu_tk[,k,drop=FALSE],
-                                       mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                       y_ijt=y_ijtk[,,,k],
-                                       w_ijt=w_ijtk[,,,k],
-                                       s_ijt=s_ijtk[,,,k],
-                                       directed=directed )
-    }
-  } else {
-    for( k in 1:K_net ) { # k<-1
-      # mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
-      out_aux <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
-                                                     mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                                     y_ijt=y_ijtk[,,,k],
-                                                     w_ijt=w_ijtk[,,,k],
-                                                     s_ijt=s_ijtk[,,,k],
-                                                     directed=directed )
-      mu_tk[,k] <- out_aux$mu_t
-      s_ijtk[,,,k] <- out_aux$s_ijt
-    }
+  for( k in 1:K_net ) { # k<-1
+    # mu_tk[,k] <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
+    out_aux <- sample_mu_t_DynMultiNet_bin_v2_cpp( mu_t=mu_tk[,k,drop=F],
+                                                   mu_t_cov_prior_inv=mu_t_cov_prior_inv,
+                                                   y_ijt=y_ijtk[,,,k],
+                                                   w_ijt=w_ijtk[,,,k],
+                                                   s_ijt=s_ijtk[,,,k],
+                                                   directed=directed )
+    mu_tk[,k] <- out_aux$mu_t
+    s_ijtk[,,,k] <- out_aux$s_ijt
   }
   
   return( list( mu_tk=mu_tk,
                 s_ijtk=s_ijtk ) );
+}
+
+
+#' @keywords internal
+sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
+                                                 x_t_sigma_prior_inv, tau_h,
+                                                 y_ijtk, w_ijtk, s_ijtk,
+                                                 directed=FALSE ) {
+  
+  ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
+  V_net <- dim(x_ith_shared)[1]
+  T_net <- dim(x_ith_shared)[2]
+  K_net <- dim(y_ijtk)[4]
+  H_dim <- dim(x_ith_shared)[3]
+  
+  y_ijtk_list <- w_ijtk_list <- s_ijtk_list <- list(NULL)
+  
+  for(k in 1:K_net) {
+    y_ijtk_list[[k]] <- y_ijtk[,,,k]
+    w_ijtk_list[[k]] <- w_ijtk[,,,k]
+    s_ijtk_list[[k]] <- s_ijtk[,,,k]
+  }
+  
+  if( directed ) {
+    out_aux <- sample_x_ith_shared_DynMultiNet_bin_dir_cpp( x_ith_shared_send = x_ith_shared[[1]],
+                                                            x_ith_shared_receive = x_ith_shared[[2]],
+                                                            x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                            tau_h_shared_send = tau_h[[1]],
+                                                            tau_h_shared_receive = tau_h[[2]],
+                                                            y_ijtk = y_ijtk_list,
+                                                            w_ijtk = w_ijtk_list,
+                                                            s_ijtk = s_ijtk_list )
+    
+    x_ith_shared[[1]] <- out_aux$x_ith_shared_send
+    x_ith_shared[[2]] <- out_aux$x_ith_shared_receive
+    for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
+  } else {
+    out_aux <- sample_x_ith_shared_DynMultiNet_bin_cpp( x_ith_shared = x_ith_shared,
+                                                        x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                        tau_h = tau_h,
+                                                        y_ijtk = y_ijtk_list,
+                                                        w_ijtk = w_ijtk_list,
+                                                        s_ijtk = s_ijtk_list )
+    x_ith_shared <- out_aux$x_ith_shared
+    for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
+  }
+  
+  return( list(x_ith_shared=x_ith_shared,
+               s_ijtk=s_ijtk ) )
+}
+
+
+#' @keywords internal
+#' @importFrom abind abind
+sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
+                                           x_t_sigma_prior_inv, tau_h,
+                                           y_ijtk, w_ijtk, s_ijtk,
+                                           directed=FALSE ) {
+  
+  ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
+  
+  if( directed ) {
+    V_net <- dim(x_ithk[[1]])[1]
+    T_net <- dim(x_ithk[[1]])[2]
+    H_dim <- dim(x_ithk[[1]])[3]
+    K_net <- dim(x_ithk[[1]])[4]
+    
+    for(k in 1:K_net){ # k<-1
+      out_aux <- sample_x_ith_DynMultiNet_bin_dir_cpp( x_ith_send = x_ithk[[1]][,,,k],
+                                                       x_ith_receive = x_ithk[[2]][,,,k],
+                                                       x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                       tau_h_send = tau_h[[1]][,k],
+                                                       tau_h_receive = tau_h[[2]][,k],
+                                                       y_ijt = y_ijtk[,,,k],
+                                                       w_ijt = w_ijtk[,,,k],
+                                                       s_ijt = s_ijtk[,,,k] )
+      x_ithk[[1]][,,,k] <- out_aux$x_ith_send
+      x_ithk[[2]][,,,k] <- out_aux$x_ith_receive
+      s_ijtk[,,,k] <- out_aux$s_ijt
+    }
+    
+  } else {
+    V_net <- dim(x_ithk)[1]
+    T_net <- dim(x_ithk)[2]
+    H_dim <- dim(x_ithk)[3]
+    K_net <- dim(x_ithk)[4]
+    
+    for(k in 1:K_net){ # k<-1
+      out_aux <- sample_x_ith_DynMultiNet_bin_cpp( x_ith = x_ithk[,,,k],
+                                                   x_t_sigma_prior_inv = x_t_sigma_prior_inv,
+                                                   tau_h = tau_h[,k],
+                                                   y_ijt = y_ijtk[,,,k],
+                                                   w_ijt = w_ijtk[,,,k],
+                                                   s_ijt = s_ijtk[,,,k] )
+      x_ithk[,,,k] <- out_aux$x_ith
+      s_ijtk[,,,k] <- out_aux$s_ijt
+    }
+    
+  }
+  return( list( x_ithk=x_ithk,
+                s_ijtk=s_ijtk) )
+}
+
+
+#' @keywords internal
+sample_v_shrink_DynMultiNet_bin <- function( v_shrink,
+                                             a_1, a_2,
+                                             x_ith,
+                                             x_t_sigma_prior_inv ){
+  ### Sample the global shrinkage hyperparameters from conditional gamma distributions ###
+  
+  V_net <- dim(x_ith)[1]
+  T_net <- dim(x_ith)[2]
+  H_dim <- nrow(v_shrink)
+  
+  for(h in 1:H_dim) { # h <- 3
+    aux_tau_x <- vector(mode="numeric",length=H_dim)
+    for( l in h:H_dim ) { # l <- 4
+      if((l==1)&(h==1)){
+        aux_tau <- 0 
+      } else {
+        aux_tau <- prod(v_shrink[setdiff(1:l,h),])
+      }
+      aux_x <- vector(mode="numeric",length=V_net)
+      for( i in 1:V_net ) { # l <- 1
+        aux_x[i] <- matrix(x_ith[i,,l],nrow=1) %*% x_t_sigma_prior_inv %*% matrix(x_ith[i,,l],ncol=1)
+      }
+      aux_tau_x[l] <- aux_tau * sum(aux_x)
+    }
+    
+    if(h==1){
+      v_shrink[h,1] <- rgamma( n=1,
+                               shape = a_1+0.5*(V_net*T_net*H_dim),
+                               rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
+    }
+    if(h>1){
+      v_shrink[h,1] <- rgamma( n=1,
+                               shape = a_2+0.5*(V_net*T_net*(H_dim-h+1)),
+                               rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
+    }
+  }
+  return(v_shrink)
 }
 
 
@@ -171,145 +299,3 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
   return(beta_z_layer);
 }
 
-
-#' @keywords internal
-sample_x_ith_shared_DynMultiNet_bin <- function( x_ith_shared,
-                                                 x_t_sigma_prior_inv, tau_h,
-                                                 y_ijtk, w_ijtk, s_ijtk,
-                                                 directed=FALSE ) {
-  
-  ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
-  V_net <- dim(x_ith_shared)[1]
-  T_net <- dim(x_ith_shared)[2]
-  K_net <- dim(y_ijtk)[4]
-  H_dim <- dim(x_ith_shared)[3]
-  
-  y_ijtk_list <- w_ijtk_list <- s_ijtk_list <- list(NULL)
-  
-  for(k in 1:K_net) {
-    y_ijtk_list[[k]] <- y_ijtk[,,,k]
-    w_ijtk_list[[k]] <- w_ijtk[,,,k]
-    s_ijtk_list[[k]] <- s_ijtk[,,,k]
-  }
-  
-  if( directed ) {
-    out_aux <- sample_x_ith_shared_DynMultiNet_bin_dir_cpp( x_ith_shared_send = x_ith_shared[[1]],
-                                                            x_ith_shared_receive = x_ith_shared[[2]],
-                                                            x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                            tau_h_shared_send = tau_h[[1]],
-                                                            tau_h_shared_receive = tau_h[[2]],
-                                                            y_ijtk = y_ijtk_list,
-                                                            w_ijtk = w_ijtk_list,
-                                                            s_ijtk = s_ijtk_list )
-    
-    x_ith_shared[[1]] <- out_aux$x_ith_shared_send
-    x_ith_shared[[2]] <- out_aux$x_ith_shared_receive
-    for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
-  } else {
-    out_aux <- sample_x_ith_shared_DynMultiNet_bin_cpp( x_ith_shared = x_ith_shared,
-                                                        x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                        tau_h = tau_h,
-                                                        y_ijtk = y_ijtk_list,
-                                                        w_ijtk = w_ijtk_list,
-                                                        s_ijtk = s_ijtk_list )
-    x_ith_shared <- out_aux$x_ith_shared
-    for(k in 1:K_net) {s_ijtk[,,,k] <- out_aux$s_ijtk[k,1][[1]]}
-  }
-  
-  return( list(x_ith_shared=x_ith_shared,
-               s_ijtk=s_ijtk ) )
-}
-
-
-#' @keywords internal
-#' @importFrom abind abind
-sample_x_ithk_DynMultiNet_bin <- function( x_ithk,
-                                           x_t_sigma_prior_inv, tau_h,
-                                           y_ijtk, w_ijtk, s_ijtk,
-                                           directed=FALSE,
-                                           parallel_mcmc=FALSE ) {
-  
-  ### For each unit, block-sample the set of time-varying latent coordinates x_ith ###
-  
-  if( directed ) {
-    V_net <- dim(x_ithk[[1]])[1]
-    T_net <- dim(x_ithk[[1]])[2]
-    H_dim <- dim(x_ithk[[1]])[3]
-    K_net <- dim(x_ithk[[1]])[4]
-    
-    for(k in 1:K_net){ # k<-1
-      out_aux <- sample_x_ith_DynMultiNet_bin_dir_cpp( x_ith_send = x_ithk[[1]][,,,k],
-                                                       x_ith_receive = x_ithk[[2]][,,,k],
-                                                       x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                       tau_h_send = tau_h[[1]][,k],
-                                                       tau_h_receive = tau_h[[2]][,k],
-                                                       y_ijt = y_ijtk[,,,k],
-                                                       w_ijt = w_ijtk[,,,k],
-                                                       s_ijt = s_ijtk[,,,k] )
-      x_ithk[[1]][,,,k] <- out_aux$x_ith_send
-      x_ithk[[2]][,,,k] <- out_aux$x_ith_receive
-      s_ijtk[,,,k] <- out_aux$s_ijt
-    }
-    
-  } else {
-    V_net <- dim(x_ithk)[1]
-    T_net <- dim(x_ithk)[2]
-    H_dim <- dim(x_ithk)[3]
-    K_net <- dim(x_ithk)[4]
-    
-    for(k in 1:K_net){ # k<-1
-      out_aux <- sample_x_ith_DynMultiNet_bin_cpp( x_ith = x_ithk[,,,k],
-                                                   x_t_sigma_prior_inv = x_t_sigma_prior_inv,
-                                                   tau_h = tau_h[,k],
-                                                   y_ijt = y_ijtk[,,,k],
-                                                   w_ijt = w_ijtk[,,,k],
-                                                   s_ijt = s_ijtk[,,,k] )
-      x_ithk[,,,k] <- out_aux$x_ith
-      s_ijtk[,,,k] <- out_aux$s_ijt
-    }
-    
-  }
-  return( list( x_ithk=x_ithk,
-                s_ijtk=s_ijtk) )
-}
-
-
-#' @keywords internal
-sample_v_shrink_DynMultiNet_bin <- function( v_shrink,
-                                             a_1, a_2,
-                                             x_ith,
-                                             x_t_sigma_prior_inv ){
-  ### Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-  
-  V_net <- dim(x_ith)[1]
-  T_net <- dim(x_ith)[2]
-  H_dim <- nrow(v_shrink)
-  
-  for(h in 1:H_dim) { # h <- 3
-    aux_tau_x <- vector(mode="numeric",length=H_dim)
-    for( l in h:H_dim ) { # l <- 4
-      if((l==1)&(h==1)){
-        aux_tau <- 0 
-      } else {
-        aux_tau <- prod(v_shrink[setdiff(1:l,h),])
-      }
-      aux_x <- vector(mode="numeric",length=V_net)
-      for( i in 1:V_net ) { # l <- 1
-        aux_x[i] <- matrix(x_ith[i,,l],nrow=1) %*% x_t_sigma_prior_inv %*% matrix(x_ith[i,,l],ncol=1)
-      }
-      aux_tau_x[l] <- aux_tau * sum(aux_x)
-    }
-    
-    if(h==1){
-      v_shrink[h,1] <- rgamma( n=1,
-                               shape = a_1+0.5*(V_net*T_net*H_dim),
-                               rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
-    }
-    if(h>1){
-      v_shrink[h,1] <- rgamma( n=1,
-                               shape = a_2+0.5*(V_net*T_net*(H_dim-h+1)),
-                               rate = 1+0.5*sum(aux_tau_x,na.rm=T) )
-    }
-  }
-  return(v_shrink)
-}

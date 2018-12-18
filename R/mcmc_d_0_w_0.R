@@ -29,7 +29,7 @@
 #' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
-#' @param parallel_mcmc Boolean. Indicates if some steps in the mcmc would be processed in parallel.
+#' @param parallel_mcmc Boolean. Indicates if the mcmc should be processed in parallel.
 #' 
 #' @import foreach
 #' @import BayesLogit
@@ -275,9 +275,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     out_aux <- sample_mu_tk_DynMultiNet_bin( mu_tk=mu_tk,
                                              y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
                                              mu_t_cov_prior_inv=mu_t_cov_prior_inv,
-                                             directed=FALSE,
-                                             use_cpp=TRUE,
-                                             parallel_mcmc=parallel_mcmc )
+                                             directed=FALSE )
     mu_tk <- out_aux$mu_tk
     s_ijtk <- out_aux$s_ijtk # This updates ONLY the lower triangular matrices in s_ijtk
     s_ijtk[!lowtri_y_idx] <- NA
@@ -387,8 +385,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                                 tau_h=tau_h_k,
                                                 y_ijtk=y_ijtk,
                                                 w_ijtk=w_ijtk,
-                                                s_ijtk=s_ijtk,
-                                                parallel_mcmc=parallel_mcmc )
+                                                s_ijtk=s_ijtk )
       x_ithk <- out_aux$x_ithk
       s_ijtk <- out_aux$s_ijtk
       
