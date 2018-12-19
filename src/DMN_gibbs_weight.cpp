@@ -841,8 +841,8 @@ double sample_var_weight_cpp( double sigma_k,
   // Variables for MH
   double sigma_k_prop = sigma_k; // proposal value
   double rho = 0; // auxiliar value for the proposal random walk
-  double prop_probs;
-  double cur_probs;
+  double prop_probs=0;
+  double cur_probs=0;
   double MH_ratio;
   
   if( directed ){

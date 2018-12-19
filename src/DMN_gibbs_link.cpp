@@ -20,7 +20,6 @@ Rcpp::List sample_baseline_t_link_cpp( arma::colvec mu_t,
   // Auxiliar objects
   unsigned int i=0;
   unsigned int t=0;
-  unsigned int aux_int=0;
   arma::uvec aux_uvec_1;
   arma::colvec aux_vec;
   arma::mat aux_mat_1;
