@@ -248,7 +248,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # Creates one for the weights and one for the link
   v_shrink_k_weight <- v_shrink_k_link <- v_shrink_k
   rm(v_shrink_k)
-  rho_h_k_mcmc <- tau_h_k
+  rho_h_k <- tau_h_k
   rho_h_k_mcmc <- tau_h_k_mcmc
   
   
@@ -343,7 +343,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       ### Step W3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates uv_ithk ###
       out_aux <- sample_coord_ithk_weight( uv_ithk=uv_ithk,
                                            uv_t_sigma_prior_inv=cov_gp_prior_inv,
-                                           tau_h=rho_h_k_mcmc,
+                                           tau_h=rho_h_k,
                                            y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                            sigma_k=sigma_k,
                                            directed=TRUE )
