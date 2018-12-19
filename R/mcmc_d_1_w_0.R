@@ -225,7 +225,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]!=y_ijtk_miss_idx[,2],]
     
     # MCMC chain for missing values #
-    y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
+    # y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
+    y_ijtk_imp_mcmc <- NULL # requires too much disk memory
   }
   
   #### Start: MCMC Sampling ####
@@ -432,7 +433,7 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     
     
     ### Impute missing links ###
-    if( y_ijtk_miss ) {
+    if( F & y_ijtk_miss ) { # requires too much disk memory
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
         Y_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
