@@ -8,16 +8,16 @@
 #' @param param Character. Specifies the parameter that will be plotted. Possible parameters are:
 #'        \describe{
 #'            \item{\code{"pi_ijtk"}}{Edge probabilities between node_i and node_j at time t in layer_k.}
-#'            \item{\code{"mu_tk"}}{Baseline process for edge probability at layer_k.}
-#'            \item{\code{"x_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge probability.}
-#'            \item{\code{"x_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge probability.}
+#'            \item{\code{"eta_tk"}}{Baseline process for edge probability at layer_k.}
+#'            \item{\code{"ab_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge probability.}
+#'            \item{\code{"ab_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge probability.}
 #'            \item{\code{"tau_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h, corresponding to edge probability.}
 #'            \item{\code{"tau_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h, corresponding to edge probability.}
-#'            \item{\code{"r_ijtk"}}{Expected value of edge weight between node_i and node_j at time t in layer_k.}
-#'            \item{\code{"sigma_w_k"}}{Variance of edge weight at layer_k.}
-#'            \item{\code{"lambda_tk_mcmc"}}{Baseline process for edge weight at layer_k.}
-#'            \item{\code{"u_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge weight.}
-#'            \item{\code{"x_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge weight}
+#'            \item{\code{"mu_ijtk"}}{Expected value of edge weight between node_i and node_j at time t in layer_k.}
+#'            \item{\code{"sigma_k"}}{Variance of edge weight at layer_k.}
+#'            \item{\code{"theta_tk_mcmc"}}{Baseline process for edge weight at layer_k.}
+#'            \item{\code{"uv_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge weight.}
+#'            \item{\code{"uv_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge weight}
 #'            \item{\code{"rho_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h, corresponding to edge weight}
 #'            \item{\code{"rho_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h, corresponding to edge weight}
 #'            }
@@ -46,16 +46,16 @@
 #'                layer_k=1 )
 #'                
 #' plot_dmn_mcmc( x=dmn_mcmc,
-#'                param="mu_tk",
+#'                param="eta_tk",
 #'                layer_k=dmn_mcmc$layer_all[1] )
 #'                
 #' plot_dmn_mcmc( x=dmn_mcmc,
-#'                param="x_ith_shared",
+#'                param="ab_ith_shared",
 #'                node_i=dmn_mcmc$node_all[1],
 #'                h=1 )
 #' 
 #' plot_dmn_mcmc( x=dmn_mcmc,
-#'                param="x_ithk",
+#'                param="ab_ithk",
 #'                node_i=dmn_mcmc$node_all[1],
 #'                h=1, layer_k=1 )
 #' }
@@ -64,10 +64,10 @@
 
 plot_dmn_mcmc <- function( x,
                            param = c( "pi_ijtk",
-                                      "mu_tk", "x_ith_shared", "x_ithk",
+                                      "eta_tk", "ab_ith_shared", "ab_ithk",
                                       "tau_h_shared","tau_h_k",
-                                      "r_ijtk","sigma_w_k",
-                                      "lambda_tk","u_ith_shared","u_ithk",
+                                      "mu_ijtk","sigma_k",
+                                      "lambda_tk","uv_ith_shared","uv_ithk",
                                       "rho_h_shared","rho_h_k" )[1],
                            node_i=NULL, node_j=NULL, layer_k=NULL, h=NULL, pred_p=NULL,
                            lat_space=NULL,
@@ -75,10 +75,10 @@ plot_dmn_mcmc <- function( x,
                            n_burn=0, n_thin=1 ) {
   
   if( !is.element( param , c( "pi_ijtk",
-                              "mu_tk", "x_ith_shared", "x_ithk",
+                              "eta_tk", "ab_ith_shared", "ab_ithk",
                               "tau_h_shared","tau_h_k",
-                              "r_ijtk","sigma_w_k",
-                              "lambda_tk","u_ith_shared","u_ithk",
+                              "mu_ijtk","sigma_k",
+                              "lambda_tk","uv_ith_shared","uv_ithk",
                               "rho_h_shared","rho_h_k" ) ) ) {stop("param=",param," not supported.")}
   
   directed <- x$directed
@@ -90,10 +90,12 @@ plot_dmn_mcmc <- function( x,
   H_dim <- x$H_dim
   R_dim <- x$R_dim
   
-  if( !weighted & is.element( param , c( "r_ijtk_mcmc","sigma_w_k",
-                                         "lambda_tk_mcmc","u_ith_shared_mcmc","u_ithk_mcmc",
+  if( !weighted & is.element( param , c( "mu_ijtk_mcmc","sigma_k",
+                                         "theta_tk_mcmc","uv_ith_shared_mcmc","uv_ithk_mcmc",
                                          "rho_h_shared_mcmc","rho_h_k_mcmc" ) ) ) {stop("param=",param," not applicable for unweighted networks.")}
-  n_iter_mcmc <- dim(x$mu_tk_mcmc)[3]
+  n_iter_mcmc <- x$n_iter_mcmc
+  n_burn <- x$n_burn
+  n_thin <- x$n_thin
   
   # cat("\n",
   #     "V_net=",V_net,", T_net=",T_net,", K_net=",K_net,"\n",
@@ -102,6 +104,7 @@ plot_dmn_mcmc <- function( x,
   #     "\n\n", sep="")
   
   iter_out_mcmc <- seq(from=n_burn+1,to=n_iter_mcmc,by=n_thin)
+  iter_out_mcmc <- seq_along(iter_out_mcmc)
   
   if( is.element(param,"pi_ijtk") ){
     if(is.null(node_i)){ node_i=x$node_all[2]; warning("Plotting node_i=",node_i," as node_i was not specified") }
@@ -124,15 +127,15 @@ plot_dmn_mcmc <- function( x,
     
     param_mcmc_chain <- coda::mcmc( t(x$pi_ijtk_mcmc[i,j,,k,iter_out_mcmc]) )
     
-  } else if( is.element(param,"mu_tk") ){
+  } else if( is.element(param,"eta_tk") ){
     
     if(is.null(layer_k)){ layer_k=x$layer_all[1]; warning("Plotting layer_k=",layer_k," as layer_k was not specified") }
     if(!is.element(layer_k,x$layer_all)) {stop("layer_k=",layer_k," is not a valid layer")}
     k <- match(layer_k,x$layer_all)
     
-    param_mcmc_chain <- coda::mcmc( t(x$mu_tk_mcmc[,k,iter_out_mcmc]) )
+    param_mcmc_chain <- coda::mcmc( t(x$eta_tk_mcmc[,k,iter_out_mcmc]) )
     
-  } else if( is.element(param,"x_ith_shared") ) {
+  } else if( is.element(param,"ab_ith_shared") ) {
     
     if(is.null(node_i)){ node_i=x$node_all[2]; warning("Plotting node_i=",node_i," as node_i was not specified") }
     if(!is.element(node_i,x$node_all)) {stop("node_i=",node_i," is not a valid node")}
@@ -145,12 +148,12 @@ plot_dmn_mcmc <- function( x,
       if(is.null(lat_space)){ lat_space="send"; warning("Plotting lat_space=",lat_space," as lat_space was not specified") }
       if(!is.element(lat_space,c("send","receive"))) {stop("lat_space=",lat_space,' must be "send" or "receive".')}
       dir <- match(lat_space,c("send","receive"))
-      param_mcmc_chain <- coda::mcmc( t(x$x_ith_shared_mcmc[[dir]][i,,h,iter_out_mcmc]) )
+      param_mcmc_chain <- coda::mcmc( t(x$ab_ith_shared_mcmc[[dir]][i,,h,iter_out_mcmc]) )
     } else {
-      param_mcmc_chain <- coda::mcmc( t(x$x_ith_shared_mcmc[i,,h,iter_out_mcmc]) )
+      param_mcmc_chain <- coda::mcmc( t(x$ab_ith_shared_mcmc[i,,h,iter_out_mcmc]) )
     }
     
-  } else if( is.element(param,"x_ithk") ) {
+  } else if( is.element(param,"ab_ithk") ) {
     
     if(is.null(node_i)){ node_i=x$node_all[2]; warning("Plotting node_i=",node_i," as node_i was not specified") }
     if(!is.element(node_i,x$node_all)) {stop("node_i=",node_i," is not a valid node")}
@@ -167,11 +170,11 @@ plot_dmn_mcmc <- function( x,
       if(is.null(lat_space)){ lat_space="send"; warning("Plotting lat_space=",lat_space," as lat_space was not specified") }
       if(!is.element(lat_space,c("send","receive"))) {stop("lat_space=",lat_space,' must be "send" or "receive".')}
       dir <- match(lat_space,c("send","receive"))
-      param_mcmc_chain <- coda::mcmc( t(x$x_ithk_mcmc[[dir]][i,,h,k,iter_out_mcmc]) )
+      param_mcmc_chain <- coda::mcmc( t(x$ab_ithk_mcmc[[dir]][i,,h,k,iter_out_mcmc]) )
     } else {
-      param_mcmc_chain <- coda::mcmc( t(x$x_ithk_mcmc[i,,h,k,iter_out_mcmc]) )
+      param_mcmc_chain <- coda::mcmc( t(x$ab_ithk_mcmc[i,,h,k,iter_out_mcmc]) )
     }
-  } else if( is.element(param,"r_ijtk") ){
+  } else if( is.element(param,"mu_ijtk") ){
     
     if(is.null(node_i)){ node_i=x$node_all[2]; warning("Plotting node_i=",node_i," as node_i was not specified") }
     if(!is.element(node_i,x$node_all)) {stop("node_i=",node_i," is not a valid node")}
@@ -185,14 +188,14 @@ plot_dmn_mcmc <- function( x,
     if(!is.element(layer_k,x$layer_all)) {stop("layer_k=",layer_k," is not a valid layer")}
     k <- match(layer_k,x$layer_all)
     
-    param_mcmc_chain <- coda::mcmc( t(x$r_ijtk_mcmc[i,j,,k,iter_out_mcmc]) )
+    param_mcmc_chain <- coda::mcmc( t(x$mu_ijtk_mcmc[i,j,,k,iter_out_mcmc]) )
     
-  } else if( is.element(param,"sigma_w_k") ){
+  } else if( is.element(param,"sigma_k") ){
     
-    param_mcmc_chain <- coda::mcmc( t(x$sigma_w_k_mcmc[,iter_out_mcmc]) )
+    param_mcmc_chain <- coda::mcmc( t(x$sigma_k_mcmc[,iter_out_mcmc]) )
     colnames(param_mcmc_chain) <- paste("layer_",1:K_net,sep="")
     p <- bayesplot::mcmc_trace(param_mcmc_chain,pars=colnames(param_mcmc_chain))
-    p <- p + labs(title="sigma_w_k",subtitle="MCMC trace")
+    p <- p + labs(title="sigma_k",subtitle="MCMC trace")
     return(p)
     
   } else if( is.element(param,"lambda_tk") ){
@@ -201,8 +204,10 @@ plot_dmn_mcmc <- function( x,
     if(!is.element(layer_k,x$layer_all)) {stop("layer_k=",layer_k," is not a valid layer")}
     k <- match(layer_k,x$layer_all)
     
-    param_mcmc_chain <- coda::mcmc( t(x$lambda_tk_mcmc[,k,iter_out_mcmc]) )
+    param_mcmc_chain <- coda::mcmc( t(x$theta_tk_mcmc[,k,iter_out_mcmc]) )
     
+  } else {
+    stop('param = "',param,'" not supported')
   }
   
   cred_int_probs = c(0.05,0.25)
@@ -253,19 +258,19 @@ plot_dmn_mcmc <- function( x,
   
   if( is.element(param,"pi_ijtk") ){
     p <- p + geom_point( aes( y=as.numeric(x$y_ijtk[i,j,,k]>0),
-                              x=x$time_all[x$time_all_idx_net] ) ) +
+                              x=x$time_all ) ) +
       labs(x="time",y="pi_ijtk",title="pi_ijtk",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))+
       coord_cartesian(ylim=c(0,1))
-  } else if( is.element(param,"mu_tk") ){
-    p <- p + labs(x="time",y="mu_tk",title="mu_tk",subtitle=paste("layer_k=",layer_k,sep=""))
-  } else if( is.element(param,"x_ith_shared") ) {
-    p <- p + labs(x="time",y="x_ith_shared",title="x_ith_shared",subtitle=paste("node_i=",node_i,", h=",h,sep=""))
-  } else if( is.element(param,"x_ithk") ) {
-    p <- p + labs(x="time",y="x_ithk",title="x_ithk",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
-  } else if( is.element(param,"r_ijtk") ){
+  } else if( is.element(param,"eta_tk") ){
+    p <- p + labs(x="time",y="eta_tk",title="eta_tk",subtitle=paste("layer_k=",layer_k,sep=""))
+  } else if( is.element(param,"ab_ith_shared") ) {
+    p <- p + labs(x="time",y="ab_ith_shared",title="ab_ith_shared",subtitle=paste("node_i=",node_i,", h=",h,sep=""))
+  } else if( is.element(param,"ab_ithk") ) {
+    p <- p + labs(x="time",y="ab_ithk",title="ab_ithk",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
+  } else if( is.element(param,"mu_ijtk") ){
     p <- p + geom_line( aes( y=x$y_ijtk[i,j,,k],
-                              x=x$time_all[x$time_all_idx_net]), col="blue" ) +
-      labs(x="time",y="r_ijtk",title="Expected weight",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))
+                              x=x$time_all), col="blue" ) +
+      labs(x="time",y="mu_ijtk",title="Expected weight",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))
   } else if( is.element(param,"lambda_tk") ){
     p <- p + labs(x="time",y="lambda_tk",title="lambda_tk",subtitle=paste("layer_k=",layer_k,sep=""))
   }

@@ -15,7 +15,7 @@
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param procrustes_lat Boolean. Indicates if the latent coordinates should be stabilised using the procustres transformation.
-#' @param time_fc Numeric vector. Specifies times in the networks to be forecasted.
+#' @param n_chains_mcmc Integer. Number of parallel MCMC chains.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
@@ -51,14 +51,14 @@
 #'                             layer_all = seq(1,3),
 #'                             directed = FALSE,
 #'                             H_dim = 3, R_dim = 3,
-#'                             k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                             delta=36,
 #'                             a_1 = 1.5, a_2 = 2.5 )
 #'                             
 #' dmn_mcmc <- dmn_sampling( net_data = synth_net$edge_data,
 #'                                  pred_data = NULL,
 #'                                  directed = FALSE,
 #'                                  H_dim = 10, R_dim = 5,
-#'                                  k_x = 0.10, k_mu = 0.10, k_p = 0.10,
+#'                                  delta=36,
 #'                                  a_1 = 2, a_2 = 2,
 #'                                  n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
 #' }
@@ -83,17 +83,14 @@ dmn_sampling <- function( y_ijtk,
                           
                           procrustes_lat=FALSE,
                           
-                          time_fc=NULL,
+                          n_chains_mcmc=1,
+                          n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
-                          n_iter_mcmc=10000, n_burn=n_iter_mcmc/2, n_thin=3,
                           rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
   
   mcmc_clock <- Sys.time()
-  
-  # old smoothing parameter
-  k_x <- k_mu <- k_p <- 1/delta^2
   
   # if(!is.null(pred_data)) {
   #   if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
@@ -121,19 +118,12 @@ dmn_sampling <- function( y_ijtk,
   node_all <- dimnames(y_ijtk)[[1]]
   if(is.null(node_all)){node_all<-1:V_net; dimnames(y_ijtk)[[1]]<-dimnames(y_ijtk)[[2]]<-node_all}
   
-  time_net <- dimnames(y_ijtk)[[3]]
-  if(is.null(time_net)){time_net<-1:T_net; dimnames(y_ijtk)[[3]]<-time_net}
-  time_net <- as.numeric(time_net)
-  if(any(is.na(time_net))){stop("dimnames(y_ijtk)[[3]] should be NULL or able to transform to a numeric value")}
+  time_all <- dimnames(y_ijtk)[[3]]
+  if(is.null(time_all)){time_all<-1:T_net; dimnames(y_ijtk)[[3]]<-time_all}
+  time_all <- as.numeric(time_all)
+  if(any(is.na(time_all))){stop("dimnames(y_ijtk)[[3]] should be NULL or able to transform to a numeric value")}
   layer_all <- dimnames(y_ijtk)[[4]]
   if(is.null(layer_all)){layer_all<-1:K_net; dimnames(y_ijtk)[[4]]<-layer_all}
-  
-  if(any(is.element(time_fc,time_net))) {
-    warning('Some elements in "time_fc" are already in the network observed data.')
-    time_fc <- time_fc[!is.element(time_fc,time_net)]
-  }
-  time_all <- sort(c(time_net,time_fc))
-  time_all_idx_net <- which(is.element(time_all,time_net))
   
   ### Predictors data ###
   pred_net <- get_z_pred( pred_data,
@@ -179,9 +169,7 @@ dmn_sampling <- function( y_ijtk,
         "----- Inferential parameters -----\n",
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
-        "k_x = ",k_x,"\n",
-        "k_mu = ",k_mu,"\n",
-        "k_p = ",k_p,"\n",
+        "delta = ",delta,"\n",
         "shrink_lat_space = ",shrink_lat_space,"\n",
         "a_1 = ",a_1,"\n",
         "a_2 = ",a_2,"\n",
@@ -208,14 +196,13 @@ dmn_sampling <- function( y_ijtk,
   if( !directed & !weighted ) {
     dmn_mcmc <- mcmc_d_0_w_0( y_ijtk=y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
-                              time_all_idx_net=time_all_idx_net,
                               
                               pred_all=pred_all,
                               pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
                               z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                               
                               H_dim=H_dim, R_dim=R_dim,
-                              k_x=k_x, k_mu=k_mu, k_p=k_p,
+                              delta=delta,
                               
                               shrink_lat_space=shrink_lat_space,
                               a_1=a_1, a_2=a_2,
@@ -230,14 +217,13 @@ dmn_sampling <- function( y_ijtk,
   } else if( directed & !weighted ) {
     dmn_mcmc <- mcmc_d_1_w_0( y_ijtk=y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
-                              time_all_idx_net=time_all_idx_net,
                               
                               pred_all=pred_all,
                               pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
                               z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                               
                               H_dim=H_dim, R_dim=R_dim,
-                              k_x=k_x, k_mu=k_mu, k_p=k_p,
+                              delta=delta,
                               
                               shrink_lat_space=shrink_lat_space,
                               a_1=a_1, a_2=a_2,

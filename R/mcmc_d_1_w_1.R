@@ -39,13 +39,13 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           
                           delta=36,
                           
-                          shrink_lat_space=TRUE,
+                          shrink_lat_space=FALSE,
                           a_1=2, a_2=2.5,
                           
-                          procrustes_lat=TRUE,
+                          procrustes_lat=FALSE,
                           
                           n_chains_mcmc=1,
-                          n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/3), n_thin=3,
+                          n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
                           rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
@@ -216,10 +216,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # Creates one for the weights and one for the link
   v_shrink_shared_weight <- v_shrink_shared_link <- v_shrink_shared
   rm(v_shrink_shared)
-  tau_h_shared_weight <- tau_h_shared_link <- tau_h_shared
-  rm(tau_h_shared)
-  tau_h_shared_weight_mcmc <- tau_h_shared_link_mcmc <- tau_h_shared_mcmc
-  rm(tau_h_shared_mcmc)
+  tau_h_shared_weight <- tau_h_shared
+  rho_h_shared_mcmc <- tau_h_shared_mcmc
   
   # layer-specific #
   if( K_net>1 ){
@@ -250,10 +248,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # Creates one for the weights and one for the link
   v_shrink_k_weight <- v_shrink_k_link <- v_shrink_k
   rm(v_shrink_k)
-  tau_h_k_weight <- tau_h_k_link <- tau_h_k
-  rm(tau_h_k)
-  tau_h_k_weight_mcmc <- tau_h_k_link_mcmc <- tau_h_k_mcmc
-  rm(tau_h_k_mcmc)
+  rho_h_k_mcmc <- tau_h_k
+  rho_h_k_mcmc <- tau_h_k_mcmc
   
   
   ### Missing links ###
@@ -273,7 +269,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     # MCMC chain for missing values #
     y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
-    
   }
   
   # Counts the number of accepted values of sigma, to adapt the proposal distribution in the MH
@@ -348,7 +343,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       ### Step W3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates uv_ithk ###
       out_aux <- sample_coord_ithk_weight( uv_ithk=uv_ithk,
                                            uv_t_sigma_prior_inv=cov_gp_prior_inv,
-                                           tau_h=tau_h_k_weight,
+                                           tau_h=rho_h_k_mcmc,
                                            y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                            sigma_k=sigma_k,
                                            directed=TRUE )
@@ -422,7 +417,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     ### SHARED Latent Coordinates ###
     out_aux <- sample_x_ith_shared_DynMultiNet_bin( x_ith_shared=ab_ith_shared,
                                                     x_t_sigma_prior_inv=cov_gp_prior_inv,
-                                                    tau_h=tau_h_shared_link,
+                                                    tau_h=tau_h_shared,
                                                     y_ijtk=y_ijtk,
                                                     w_ijtk=w_ijtk,
                                                     s_ijtk=gamma_ijtk,
@@ -442,7 +437,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       ### Step L3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates ab_ithk ###
       out_aux <- sample_x_ithk_DynMultiNet_bin( x_ithk=ab_ithk,
                                                 x_t_sigma_prior_inv=cov_gp_prior_inv,
-                                                tau_h=tau_h_k_link,
+                                                tau_h=tau_h_k,
                                                 y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=gamma_ijtk,
                                                 directed=TRUE )
       ab_ithk <- out_aux$x_ithk
@@ -468,10 +463,10 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     ### Impute missing links ###
     if( y_ijtk_miss ) {
-      Z_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(gamma_ijtk[y_ijtk_miss_idx]) )
-      Y_imp <- rnorm( n=nrow(y_ijtk_miss_idx), mean=mu_ijtk[y_ijtk_miss_idx], sd=sigma_k[y_ijtk_miss_idx[,4]] )
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
+        Z_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(gamma_ijtk[y_ijtk_miss_idx]) )
+        Y_imp <- rnorm( n=nrow(y_ijtk_miss_idx), mean=mu_ijtk[y_ijtk_miss_idx], sd=sigma_k[y_ijtk_miss_idx[,4]] )
         y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- Z_imp * Y_imp
       }
     }
@@ -485,9 +480,9 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                                                      a_1, a_2,
                                                                      ab_ith_shared[[dir_i]],
                                                                      cov_gp_prior_inv )
-        tau_h_shared_link[[dir_i]] <- matrix(cumprod(v_shrink_shared[[dir_i]]), nrow=H_dim, ncol=1 )
+        tau_h_shared[[dir_i]] <- matrix(cumprod(v_shrink_shared[[dir_i]]), nrow=H_dim, ncol=1 )
         if(is.element(iter_i,iter_out_mcmc)){
-          tau_h_shared_link_mcmc[[dir_i]][,match(iter_i,iter_out_mcmc)] <- tau_h_shared_link[[dir_i]]
+          tau_h_shared_mcmc[[dir_i]][,match(iter_i,iter_out_mcmc)] <- tau_h_shared[[dir_i]]
         }
       }
       
@@ -499,9 +494,9 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                                                         ab_ithk[[dir_i]][,,,k],
                                                                         cov_gp_prior_inv )
           }
-          tau_h_k_link[[dir_i]] <- matrix(apply(v_shrink_k[[dir_i]],2,cumprod), nrow=R_dim, ncol=K_net )
+          tau_h_k[[dir_i]] <- matrix(apply(v_shrink_k[[dir_i]],2,cumprod), nrow=R_dim, ncol=K_net )
           if(is.element(iter_i,iter_out_mcmc)){
-            tau_h_k_link_mcmc[[dir_i]][,,match(iter_i,iter_out_mcmc)] <- tau_h_k_link[[dir_i]]
+            tau_h_k_mcmc[[dir_i]][,,match(iter_i,iter_out_mcmc)] <- tau_h_k[[dir_i]]
           }
         }
       }
@@ -544,8 +539,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           eta_tk_mcmc=eta_tk_mcmc,
                           ab_ith_shared_mcmc=ab_ith_shared_mcmc,
                           ab_ithk_mcmc=ab_ithk_mcmc,
-                          tau_h_shared_link_mcmc=tau_h_shared_link_mcmc,
-                          tau_h_k_link_mcmc=tau_h_k_link_mcmc,
+                          tau_h_shared_mcmc=tau_h_shared_mcmc,
+                          tau_h_k_mcmc=tau_h_k_mcmc,
                           
                           # imputed links
                           y_ijtk_miss_idx=y_ijtk_miss_idx,
@@ -557,8 +552,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           theta_tk_mcmc = theta_tk_mcmc,
                           uv_ith_shared_mcmc = uv_ith_shared_mcmc,
                           uv_ithk_mcmc = uv_ithk_mcmc,
-                          tau_h_shared_weight_mcmc=tau_h_shared_weight_mcmc,
-                          tau_h_k_weight_mcmc=tau_h_k_weight_mcmc,
+                          rho_h_shared_mcmc=rho_h_shared_mcmc,
+                          rho_h_k_mcmc=rho_h_k_mcmc,
                           
                           pred_id_layer=NULL, pred_id_edge=NULL,
                           beta_z_layer_mcmc=NULL,
@@ -599,8 +594,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     eta_tk_mcmc=eta_tk_mcmc,
                     ab_ith_shared_mcmc=ab_ith_shared_mcmc,
                     ab_ithk_mcmc=ab_ithk_mcmc,
-                    tau_h_shared_link_mcmc=tau_h_shared_link_mcmc,
-                    tau_h_k_link_mcmc=tau_h_k_link_mcmc,
+                    tau_h_shared_mcmc=tau_h_shared_mcmc,
+                    tau_h_k_mcmc=tau_h_k_mcmc,
                     
                     # imputed links
                     y_ijtk_miss_idx=y_ijtk_miss_idx,
@@ -612,8 +607,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     theta_tk_mcmc = theta_tk_mcmc,
                     uv_ith_shared_mcmc = uv_ith_shared_mcmc,
                     uv_ithk_mcmc = uv_ithk_mcmc,
-                    tau_h_shared_weight_mcmc=tau_h_shared_weight_mcmc,
-                    tau_h_k_weight_mcmc=tau_h_k_weight_mcmc,
+                    rho_h_shared_mcmc=rho_h_shared_mcmc,
+                    rho_h_k_mcmc=rho_h_k_mcmc,
                     
                     pred_id_layer=NULL, pred_id_edge=NULL,
                     beta_z_layer_mcmc=NULL,

@@ -35,7 +35,6 @@ Rcpp::List sample_baseline_t_link_cpp( arma::colvec mu_t,
   arma::colvec Y = arma::zeros<arma::colvec>(1);
   arma::colvec W = arma::zeros<arma::colvec>(1);
   arma::colvec S = arma::zeros<arma::colvec>(1);
-  arma::colvec S_all = S;
   
   arma::colvec C = arma::zeros<arma::colvec>(1);
   arma::colvec C_all = C;
@@ -49,6 +48,7 @@ Rcpp::List sample_baseline_t_link_cpp( arma::colvec mu_t,
   }
   arma::mat X = arma::kron( aux_mat_1, aux_mat_2 );
   arma::sp_mat X_sp = arma::sp_mat(X);
+  arma::sp_mat X_sp_valid = X_sp;
   
   // vector that identifies valid observation for the model
   // in this case, where Y!=0 and is not NA
@@ -57,7 +57,7 @@ Rcpp::List sample_baseline_t_link_cpp( arma::colvec mu_t,
   // Marginal posterior covariance matrix for mu_t
   arma::mat mu_t_cov_inv;
   arma::mat mu_t_cov;
-  arma::colvec aux_vec_mean = arma::zeros<arma::colvec>(T_net);
+  arma::colvec mu_t_mean = arma::zeros<arma::colvec>(T_net);
   
   if( directed ){
     aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
@@ -123,23 +123,23 @@ Rcpp::List sample_baseline_t_link_cpp( arma::colvec mu_t,
   // Adjusted Z for the covariance
   Z = (Y-0.5)/W - C;
   
-  // Keep complete vector of linear predictor
-  S_all = S;
-  C_all = C;
   
   // identifies valid obs
   valid_obs = find_finite(Y); // find valid elements
+  
+  // Keep only valid cases
+  C_all = C;
   Y = Y.rows(valid_obs);
   W = W.rows(valid_obs);
   S = S.rows(valid_obs);
   C = C.rows(valid_obs);
   Z = Z.rows(valid_obs);
-  X_sp = arma::sp_mat(X.rows(valid_obs));
+  X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   
-  // Marginal Posterior Covariance
+  // marginal posterior covariance
   // Way 1:
   // Omega_sp.diag() = W;
-  // mu_t_cov_inv = X_sp.t() * Omega_sp * X_sp;
+  // mu_t_cov_inv = X_sp_valid.t() * Omega_sp * X_sp_valid;
   // Way 2 (more efficient)
   // mu_t_cov_inv is a diagonal matrix with the element (t,t) equal to thesum w_ijtk for all i,j
   mu_t_cov_inv = arma::zeros<arma::mat>(T_net,T_net);
@@ -155,21 +155,19 @@ Rcpp::List sample_baseline_t_link_cpp( arma::colvec mu_t,
   mu_t_cov_inv = mu_t_cov_inv + mu_t_cov_prior_inv;
   mu_t_cov = arma::inv_sympd(mu_t_cov_inv);
   
-  
-  
-  aux_vec_mean = X_sp.t() * (W % Z);
+  // marginal posterior mean
+  mu_t_mean = mu_t_cov*(X_sp_valid.t() * (W % Z));
   
   // Sampling mu_t
-  mu_t = arma::mvnrnd( mu_t_cov*aux_vec_mean , mu_t_cov );
+  mu_t = arma::mvnrnd( mu_t_mean , mu_t_cov );
   
   // return mu_t;
   
   // Recalculate S with the new values of mu
-  X_sp = arma::sp_mat(X);
-  S_all = X_sp * mu_t + C_all;
+  S = X_sp * mu_t + C_all;
   // Redefine s_ijt with the new values of S
   if( directed ){
-    aux_mat_1 = S_all;
+    aux_mat_1 = S;
     aux_mat_1.reshape(V_net*(V_net-1),T_net);
     for( i=0; i<V_net; i++ ) {
       aux_mat_2 = aux_mat_1.rows(i*(V_net-1),(i+1)*(V_net-1)-1);
@@ -189,7 +187,7 @@ Rcpp::List sample_baseline_t_link_cpp( arma::colvec mu_t,
                              Rcpp::Named("s_ijt") = s_ijt );
 }
 
-// Needs to eliminate missing links
+// Needs to be checked
 // [[Rcpp::export]]
 Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
                                              const arma::mat x_t_sigma_prior_inv,
@@ -216,7 +214,6 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
   arma::colvec Y = arma::zeros<arma::colvec>((V_net-1)*T_net);
   arma::colvec W = arma::zeros<arma::colvec>((V_net-1)*T_net);
   arma::colvec S = arma::zeros<arma::colvec>((V_net-1)*T_net);
-  arma::colvec S_all = S;
   
   arma::colvec C = arma::zeros<arma::colvec>((V_net-1)*T_net);
   arma::colvec C_all = C;
@@ -231,7 +228,7 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
   arma::mat x_i_cov_inv = arma::zeros<arma::mat>( T_net*H_dim, T_net*H_dim );
   arma::mat x_i_cov = arma::zeros<arma::mat>( T_net*H_dim, T_net*H_dim );
   
-  arma::colvec aux_vec_mean = arma::zeros<arma::colvec>(T_net*H_dim);
+  arma::colvec x_i_mean = arma::zeros<arma::colvec>(T_net*H_dim);
   
   // Performing polya-gamma sampling in x_ith...
   // The rows in x_ith_mat will act as the targeted "coefficients"
@@ -243,7 +240,13 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
   arma::uvec aux_uvec_2 = T_net * arma::regspace<arma::uvec>( 0, H_dim-1 );
   arma::uvec aux_uvec_3 = arma::regspace<arma::uvec>( 0, V_net-1 );
   
-  arma::sp_mat X_sp = arma::sp_mat(X_all);
+  arma::mat X = X_all;
+  arma::sp_mat X_sp = arma::sp_mat(X);
+  arma::sp_mat X_sp_valid = X_sp;
+  
+  // vector that identifies valid observation for the model
+  // in this case, where Y!=0 and is not NA
+  arma::uvec valid_obs;
   
   for( i=0; i<V_net; i++ ) {
     aux_mat_1 = y_ijt.subcube(i,0,0, i,i,T_net-1);
@@ -270,30 +273,45 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_cpp( arma::cube x_ith,
     aux_mat_1.reshape((V_net-1)*T_net,1);
     S = aux_mat_1;
     
-    Omega_sp.diag() = W;
-    
     // X
     X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
     for( t=0; t<T_net; t++ ) {
       X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_mat.submat( aux_uvec_3, aux_uvec_2+t );
     }
-    X_sp = arma::sp_mat(X_all);
-    X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
+    X = X_all;
+    X.shed_rows(T_net*i,T_net*(i+1)-1);
+    X_sp = arma::sp_mat(X);
     
-    x_i_cov_inv = X_sp.t() * Omega_sp * X_sp;
+    // Constant term in linear predictor
+    C = S - X_sp * trans(x_ith_mat.row(i));
+    
+    // identifies valid obs
+    valid_obs = find_finite(Y); // find valid elements
+    
+    // Keep only valid cases
+    C_all = C;
+    Y = Y.rows(valid_obs);
+    W = W.rows(valid_obs);
+    S = S.rows(valid_obs);
+    C = C.rows(valid_obs);
+    X_sp_valid = arma::sp_mat(X.rows(valid_obs));
+    
+    // Marginal posterior covariance
+    Omega_sp = arma::speye<arma::sp_mat>(W.n_rows,W.n_rows);
+    Omega_sp.diag() = W;
+    x_i_cov_inv = X_sp_valid.t() * Omega_sp * X_sp_valid;
     x_i_cov_inv = x_i_cov_inv + x_i_cov_prior ;
     x_i_cov = arma::inv_sympd(x_i_cov_inv);
     
-    C = S - X_sp * trans(x_ith_mat.row(i));
+    // Marginal posterior mean
     Z = (Y-0.5)/W - C;
-    
-    aux_vec_mean = X_sp.t() * (W % Z);
+    x_i_mean = x_i_cov*(X_sp_valid.t() * (W % Z));
     
     // Sampling x_ith_mat
-    x_ith_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
+    x_ith_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
     
     // Recalculate S with the new values of x_ith_mat
-    S = X_sp * trans(x_ith_mat.row(i)) + C;
+    S = X_sp * trans(x_ith_mat.row(i)) + C_all;
     // Redefine s_ijt with the new values of S
     aux_mat_1 = S;
     aux_mat_1.reshape(T_net,(V_net-1));
@@ -344,7 +362,6 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
   arma::colvec Y = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   arma::colvec W = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   arma::colvec S = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
-  arma::colvec S_all = S;
   
   arma::colvec C = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   arma::colvec C_all = C;
@@ -359,16 +376,23 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
   arma::mat x_i_cov_inv = arma::zeros<arma::mat>( T_net*H_dim, T_net*H_dim );
   arma::mat x_i_cov = arma::zeros<arma::mat>( T_net*H_dim, T_net*H_dim );
   
-  arma::colvec aux_vec_mean = arma::zeros<arma::colvec>(T_net*H_dim);
+  arma::colvec x_i_mean = arma::zeros<arma::colvec>(T_net*H_dim);
   
   arma::mat X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
   arma::uvec aux_uvec_1 = T_net * arma::regspace<arma::uvec>( 0, V_net-1 );
   arma::uvec aux_uvec_2 = T_net * arma::regspace<arma::uvec>( 0, H_dim-1 );
   arma::uvec aux_uvec_3 = arma::regspace<arma::uvec>( 0, V_net-1 );
   
-  arma::sp_mat X_sp = arma::sp_mat(X_all);
+  arma::mat X = X_all;
+  arma::sp_mat X_sp = arma::sp_mat(X);
+  arma::sp_mat X_sp_valid = X_sp;
+  
+  // vector that identifies valid observation for the model
+  // in this case, where Y!=0 and is not NA
+  arma::uvec valid_obs;
   
   for( i=0; i<V_net; i++ ) {
+    // Rcpp::Rcout << i << std::endl;
     
     for( k=0; k<K_net; k++ ) {
       
@@ -399,9 +423,7 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
       aux_mat_1.reshape((V_net-1)*T_net,1);
       S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
       
-      
     }
-    Omega_sp.diag() = W;
     
     // X
     // Update matrix with covariate X
@@ -409,26 +431,41 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp( arma::cube x_ith_shared,
     for( t=0; t<T_net; t++ ) {
       X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = x_ith_shared_mat.submat( aux_uvec_3, aux_uvec_2+t );
     }
-    X_sp = arma::sp_mat(X_all);
-    X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
-    X_sp = repmat(X_sp,K_net,1);
+    X = X_all;
+    X.shed_rows(T_net*i,T_net*(i+1)-1);
+    X = repmat(X,K_net,1);
+    X_sp = arma::sp_mat(X);
     
-    x_i_cov_inv = X_sp.t() * Omega_sp * X_sp;
+    // Constant term in linear predictor
+    C = S - X_sp * trans(x_ith_shared_mat.row(i));
+    
+    // identifies valid obs
+    valid_obs = find_finite(Y); // find valid elements
+    
+    // Keep only valid cases
+    C_all = C;
+    Y = Y.rows(valid_obs);
+    W = W.rows(valid_obs);
+    S = S.rows(valid_obs);
+    C = C.rows(valid_obs);
+    X_sp_valid = arma::sp_mat(X.rows(valid_obs));
+    
+    // marginal posterior covariance
+    Omega_sp = arma::speye<arma::sp_mat>(W.n_rows,W.n_rows);
+    Omega_sp.diag() = W;
+    x_i_cov_inv = X_sp_valid.t() * Omega_sp * X_sp_valid;
     x_i_cov_inv = x_i_cov_inv + x_i_cov_prior ;
     x_i_cov = arma::inv_sympd(x_i_cov_inv);
     
-    C = S - X_sp * trans(x_ith_shared_mat.row(i));
+    // marginal posterior mean
     Z = (Y-0.5)/W - C;
-    
-    aux_vec_mean = X_sp.t() * (W % Z);
+    x_i_mean = x_i_cov*(X_sp_valid.t() * (W % Z));
     
     // Sampling x_ith_shared_mat
-    x_ith_shared_mat.row(i) = trans(arma::mvnrnd( x_i_cov*aux_vec_mean , x_i_cov ));
-    
-    // Rcpp::Rcout << i << std::endl;
+    x_ith_shared_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
     
     // Recalculate S with the new values of x_ith_shared_mat
-    S = X_sp * trans(x_ith_shared_mat.row(i)) + C;
+    S = X_sp * trans(x_ith_shared_mat.row(i)) + C_all;
     // Redefine s_ijtk with the new values of S
     for( k=0; k<K_net; k++ ) {
       aux_mat_1 = S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
@@ -486,7 +523,6 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
   arma::colvec Y = arma::zeros<arma::colvec>((V_net-1)*T_net);
   arma::colvec W = arma::zeros<arma::colvec>((V_net-1)*T_net);
   arma::colvec S = arma::zeros<arma::colvec>((V_net-1)*T_net);
-  arma::colvec S_all = S;
   
   arma::colvec C = arma::zeros<arma::colvec>((V_net-1)*T_net);
   arma::colvec C_all = C;
@@ -597,7 +633,6 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
       valid_obs = find_finite(Y); // find valid elements
       
       // Keep only valid cases
-      S_all = S;
       C_all = C;
       Y = Y.rows(valid_obs);
       W = W.rows(valid_obs);
@@ -605,10 +640,9 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
       C = C.rows(valid_obs);
       X_sp_valid = arma::sp_mat(X.rows(valid_obs));
       
+      // Marginal posterior covariance
       Omega_sp = arma::speye<arma::sp_mat>(W.n_rows,W.n_rows);
       Omega_sp.diag() = W;
-      
-      // Marginal posterior covariance
       x_i_cov_inv = X_sp_valid.t() * Omega_sp * X_sp_valid;
       x_i_cov_inv = x_i_cov_inv + x_i_cov_prior ;
       x_i_cov = arma::inv_sympd(x_i_cov_inv);
@@ -623,9 +657,9 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
         x_ith_send_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
         
         // Recalculate S with the new values of x_ith_shared_send_mat
-        S_all = X_sp * trans(x_ith_send_mat.row(i)) + C_all;
+        S = X_sp * trans(x_ith_send_mat.row(i)) + C_all;
         // Redefine s_ijt with the new values of S
-        aux_mat_1 = S_all;
+        aux_mat_1 = S;
         aux_mat_1.reshape(T_net,V_net-1);
         aux_mat_1 = aux_mat_1.t();
         aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
@@ -637,9 +671,9 @@ Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp( arma::cube x_ith_send,
         x_ith_receive_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
         
         // Recalculate S with the new values of x_ith_shared_send_mat
-        S_all = X_sp * trans(x_ith_receive_mat.row(i)) + C_all;
+        S = X_sp * trans(x_ith_receive_mat.row(i)) + C_all;
         // Redefine s_ijt with the new values of S
-        aux_mat_1 = S_all;
+        aux_mat_1 = S;
         aux_mat_1.reshape(T_net,V_net-1);
         aux_mat_1 = aux_mat_1.t();
         aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
@@ -702,7 +736,6 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
   arma::colvec Y = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   arma::colvec W = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   arma::colvec S = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
-  arma::colvec S_all = S;
   
   arma::colvec C = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   arma::colvec C_all = C;
@@ -836,7 +869,6 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
       valid_obs = find_finite(Y); // find valid elements
       
       // Keep only valid cases
-      S_all = S;
       C_all = C;
       Y = Y.rows(valid_obs);
       W = W.rows(valid_obs);
@@ -847,7 +879,6 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
       // Marginal posterior covariance
       Omega_sp = arma::speye<arma::sp_mat>(W.n_rows,W.n_rows);
       Omega_sp.diag() = W;
-      
       x_i_cov_inv = X_sp_valid.t() * Omega_sp * X_sp_valid;
       x_i_cov_inv = x_i_cov_inv + x_i_cov_prior ;
       x_i_cov = arma::inv_sympd(x_i_cov_inv);
@@ -862,10 +893,10 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
         x_ith_shared_send_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
         
         // Recalculate S with the new values of x_ith_shared_send_mat
-        S_all = X_sp * trans(x_ith_shared_send_mat.row(i)) + C_all;
+        S = X_sp * trans(x_ith_shared_send_mat.row(i)) + C_all;
         // Redefine s_ijt with the new values of S
         for( k=0; k<K_net; k++ ) {
-          aux_mat_1 = S_all.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
+          aux_mat_1 = S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
           aux_mat_1.reshape(T_net,(V_net-1));
           aux_mat_1 = aux_mat_1.t();
           aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
@@ -881,10 +912,10 @@ Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp( arma::cube x_ith_shared_
         x_ith_shared_receive_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
         
         // Recalculate S with the new values of x_ith_shared_receive_mat
-        S_all = X_sp * trans(x_ith_shared_receive_mat.row(i)) + C_all;
+        S = X_sp * trans(x_ith_shared_receive_mat.row(i)) + C_all;
         // Redefine s_ijt with the new values of S
         for( k=0; k<K_net; k++ ) {
-          aux_mat_1 = S_all.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
+          aux_mat_1 = S.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
           aux_mat_1.reshape(T_net,(V_net-1));
           aux_mat_1 = aux_mat_1.t();
           aux_mat_1.insert_rows( i, arma::zeros<arma::mat>( 1, T_net) );
