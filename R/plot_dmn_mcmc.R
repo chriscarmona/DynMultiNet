@@ -72,7 +72,8 @@ plot_dmn_mcmc <- function( x,
                            node_i=NULL, node_j=NULL, layer_k=NULL, h=NULL, pred_p=NULL,
                            lat_space=NULL,
                            cred_int_type = c("empirical","norm")[1],
-                           n_burn=0, n_thin=1 ) {
+                           n_burn=0, n_thin=1,
+                           rm_missing=FALSE ) {
   
   if( !is.element( param , c( "pi_ijtk",
                               "eta_tk", "ab_ith_shared", "ab_ithk",
@@ -227,6 +228,18 @@ plot_dmn_mcmc <- function( x,
   summary_mcmc <- cbind(summary_mcmc,summary_mcmc_aux)
   rownames(summary_mcmc) <- NULL
   
+  if(rm_missing) {
+    # identifies missing links in the net
+    y_ijtk_miss_idx <- which( is.na(x$y_ijtk), arr.ind=TRUE )
+    colnames(y_ijtk_miss_idx) <- c("i","j","t","k")
+    # identifies times that does not have missing links
+    t_valid_idx <- setdiff(seq_along(x$time_all),unique(y_ijtk_miss_idx[,3]))
+    # keep only times with no missing links
+    summary_mcmc <- summary_mcmc[ is.element( summary_mcmc$time,x$time_all[t_valid_idx] ),]
+  } else {
+    t_valid_idx <- seq_along(x$time_all)
+  }
+    
   if( is.element(cred_int_type,"empirical") ){
     p <- ggplot() +
       # geom_ribbon( aes( ymin=Mean-SD,
@@ -257,9 +270,9 @@ plot_dmn_mcmc <- function( x,
   }
   
   if( is.element(param,"pi_ijtk") ){
-    p <- p + geom_point( aes( y=as.numeric(x$y_ijtk[i,j,,k]>0),
-                              x=x$time_all ) ) +
-      labs(x="time",y="pi_ijtk",title="pi_ijtk",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))+
+    p <- p + geom_point( aes( y=1*(x$y_ijtk[i,j,t_valid_idx,k]>0),
+                              x=x$time_all[t_valid_idx] ), col="blue" ) +
+      labs(x="time",y="Probability",title="Link probability",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))+
       coord_cartesian(ylim=c(0,1))
   } else if( is.element(param,"eta_tk") ){
     p <- p + labs(x="time",y="eta_tk",title="eta_tk",subtitle=paste("layer_k=",layer_k,sep=""))
@@ -268,8 +281,8 @@ plot_dmn_mcmc <- function( x,
   } else if( is.element(param,"ab_ithk") ) {
     p <- p + labs(x="time",y="ab_ithk",title="ab_ithk",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
   } else if( is.element(param,"mu_ijtk") ){
-    p <- p + geom_line( aes( y=x$y_ijtk[i,j,,k],
-                              x=x$time_all), col="blue" ) +
+    p <- p + geom_point( aes( y=x$y_ijtk[i,j,t_valid_idx,k],
+                              x=x$time_all[t_valid_idx]), col="blue" ) +
       labs(x="time",y="mu_ijtk",title="Expected weight",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))
   } else if( is.element(param,"lambda_tk") ){
     p <- p + labs(x="time",y="lambda_tk",title="lambda_tk",subtitle=paste("layer_k=",layer_k,sep=""))
