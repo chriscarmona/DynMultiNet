@@ -1,8 +1,8 @@
 #' @title
-#'    MCMC algorithm for Dynamic Multilayer directed weighted graphs
+#'    MCMC algorithm for Dynamic Multilayer undirected weighted graphs
 #'
 #' @description
-#'    \code{mcmc_d_1_w_1} Implements a Gibbs sampler MCMC algorithm for Dynamic Multilayer directed weighted graphs.
+#'    \code{mcmc_d_0_w_1} Implements a Gibbs sampler MCMC algorithm for Dynamic Multilayer undirected weighted graphs.
 #'
 #' @param y_ijtk Array. Network data, with entry \code{y_ijtk[i,j,t,k]} representing the link from node i to node j at time t in layer k. 0 indicates no link.
 #' @param node_all Character vector. Id's of nodes in the network.
@@ -32,13 +32,11 @@
 #' @keywords internal
 #' 
 
-
-mcmc_d_1_w_1 <- function( y_ijtk,
+mcmc_d_0_w_1 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           
                           H_dim=10, R_dim=10,
-                          
-                          delta=36,
+                          delta=delta,
                           
                           shrink_lat_space=FALSE,
                           a_1=2, a_2=2.5,
@@ -54,17 +52,37 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
   
-  # This software deal with continuos (weighted) edges
-  # y_ijtk[y_ijtk<0] <- 0 # Shall we restrict to being positive?
+  # This software only deal with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
   
-  V_net <- length(node_all)
-  T_net <- length(time_all)
-  K_net <- length(layer_all)
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  K_net <- dim(y_ijtk)[4]
   
   # assume no self-edges
   diag_y_idx <- matrix(FALSE,V_net,V_net); diag(diag_y_idx)<-TRUE
   diag_y_idx <- array(diag_y_idx,dim=dim(y_ijtk))
   y_ijtk[diag_y_idx] <- 0
+  
+  lowtri_y_idx <- lower.tri(y_ijtk[,,1,1])
+  lowtri_y_idx <- array(lowtri_y_idx,dim=dim(y_ijtk))
+  
+  # Symmetric adjacency matrices
+  for( k in 1:K_net) {
+    for( t in 1:T_net) { #t<-1;k<-1
+      if(!isSymmetric(y_ijtk[,,t,k])){
+        aux <- nato0(y_ijtk[,,t,k])+nato0(t(y_ijtk[,,t,k]))
+        aux[is.na(y_ijtk[,,t,k])&is.na(t(y_ijtk[,,t,k]))] <- NA
+      }
+    }
+  }; rm(k,t)
+  
+  # Remove upper triangular matrices
+  y_ijtk[!lowtri_y_idx] <- NA
+  
+  V_net <- length(node_all)
+  T_net <- length(time_all)
+  K_net <- length(layer_all)
   
   ### iterations that will be reported ###
   # after burn-in period and thinning
@@ -75,7 +93,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   #### Start: MCMC initialization ####
   # Edge between actors i and j at time t in layer k
-  
   
   ### GAUSSIAN MODEL FOR WEIGHTS ###
   
@@ -96,22 +113,16 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
   # One latent space for each direction #
-  uv_ith_shared <- list( send=array( data=runif(V_net*T_net*H_dim,-1,1),
-                                     dim=c(V_net,T_net,H_dim) ),
-                         receive=array( data=runif(V_net*T_net*H_dim,-1,1),
-                                        dim=c(V_net,T_net,H_dim) ) )
-  uv_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
-                              receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
+  uv_ith_shared <- array( data=runif(V_net*T_net*H_dim,-1,1),
+                          dim=c(V_net,T_net,H_dim) )
+  uv_ith_shared_mcmc <- array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out))
   
   # by layer: hth coordinate of actor v at time t specific to layer k
   if( K_net>1 ){
     # One latent space for each direction #
-    uv_ithk <- list( send=array( data=runif(V_net*T_net*R_dim*K_net),
-                                 dim=c(V_net,T_net,R_dim,K_net) ),
-                     receive=array( data=runif(V_net*T_net*R_dim*K_net),
-                                    dim=c(V_net,T_net,R_dim,K_net) ) )
-    uv_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
-                          receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
+    uv_ithk <- array( data=runif(V_net*T_net*R_dim*K_net),
+                      dim=c(V_net,T_net,R_dim,K_net) )
+    uv_ithk_mcmc <- array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out))
   } else {
     uv_ithk <- NULL
     uv_ithk_mcmc <- NULL
@@ -133,19 +144,48 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
                                coord_ith_shared=uv_ith_shared,
                                coord_ithk=uv_ithk,
-                               directed=TRUE )
+                               directed=FALSE )
   
   mu_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
   
+  ## Shrinkage Parameters ##
+  # shared #
+  nu_shrink_shared <- matrix(1, nrow=H_dim, ncol=1 )
+  if(shrink_lat_space){
+    nu_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); nu_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+  }
+  rho_h_shared <- matrix(cumprod(nu_shrink_shared), nrow=H_dim, ncol=1 )
+  if(shrink_lat_space){
+    rho_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
+  } else {
+    rho_h_shared_mcmc <- NULL
+  }
+  # layer-specific #
+  if( K_net>1 ){
+    nu_shrink_k <- matrix(1, nrow=R_dim, ncol=K_net )
+    if(shrink_lat_space){
+      nu_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); nu_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+    }
+    rho_h_k <- matrix(apply(nu_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
+    if(shrink_lat_space){
+      rho_h_k_mcmc <- array( NA, dim=c(R_dim,K_net,n_iter_mcmc_out) )
+    } else {
+      rho_h_k_mcmc <- NULL
+    }
+  } else {
+    nu_shrink_k <- NULL
+    rho_h_k <- NULL
+    rho_h_k_mcmc <- NULL
+  }
   
   
   ### LOGISTIC MODEL FOR LINKS ###
   
   # Augmented Polya-gamma data
   w_ijtk <- y_ijtk
-  w_ijtk[!is.na(w_ijtk)] <- 0
+  w_ijtk[] <- 0
   
-  # Baseline parameter for link #
+  # Baseline parameter #
   # at time t for layer k
   eta_tk <- matrix( #data=0,
     data=runif(T_net*K_net),
@@ -153,127 +193,74 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     ncol=K_net )
   eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
   
-  
   # Latent coordinates #
-  # shared: hth coordinate of actor v at time t shared across the different layers
-  # One latent space for each direction #
-  ab_ith_shared <- list( send=array( data=runif(V_net*T_net*H_dim,-1,1),
-                                     dim=c(V_net,T_net,H_dim) ),
-                         receive=array( data=runif(V_net*T_net*H_dim,-1,1),
-                                        dim=c(V_net,T_net,H_dim) ) )
-  ab_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
-                              receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
+  # shared coordinates #
+  # hth coordinate of actor v at time t shared across the different layers #
+  ab_ith_shared <- array( #data=0,
+    data=runif(V_net*T_net*H_dim,-1,1),
+    dim=c(V_net,T_net,H_dim) )
   
-  # by layer: hth coordinate of actor v at time t specific to layer k
+  ab_ith_shared_mcmc <- array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out))
+  
+  # layer-specific coordinates #
+  # layer-specific: hth coordinate of actor v at time t specific to layer k #
   if( K_net>1 ){
-    # One latent space for each direction #
-    ab_ithk <- list( send=array( data=runif(V_net*T_net*R_dim*K_net),
-                                 dim=c(V_net,T_net,R_dim,K_net) ),
-                     receive=array( data=runif(V_net*T_net*R_dim*K_net),
-                                    dim=c(V_net,T_net,R_dim,K_net) ) )
-    ab_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
-                          receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
+    
+    ab_ithk <- array( #data=0,
+      data=runif(V_net*T_net*R_dim*K_net),
+      dim=c(V_net,T_net,R_dim,K_net) )
+    ab_ithk_mcmc <- array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out))
   } else {
     ab_ithk <- NULL
     ab_ithk_mcmc <- NULL
   }
   
+  # Covariance matrix prior for latent coordinates
+  cov_gp_prior <- outer( time_all, time_all, FUN=function(x,y,k=delta){ exp(-((x-y)/delta)^2) } )
+  diag(cov_gp_prior) <- diag(cov_gp_prior) + 1e-3 # numerical stability
+  cov_gp_prior_inv <- solve(cov_gp_prior)
+  
+  # Predictor coefficients
+  # to be implemented
+  
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
   gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
-                                  coord_ith_shared=ab_ith_shared,
-                                  coord_ithk=ab_ithk,
-                                  directed=TRUE )
+                                  coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+  gamma_ijtk[!lowtri_y_idx] <- NA
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
   
-  ## Shrinkage Parameters ##
   
+  ## Shrinkage Parameters ##
   # shared #
-  v_shrink_shared <- matrix(1, nrow=H_dim, ncol=1 )
+  nu_shrink_shared <- matrix(1, nrow=H_dim, ncol=1 )
   if(shrink_lat_space){
-    v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
+    nu_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); nu_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
   }
-  tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
+  tau_h_shared <- matrix(cumprod(nu_shrink_shared), nrow=H_dim, ncol=1 )
   if(shrink_lat_space){
     tau_h_shared_mcmc <- matrix(NA, nrow=H_dim, ncol=n_iter_mcmc_out )
   } else {
     tau_h_shared_mcmc <- NULL
   }
-  # duplicate, one latent space for each direction #
-  v_shrink_shared <- list( send=v_shrink_shared,
-                           receive=v_shrink_shared )
-  tau_h_shared <- list( send=tau_h_shared,
-                        receive=tau_h_shared )
-  tau_h_shared_mcmc <- list( send=tau_h_shared_mcmc,
-                             receive=tau_h_shared_mcmc )
-  
-  # Creates one for the weights and one for the link
-  v_shrink_shared_weight <- v_shrink_shared_link <- v_shrink_shared
-  rm(v_shrink_shared)
-  tau_h_shared_weight <- tau_h_shared
-  rho_h_shared_mcmc <- tau_h_shared_mcmc
-  
   # layer-specific #
   if( K_net>1 ){
-    v_shrink_k <- matrix(1, nrow=R_dim, ncol=K_net )
+    nu_shrink_k <- matrix(1, nrow=R_dim, ncol=K_net )
     if(shrink_lat_space){
-      v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
+      nu_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); nu_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
     }
-    tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
+    tau_h_k <- matrix(apply(nu_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
     if(shrink_lat_space){
       tau_h_k_mcmc <- array( NA, dim=c(R_dim,K_net,n_iter_mcmc_out) )
     } else {
       tau_h_k_mcmc <- NULL
     }
-    
-    # duplicate, one latent space for each direction #
-    v_shrink_k <- list( send=v_shrink_k,
-                        receive=v_shrink_k )
-    tau_h_k <- list( send=tau_h_k,
-                     receive=tau_h_k )
-    tau_h_k_mcmc <- list( send=tau_h_k_mcmc,
-                          receive=tau_h_k_mcmc )
   } else {
-    v_shrink_k <- NULL
+    nu_shrink_k <- NULL
     tau_h_k <- NULL
     tau_h_k_mcmc <- NULL
   }
-  
-  # Creates one for the weights and one for the link
-  v_shrink_k_weight <- v_shrink_k_link <- v_shrink_k
-  rm(v_shrink_k)
-  rho_h_k <- tau_h_k
-  rho_h_k_mcmc <- tau_h_k_mcmc
-  
-  
-  ### Missing links ###
-  y_ijtk_miss <- FALSE
-  y_ijtk_miss_idx <- NULL
-  y_ijtk_imp_mcmc <- NULL
-  
-  if( any(is.na(y_ijtk)) ) {
-    y_ijtk_miss <- TRUE
-    
-    # identifies missing data indices
-    y_ijtk_miss_idx <- which( is.na(y_ijtk), arr.ind=TRUE )
-    colnames(y_ijtk_miss_idx) <- c("i","j","t","k")
-    
-    # Only consider missing data outside the diagonal
-    y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]!=y_ijtk_miss_idx[,2],]
-    
-    # MCMC chain for missing values #
-    if(keep_y_ijtk_imp){
-      # CAUTION: may take too much disk space
-      y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
-    } else {
-      y_ijtk_imp_mcmc <- NULL 
-    }
-  }
-  
-  # Counts the number of accepted values of sigma, to adapt the proposal distribution in the MH
-  n_prop_sigma = 0
-  n_accept_sigma = rep(0,K_net)
   
   #### End: MCMC initialization ####
   
@@ -287,10 +274,36 @@ mcmc_d_1_w_1 <- function( y_ijtk,
         file=log_file, append=T )
   }
   
+  ### Missing links ###
+  y_ijtk_miss <- FALSE
+  y_ijtk_miss_idx <- NULL
+  y_ijtk_imp_mcmc <- NULL
+  
+  if( any(is.na(y_ijtk)) ) {
+    y_ijtk_miss <- TRUE
+    
+    # identifies missing data indices
+    y_ijtk_miss_idx <- which( is.na(y_ijtk), arr.ind=TRUE )
+    colnames(y_ijtk_miss_idx) <- c("i","j","t","k")
+    
+    # Only consider missing data in the lower diagonal adjacency
+    y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]>y_ijtk_miss_idx[,2],]
+    
+    # MCMC chain for missing values #
+    if(keep_y_ijtk_imp){
+      # CAUTION: may take too much disk space
+      y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
+    } else {
+      y_ijtk_imp_mcmc <- NULL 
+    }
+  }
+  
   #### Start: MCMC Sampling ####
   if(!quiet_mcmc){ cat("Sampling MCMC ...\n") }
   
-  for ( iter_i in 1:n_iter_mcmc) { # iter_i <- 1
+  n_prop_sigma <- n_accept_sigma <- rep(0,K_net) # counting to calculate acceptance rate in MH step for sigma_k
+  
+  for ( iter_i in 1:n_iter_mcmc) {
     #cat(iter_i,",")
     
     ##### SAMPLING WEIGHTS #####
@@ -300,35 +313,38 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                           sigma_k=sigma_k,
                                           theta_t_cov_prior_inv=cov_gp_prior_inv,
-                                          directed=TRUE )
+                                          directed=FALSE )
     theta_tk <- out_aux$theta_tk
     mu_ijtk <- out_aux$mu_ijtk # This updates mu_ijtk except for the diagonal
-    mu_ijtk[diag_y_idx] <- NA
+    mu_ijtk[!lowtri_y_idx] <- NA
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       theta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- theta_tk
     }
     
-    # mu_ijtk_new <- get_linpred_ijtk( baseline_tk=theta_tk,
+    # # Checking linear predictor mu_ijtk
+    # mu_ijtk[!lowtri_y_idx] <- NA
+    # mu_ijtk_old <- mu_ijtk
+    # mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
     #                                  coord_ith_shared=uv_ith_shared,
     #                                  coord_ithk=uv_ithk,
-    #                                  directed=TRUE )
-    # mu_ijtk_new[diag_y_idx] <- NA
-    # all.equal(mu_ijtk,mu_ijtk_new)
+    #                                  directed=FALSE )
+    # mu_ijtk[!lowtri_y_idx] <- NA
+    # all.equal(mu_ijtk,mu_ijtk_old)
     
     
     ### Step W2. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
     out_aux <- sample_coord_ith_shared_weight( uv_ith_shared=uv_ith_shared,
                                                uv_t_sigma_prior_inv=cov_gp_prior_inv,
-                                               tau_h=tau_h_shared_weight,
+                                               tau_h=rho_h_shared,
                                                y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                                sigma_k=sigma_k,
-                                               directed=TRUE )
+                                               directed=FALSE )
     uv_ith_shared <- out_aux$uv_ith_shared
     mu_ijtk <- out_aux$mu_ijtk
-    mu_ijtk[diag_y_idx] <- NA
+    mu_ijtk[!lowtri_y_idx] <- NA
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
@@ -346,10 +362,10 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                            tau_h=rho_h_k,
                                            y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                            sigma_k=sigma_k,
-                                           directed=TRUE )
+                                           directed=FALSE )
       uv_ithk <- out_aux$uv_ithk
       mu_ijtk <- out_aux$mu_ijtk
-      # mu_ijtk[diag_y_idx] <- NA
+      # mu_ijtk[!lowtri_y_idx] <- NA
       
       # MCMC chain for uv_ithk #
       if(is.element(iter_i,iter_out_mcmc)){
@@ -364,7 +380,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     sigma_k <- sample_var_weight( sigma_k=sigma_k,
                                   sigma_k_prop_int=sigma_k_prop_int,
                                   y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
-                                  directed=TRUE )
+                                  directed=FALSE )
     n_prop_sigma = n_prop_sigma+1
     n_accept_sigma = n_accept_sigma + (sigma_k_old!=sigma_k)
     
@@ -385,7 +401,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     ### Step L1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
     w_ijtk <- sample_pg_w_ijtk_link( w_ijtk=w_ijtk,
                                      gamma_ijtk=gamma_ijtk,
-                                     directed=TRUE )
+                                     directed=FALSE )
     
     
     
@@ -393,26 +409,27 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
                                         y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
                                         eta_t_cov_prior_inv=cov_gp_prior_inv,
-                                        directed=TRUE )
+                                        directed=FALSE )
     eta_tk <- out_aux$eta_tk
-    gamma_ijtk <- out_aux$gamma_ijtk # This updates gamma_ijtk except for the diagonal
-    gamma_ijtk[diag_y_idx] <- NA
-    
-    # gamma_ijtk_new <- get_linpred_ijtk( baseline_tk=eta_tk,
-    #                                     coord_ith_shared=ab_ith_shared,
-    #                                     coord_ithk=ab_ithk,
-    #                                     directed=TRUE )
-    # gamma_ijtk_new[diag_y_idx] <- NA
-    # all.equal(gamma_ijtk,gamma_ijtk_new)
+    gamma_ijtk <- out_aux$gamma_ijtk # This updates ONLY the lower triangular matrices in gamma_ijtk
+    gamma_ijtk[!lowtri_y_idx] <- NA
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       eta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- eta_tk
     }
     
+    # # Linear predictor for the probability of an edge between actors i and j at time t in layer k #
+    # gamma_ijtk_old <- gamma_ijtk
+    # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+    #                                 coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+    # gamma_ijtk[!lowtri_y_idx] <- NA
+    # all.equal(gamma_ijtk,gamma_ijtk_old)
     
     ### Step L2_beta. Sample beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###
-    # TO BE IMPLEMENTED #
+    # to be implemented
+    
+    
     
     ### Step L3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
@@ -421,17 +438,40 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                              tau_h=tau_h_shared,
                                              y_ijtk=y_ijtk,
                                              w_ijtk=w_ijtk,
-                                             gamma_ijtk=gamma_ijtk,
-                                             directed=TRUE )
+                                             gamma_ijtk=gamma_ijtk )
     ab_ith_shared <- out_aux$ab_ith_shared
     gamma_ijtk <- out_aux$gamma_ijtk
-    # gamma_ijtk[diag_y_idx] <- NA
+    
+    # Procrustres transform
+    if( procrustes_lat ){
+      if( (iter_i==n_burn) | (iter_i==1 & n_burn==0) ) {
+        ab_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
+          ab_ith_shared[,t,]
+        }
+      } else if(iter_i>n_burn) {
+        ab_ith_shared_temp <- foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+          ab_ith_shared[,t,]
+        }
+        # procr <- vegan::procrustes(X=ab_ith_shared_ref,Y=ab_ith_shared_temp,scale=FALSE)$Yrot
+        procr <- MCMCpack::procrustes(X=ab_ith_shared_temp,Xstar=ab_ith_shared_ref)$X.new
+        for(t in 1:T_net){ # t<-2
+          ab_ith_shared[,t,] <- procr[((t-1)*V_net)+(1:V_net),]
+        }; rm(t)
+        
+        # update linear predictor
+        gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                        coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+        # gamma_ijtk[!lowtri_y_idx] <- NA
+      }
+      
+    }
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
-      ab_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared[[1]]
-      ab_ith_shared_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared[[2]]
+      ab_ith_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared
     }
+    
+    
     
     ### LAYER SPECIFIC Latent Coordinates ###
     if( K_net>1 ) {
@@ -439,24 +479,52 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       out_aux <- sample_coord_ithk_link( ab_ithk=ab_ithk,
                                          ab_t_sigma_prior_inv=cov_gp_prior_inv,
                                          tau_h=tau_h_k,
-                                         y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
-                                         directed=TRUE )
+                                         y_ijtk=y_ijtk,
+                                         w_ijtk=w_ijtk,
+                                         gamma_ijtk=gamma_ijtk )
       ab_ithk <- out_aux$ab_ithk
       gamma_ijtk <- out_aux$gamma_ijtk
-      # gamma_ijtk[diag_y_idx] <- NA
       
-      # MCMC chain for ab_ithk #
-      if(is.element(iter_i,iter_out_mcmc)){
-        ab_ithk_mcmc[[1]][,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk[[1]]
-        ab_ithk_mcmc[[2]][,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk[[2]]
+      # Procrustres transform
+      if( procrustes_lat ){
+        if( (iter_i==n_burn) | (iter_i==1 & n_burn==0) ) {
+          ab_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+            foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+              ab_ithk[,t,,k]
+            }
+        } else if(iter_i>n_burn) {
+          ab_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+            foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+              ab_ithk[,t,,k]
+            }
+          # all.equal(ab_ithk[,t,,k],ab_ithk_tmp[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),])
+          # procr <- vegan::procrustes(X=ab_ithk_ref,Y=ab_ithk_tmp,scale=FALSE)$Yrot
+          procr <- MCMCpack::procrustes(X=ab_ithk_tmp, Xstar=ab_ithk_ref )$X.new
+          for(k in 1:K_net){
+            for(t in 1:T_net){
+              ab_ithk[,t,,k] <- procr[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),]
+            }}; rm(t,k)
+          
+          # update linear predictor
+          gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                          coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+          # gamma_ijtk[!lowtri_y_idx] <- NA
+        }
       }
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        ab_ithk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk
+      }
+      
+      
     }
     
     
     
     ### Edge probabilities ###
     if(is.element(iter_i,iter_out_mcmc)){
-      gamma_ijtk[diag_y_idx] <- NA
+      gamma_ijtk[!lowtri_y_idx] <- NA
       pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(gamma_ijtk)
     }
     
@@ -466,9 +534,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     if( keep_y_ijtk_imp & y_ijtk_miss ) { # requires too much disk memory
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
-        Z_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(gamma_ijtk[y_ijtk_miss_idx]) )
-        Y_imp <- rnorm( n=nrow(y_ijtk_miss_idx), mean=mu_ijtk[y_ijtk_miss_idx], sd=sigma_k[y_ijtk_miss_idx[,4]] )
-        y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- Z_imp * Y_imp
+        Y_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(gamma_ijtk[y_ijtk_miss_idx]) )
+        y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- Y_imp
       }
     }
     
@@ -476,29 +543,24 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     ### Step L4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
     if(shrink_lat_space){
-      for( dir_i in 1:2 ) {
-        v_shrink_shared[[dir_i]] <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared[[dir_i]],
-                                                                     a_1, a_2,
-                                                                     ab_ith_shared[[dir_i]],
-                                                                     cov_gp_prior_inv )
-        tau_h_shared[[dir_i]] <- matrix(cumprod(v_shrink_shared[[dir_i]]), nrow=H_dim, ncol=1 )
-        if(is.element(iter_i,iter_out_mcmc)){
-          tau_h_shared_mcmc[[dir_i]][,match(iter_i,iter_out_mcmc)] <- tau_h_shared[[dir_i]]
-        }
+      nu_shrink_shared <- sample_nu_shrink_DynMultiNet_bin( nu_shrink_shared,
+                                                            a_1, a_2,
+                                                            ab_ith_shared,
+                                                            cov_gp_prior_inv )
+      tau_h_shared <- matrix(cumprod(nu_shrink_shared), nrow=H_dim, ncol=1 )
+      if(is.element(iter_i,iter_out_mcmc)){
+        tau_h_shared_mcmc[,match(iter_i,iter_out_mcmc)] <- tau_h_shared
       }
       
       if(K_net>1){
-        for( dir_i in 1:2 ) {
-          for(k in 1:K_net) {
-            v_shrink_k[[dir_i]][,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[[dir_i]][,k,drop=F],
-                                                                        a_1, a_2,
-                                                                        ab_ithk[[dir_i]][,,,k],
-                                                                        cov_gp_prior_inv )
-          }
-          tau_h_k[[dir_i]] <- matrix(apply(v_shrink_k[[dir_i]],2,cumprod), nrow=R_dim, ncol=K_net )
-          if(is.element(iter_i,iter_out_mcmc)){
-            tau_h_k_mcmc[[dir_i]][,,match(iter_i,iter_out_mcmc)] <- tau_h_k[[dir_i]]
-          }
+        for(k in 1:K_net) {
+          nu_shrink_k[,k] <- sample_nu_shrink_DynMultiNet_bin( nu_shrink_k[,k,drop=F], a_1, a_2,
+                                                               ab_ithk[,,,k],
+                                                               cov_gp_prior_inv )
+        }
+        tau_h_k <- matrix(apply(nu_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
+        if(is.element(iter_i,iter_out_mcmc)){
+          tau_h_k_mcmc[,,match(iter_i,iter_out_mcmc)] <- tau_h_k
         }
       }
     }
@@ -513,7 +575,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
             file=log_file,append=TRUE )
       }
     }
-    
     # save MCMC progress #
     if( is.element(iter_i, floor(n_iter_mcmc*seq(0,1,0.25)[-1]) ) & iter_i>min(iter_out_mcmc,na.rm=T) ) {
       if(!is.null(rds_file)){
@@ -559,6 +620,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           pred_id_layer=NULL, pred_id_edge=NULL,
                           beta_z_layer_mcmc=NULL,
                           beta_z_edge_mcmc=NULL )
+        
         dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
         saveRDS(dmn_mcmc,file=rds_file)
       }

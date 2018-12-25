@@ -1,8 +1,8 @@
 #' @title
-#'    MCMC algorithm for Dynamic Multilayer directed unweighted graphs
+#'    MCMC algorithm for Dynamic Multilayer undirected unweighted graphs
 #'
 #' @description
-#'    \code{mcmc_d_1_w_0} Implements a Gibbs sampler MCMC algorithm for Dynamic Multilayer directed unweighted graphs.
+#'    \code{mcmc_d_0_w_0} Implements a Gibbs sampler MCMC algorithm for Dynamic Multilayer undirected unweighted graphs.
 #'
 #' @param y_ijtk Array. Network data, with entry \code{y_ijtk[i,j,t,k]} representing the link from node i to node j at time t in layer k. 0 indicates no link.
 #' @param node_all Character vector. Id's of nodes in the network.
@@ -24,6 +24,7 @@
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
+#' @param keep_y_ijtk_imp Boolean. Indicates wheter the chain with imputed missing links will be saved (FALSE by default)
 #' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
@@ -53,6 +54,8 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
+                          
+                          keep_y_ijtk_imp=FALSE,
                           
                           rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
@@ -107,32 +110,32 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   
   # Baseline parameter #
   # at time t for layer k
-  mu_tk <- matrix( #data=0,
+  eta_tk <- matrix( #data=0,
     data=runif(T_net*K_net),
     nrow=T_net,
     ncol=K_net )
-  mu_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
   
   # Latent coordinates #
   # shared coordinates #
   # hth coordinate of actor v at time t shared across the different layers #
-  x_ith_shared <- array( #data=0,
+  ab_ith_shared <- array( #data=0,
     data=runif(V_net*T_net*H_dim,-1,1),
     dim=c(V_net,T_net,H_dim) )
   
-  x_ith_shared_mcmc <- array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out))
+  ab_ith_shared_mcmc <- array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out))
   
   # layer-specific coordinates #
   # layer-specific: hth coordinate of actor v at time t specific to layer k #
   if( K_net>1 ){
     
-    x_ithk <- array( #data=0,
+    ab_ithk <- array( #data=0,
       data=runif(V_net*T_net*R_dim*K_net),
       dim=c(V_net,T_net,R_dim,K_net) )
-    x_ithk_mcmc <- array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out))
+    ab_ithk_mcmc <- array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out))
   } else {
-    x_ithk <- NULL
-    x_ithk_mcmc <- NULL
+    ab_ithk <- NULL
+    ab_ithk_mcmc <- NULL
   }
   
   # Covariance matrix prior for latent coordinates
@@ -155,19 +158,12 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   }
   
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
-  s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                pred_all=pred_all, layer_all=layer_all,
-                                z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-  s_ijtk[!lowtri_y_idx] <- NA
+  gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                  coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+  gamma_ijtk[!lowtri_y_idx] <- NA
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
-  
-  #pi_ijt[,,1]
-  # all( abs(qlogis( pi_ijt ) - s_ijt)<1e-6,na.rm=T ) # TRUE
   
   
   ## Shrinkage Parameters ##
@@ -228,8 +224,12 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]>y_ijtk_miss_idx[,2],]
     
     # MCMC chain for missing values #
-    # y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
-    y_ijtk_imp_mcmc <- NULL # requires too much disk memory
+    if(keep_y_ijtk_imp){
+      # CAUTION: may take too much disk space
+      y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
+    } else {
+      y_ijtk_imp_mcmc <- NULL 
+    }
   }
   
   #### Start: MCMC Sampling ####
@@ -242,26 +242,31 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     ### Step 1. Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
     w_ijtk <- sample_pg_w_ijtk_link( w_ijtk=w_ijtk,
-                                     s_ijtk=s_ijtk,
+                                     gamma_ijtk=gamma_ijtk,
                                      directed=FALSE )
     
     
     
-    ### Step 2_mu. Sample mu_tk from its conditional N-variate Gaussian posterior ###
-    out_aux <- sample_baseline_tk_link( mu_tk=mu_tk,
-                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, s_ijtk=s_ijtk,
-                                        mu_t_cov_prior_inv=cov_gp_prior_inv,
+    ### Step 2_mu. Sample eta_tk from its conditional N-variate Gaussian posterior ###
+    out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
+                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                        eta_t_cov_prior_inv=cov_gp_prior_inv,
                                         directed=FALSE )
-    mu_tk <- out_aux$mu_tk
-    s_ijtk <- out_aux$s_ijtk # This updates ONLY the lower triangular matrices in s_ijtk
-    s_ijtk[!lowtri_y_idx] <- NA
+    eta_tk <- out_aux$eta_tk
+    gamma_ijtk <- out_aux$gamma_ijtk # This updates ONLY the lower triangular matrices in gamma_ijtk
+    gamma_ijtk[!lowtri_y_idx] <- NA
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
-      mu_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- mu_tk
+      eta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- eta_tk
     }
     
-    
+    # # Linear predictor for the probability of an edge between actors i and j at time t in layer k #
+    # gamma_ijtk_old <- gamma_ijtk
+    # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+    #                                 coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+    # gamma_ijtk[!lowtri_y_idx] <- NA
+    # all.equal(gamma_ijtk,gamma_ijtk_old)
     
     ### Step 2_beta. Sample beta_z_layer and beta_z_edge from its conditional N-variate Gaussian posterior ###
     if(!is.null(pred_all)){
@@ -269,39 +274,30 @@ mcmc_d_0_w_0 <- function( y_ijtk,
       if(!is.null(beta_z_layer)&!is.null(pred_id_layer)){
         beta_z_layer <- sample_beta_z_layer_DynMultiNet_bin( beta_z_layer,
                                                              z_tkp, pred_id_layer, pred_all, layer_all,
-                                                             y_ijtk, w_ijtk, s_ijtk,
-                                                             cov_gp_prior_inv,
-                                                             use_cpp=TRUE )
+                                                             y_ijtk, w_ijtk, gamma_ijtk,
+                                                             cov_gp_prior_inv )
         if(is.element(iter_i,iter_out_mcmc)){
           beta_z_layer_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_z_layer
         }
         
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                      x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                      pred_all=pred_all, layer_all=layer_all,
-                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-        # s_ijtk[!lowtri_y_idx] <- NA
+        gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                        coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+        # gamma_ijtk[!lowtri_y_idx] <- NA
       }
       # Edge specific
       if(!is.null(beta_z_edge)&!is.null(pred_id_edge)){
         beta_z_edge <- sample_beta_z_edge_DynMultiNet_bin( beta_z_edge,
                                                            z_ijtkp, pred_id_edge, pred_all, layer_all,
-                                                           y_ijtk, w_ijtk, s_ijtk,
+                                                           y_ijtk, w_ijtk, gamma_ijtk,
                                                            cov_gp_prior_inv )
         if(is.element(iter_i,iter_out_mcmc)){
           beta_z_edge_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_z_edge
         }
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                      x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                      pred_all=pred_all, layer_all=layer_all,
-                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-        # s_ijtk[!lowtri_y_idx] <- NA
+        gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                        coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+        # gamma_ijtk[!lowtri_y_idx] <- NA
       }
     }
     
@@ -309,96 +305,88 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
-    out_aux <- sample_x_ith_shared_DynMultiNet_bin( x_ith_shared=x_ith_shared,
-                                                    x_t_sigma_prior_inv=cov_gp_prior_inv,
-                                                    tau_h=tau_h_shared,
-                                                    y_ijtk=y_ijtk,
-                                                    w_ijtk=w_ijtk,
-                                                    s_ijtk=s_ijtk )
-    x_ith_shared <- out_aux$x_ith_shared
-    s_ijtk <- out_aux$s_ijtk
+    out_aux <- sample_coord_ith_shared_link( ab_ith_shared=ab_ith_shared,
+                                             ab_t_sigma_prior_inv=cov_gp_prior_inv,
+                                             tau_h=tau_h_shared,
+                                             y_ijtk=y_ijtk,
+                                             w_ijtk=w_ijtk,
+                                             gamma_ijtk=gamma_ijtk )
+    ab_ith_shared <- out_aux$ab_ith_shared
+    gamma_ijtk <- out_aux$gamma_ijtk
     
     # Procrustres transform
     if( procrustes_lat ){
       if( (iter_i==n_burn) | (iter_i==1 & n_burn==0) ) {
-        x_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
-          x_ith_shared[,t,]
+        ab_ith_shared_ref <- foreach::foreach(t=1:T_net,.combine="rbind") %do%{
+          ab_ith_shared[,t,]
         }
       } else if(iter_i>n_burn) {
-        x_ith_shared_temp <- foreach::foreach(t=1:T_net,.combine="rbind") %do% {
-          x_ith_shared[,t,]
+        ab_ith_shared_temp <- foreach::foreach(t=1:T_net,.combine="rbind") %do% {
+          ab_ith_shared[,t,]
         }
-        # procr <- vegan::procrustes(X=x_ith_shared_ref,Y=x_ith_shared_temp,scale=FALSE)$Yrot
-        procr <- MCMCpack::procrustes(X=x_ith_shared_temp,Xstar=x_ith_shared_ref)$X.new
+        # procr <- vegan::procrustes(X=ab_ith_shared_ref,Y=ab_ith_shared_temp,scale=FALSE)$Yrot
+        procr <- MCMCpack::procrustes(X=ab_ith_shared_temp,Xstar=ab_ith_shared_ref)$X.new
         for(t in 1:T_net){ # t<-2
-          x_ith_shared[,t,] <- procr[((t-1)*V_net)+(1:V_net),]
+          ab_ith_shared[,t,] <- procr[((t-1)*V_net)+(1:V_net),]
         }; rm(t)
         
         # update linear predictor
-        s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                      x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                      pred_all=pred_all, layer_all=layer_all,
-                                      z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                      beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                      pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-        # s_ijtk[!lowtri_y_idx] <- NA
+        gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                        coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+        # gamma_ijtk[!lowtri_y_idx] <- NA
       }
       
     }
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
-      x_ith_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- x_ith_shared
+      ab_ith_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared
     }
     
     
     
     ### LAYER SPECIFIC Latent Coordinates ###
     if( K_net>1 ) {
-      ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates x_ithk ###
-      out_aux <- sample_x_ithk_DynMultiNet_bin( x_ithk=x_ithk,
-                                                x_t_sigma_prior_inv=cov_gp_prior_inv,
-                                                tau_h=tau_h_k,
-                                                y_ijtk=y_ijtk,
-                                                w_ijtk=w_ijtk,
-                                                s_ijtk=s_ijtk )
-      x_ithk <- out_aux$x_ithk
-      s_ijtk <- out_aux$s_ijtk
+      ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates ab_ithk ###
+      out_aux <- sample_coord_ithk_link( ab_ithk=ab_ithk,
+                                         ab_t_sigma_prior_inv=cov_gp_prior_inv,
+                                         tau_h=tau_h_k,
+                                         y_ijtk=y_ijtk,
+                                         w_ijtk=w_ijtk,
+                                         gamma_ijtk=gamma_ijtk )
+      ab_ithk <- out_aux$ab_ithk
+      gamma_ijtk <- out_aux$gamma_ijtk
       
       # Procrustres transform
       if( procrustes_lat ){
         if( (iter_i==n_burn) | (iter_i==1 & n_burn==0) ) {
-          x_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+          ab_ithk_ref <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
             foreach::foreach(t=1:T_net,.combine="rbind") %do% {
-              x_ithk[,t,,k]
+              ab_ithk[,t,,k]
             }
         } else if(iter_i>n_burn) {
-          x_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
+          ab_ithk_tmp <- foreach::foreach(k=1:K_net,.combine="rbind") %:%
             foreach::foreach(t=1:T_net,.combine="rbind") %do% {
-              x_ithk[,t,,k]
+              ab_ithk[,t,,k]
             }
-          # all.equal(x_ithk[,t,,k],x_ithk_tmp[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),])
-          # procr <- vegan::procrustes(X=x_ithk_ref,Y=x_ithk_tmp,scale=FALSE)$Yrot
-          procr <- MCMCpack::procrustes(X=x_ithk_tmp, Xstar=x_ithk_ref )$X.new
+          # all.equal(ab_ithk[,t,,k],ab_ithk_tmp[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),])
+          # procr <- vegan::procrustes(X=ab_ithk_ref,Y=ab_ithk_tmp,scale=FALSE)$Yrot
+          procr <- MCMCpack::procrustes(X=ab_ithk_tmp, Xstar=ab_ithk_ref )$X.new
           for(k in 1:K_net){
             for(t in 1:T_net){
-              x_ithk[,t,,k] <- procr[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),]
+              ab_ithk[,t,,k] <- procr[((k-1)*(T_net*V_net)+(t-1)*V_net)+(1:V_net),]
             }}; rm(t,k)
           
           # update linear predictor
-          s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                        x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                        pred_all=pred_all, layer_all=layer_all,
-                                        z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                        beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                        pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge )
-          # s_ijtk[!lowtri_y_idx] <- NA
+          gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                          coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+          # gamma_ijtk[!lowtri_y_idx] <- NA
         }
       }
       
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
-        x_ithk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- x_ithk
+        ab_ithk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk
       }
       
       
@@ -408,17 +396,17 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     
     ### Edge probabilities ###
     if(is.element(iter_i,iter_out_mcmc)){
-      s_ijtk[!lowtri_y_idx] <- NA
-      pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(s_ijtk)
+      gamma_ijtk[!lowtri_y_idx] <- NA
+      pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(gamma_ijtk)
     }
     
     
     
     ### Impute missing links ###
-    if( F & y_ijtk_miss ) { # requires too much disk memory
+    if( keep_y_ijtk_imp & y_ijtk_miss ) { # requires too much disk memory
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
-        Y_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(s_ijtk[y_ijtk_miss_idx]) )
+        Y_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(gamma_ijtk[y_ijtk_miss_idx]) )
         y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- Y_imp
       }
     }
@@ -429,7 +417,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     if(shrink_lat_space){
       v_shrink_shared <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared,
                                                           a_1, a_2,
-                                                          x_ith_shared,
+                                                          ab_ith_shared,
                                                           cov_gp_prior_inv )
       tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
       if(is.element(iter_i,iter_out_mcmc)){
@@ -439,7 +427,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
       if(K_net>1){
         for(k in 1:K_net) {
           v_shrink_k[,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[,k,drop=F], a_1, a_2,
-                                                             x_ithk[,,,k],
+                                                             ab_ithk[,,,k],
                                                              cov_gp_prior_inv )
         }
         tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
@@ -482,9 +470,9 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           
                           # For link probabilities #
                           pi_ijtk_mcmc=pi_ijtk_mcmc,
-                          eta_tk_mcmc=mu_tk_mcmc,
-                          ab_ith_shared_mcmc=x_ith_shared_mcmc,
-                          ab_ithk_mcmc=x_ithk_mcmc,
+                          eta_tk_mcmc=eta_tk_mcmc,
+                          ab_ith_shared_mcmc=ab_ith_shared_mcmc,
+                          ab_ithk_mcmc=ab_ithk_mcmc,
                           tau_h_shared_mcmc=tau_h_shared_mcmc,
                           tau_h_k_mcmc=tau_h_k_mcmc,
                           
@@ -538,9 +526,9 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                     
                     # For link probabilities #
                     pi_ijtk_mcmc=pi_ijtk_mcmc,
-                    eta_tk_mcmc=mu_tk_mcmc,
-                    ab_ith_shared_mcmc=x_ith_shared_mcmc,
-                    ab_ithk_mcmc=x_ithk_mcmc,
+                    eta_tk_mcmc=eta_tk_mcmc,
+                    ab_ith_shared_mcmc=ab_ith_shared_mcmc,
+                    ab_ithk_mcmc=ab_ithk_mcmc,
                     tau_h_shared_mcmc=tau_h_shared_mcmc,
                     tau_h_k_mcmc=tau_h_k_mcmc,
                     

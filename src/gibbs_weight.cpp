@@ -150,9 +150,9 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
 }
 
 
-// To be implemented
+// To be checked
 // [[Rcpp::export]]
-Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith_shared,
+Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith,
                                         const arma::mat uv_t_sigma_prior_inv,
                                         const arma::colvec tau_h,
                                         const arma::cube y_ijt,
@@ -169,12 +169,13 @@ Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith_shared,
   // Network and latent space dimensions
   unsigned int V_net = y_ijt.n_rows;
   unsigned int T_net = y_ijt.n_slices;
-  unsigned int H_dim = uv_ith_shared.n_slices;
+  unsigned int H_dim = uv_ith.n_slices;
   
-  uv_ith_shared = reshape(uv_ith_shared,V_net,T_net*H_dim,1);
-  arma::mat uv_ith_shared_mat = uv_ith_shared.slice(0);
+  uv_ith = reshape(uv_ith,V_net,T_net*H_dim,1);
+  arma::mat uv_ith_mat = uv_ith.slice(0);
   
   arma::colvec Y = arma::zeros<arma::colvec>((V_net-1)*T_net);
+  
   arma::colvec linpred = arma::zeros<arma::colvec>((V_net-1)*T_net);
   
   arma::colvec C = arma::zeros<arma::colvec>((V_net-1)*T_net);
@@ -188,8 +189,8 @@ Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith_shared,
   
   arma::colvec uv_i_mean = arma::zeros<arma::colvec>(T_net*H_dim);
   
-  // Performing sampling in uv_ith_shared...
-  // The rows in uv_ith_shared_mat will act as the targeted "coefficients"
+  // Performing sampling in uv_ith...
+  // The rows in uv_ith_mat will act as the targeted "coefficients"
   // The columns in X_all will act as the "covariates"
   // The order of the response mu_ijth will depend on the order of rows in X_all
   
@@ -200,6 +201,13 @@ Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith_shared,
   
   arma::mat X = X_all;
   arma::sp_mat X_sp = arma::sp_mat(X);
+  
+  // vector that identifies valid observation for the model
+  // in this case, where Y!=0 and is not NA
+  arma::uvec valid_obs;
+  arma::colvec Y_valid = Y;
+  arma::sp_mat X_sp_valid = X_sp;
+  arma::colvec C_valid = C;
   
   for( i=0; i<V_net; i++ ) {
     aux_mat_1 = y_ijt.subcube(i,0,0, i,i,T_net-1);
@@ -221,23 +229,35 @@ Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith_shared,
     // X
     X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
     for( t=0; t<T_net; t++ ) {
-      X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = uv_ith_shared_mat.submat( aux_uvec_3, aux_uvec_2+t );
+      X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = uv_ith_mat.submat( aux_uvec_3, aux_uvec_2+t );
     }
     X = X_all;
     X.shed_rows(T_net*i,T_net*(i+1)-1);
     X_sp = arma::sp_mat(X);
     
-    uv_i_cov_inv = X_sp.t() * X_sp;
-    uv_i_cov_inv = uv_i_cov_inv + uv_i_cov_prior ;
+    C = linpred - X_sp * trans(uv_ith_mat.row(i));
+    
+    // identifies valid obs
+    Y.replace(0, arma::datum::nan); // replace 0 with NA
+    valid_obs = find_finite(Y); // find valid elements
+    Y_valid = Y.rows(valid_obs);
+    X_sp_valid = arma::sp_mat(X.rows(valid_obs));
+    C_valid = C.rows(valid_obs);
+    
+    // Marginal Posterior
+    // Covariance
+    uv_i_cov_inv = (1/pow(sigma_k,2)) * X_sp_valid.t() * X_sp_valid + uv_i_cov_prior ;
     uv_i_cov = arma::inv_sympd(uv_i_cov_inv);
     
-    C = linpred - X_sp * trans(uv_ith_shared_mat.row(i));
+    // Marginal Posterior
+    // Mean
+    uv_i_mean = uv_i_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.t() * (Y_valid-C_valid) );
     
-    // Sampling uv_ith_shared_mat
-    uv_ith_shared_mat.row(i) = trans(arma::mvnrnd( uv_i_mean , uv_i_cov ));
+    // Sampling uv_ith_mat
+    uv_ith_mat.row(i) = trans(arma::mvnrnd( uv_i_mean , uv_i_cov ));
     
-    // Recalculate linpred with the new values of uv_ith_shared_mat
-    linpred = X_sp * trans(uv_ith_shared_mat.row(i)) + C;
+    // Recalculate linpred with the new values of uv_ith_mat
+    linpred = X_sp * trans(uv_ith_mat.row(i)) + C;
     // Redefine mu_ijt with the new values of linpred
     aux_mat_1 = linpred;
     aux_mat_1.reshape(T_net,(V_net-1));
@@ -247,23 +267,23 @@ Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith_shared,
     mu_ijt.subcube(i,i,0, V_net-1,i,T_net-1) = aux_mat_1.rows(i,V_net-1);
   }
   
-  // get uv_ith_shared from uv_ith_shared_mat
-  uv_ith_shared.slice(0)=uv_ith_shared_mat;
-  uv_ith_shared = reshape(uv_ith_shared,V_net,T_net,H_dim);
+  // get uv_ith from uv_ith_mat
+  uv_ith.slice(0)=uv_ith_mat;
+  uv_ith = reshape(uv_ith,V_net,T_net,H_dim);
   
-  return Rcpp::List::create( Rcpp::Named("uv_ith_shared") = uv_ith_shared,
+  return Rcpp::List::create( Rcpp::Named("uv_ith") = uv_ith,
                              Rcpp::Named("mu_ijt") = mu_ijt );
 }
 
 
-// To be implemented
+// To be checked
 // [[Rcpp::export]]
 Rcpp::List sample_coord_ith_shared_weight_cpp( arma::cube uv_ith_shared,
                                                const arma::mat uv_t_sigma_prior_inv,
                                                const arma::colvec tau_h,
                                                const arma::field<arma::cube> y_ijtk,
                                                arma::field<arma::cube> mu_ijtk,
-                                               const double sigma_k ) {
+                                               const arma::colvec sigma_k ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -290,6 +310,12 @@ Rcpp::List sample_coord_ith_shared_weight_cpp( arma::cube uv_ith_shared,
   
   arma::colvec C = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   
+  // Variance associated with each observation in Y
+  arma::colvec sigma_Y_inv = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
+  for( k=0; k<K_net; k++ ) {
+    sigma_Y_inv.rows( k*(V_net-1)*T_net,(k+1)*(V_net-1)*T_net-1 ).fill( 1/sigma_k(k) );
+  }
+  
   arma::mat tau_h_diag(tau_h.n_rows,tau_h.n_rows); tau_h_diag.eye();
   tau_h_diag.diag() = tau_h;
   
@@ -304,12 +330,25 @@ Rcpp::List sample_coord_ith_shared_weight_cpp( arma::cube uv_ith_shared,
   arma::uvec aux_uvec_2 = T_net * arma::regspace<arma::uvec>( 0, H_dim-1 );
   arma::uvec aux_uvec_3 = arma::regspace<arma::uvec>( 0, V_net-1 );
   
+  arma::mat X = X_all;
   arma::sp_mat X_sp = arma::sp_mat(X_all);
   
+  // vector that identifies valid observation for the model
+  // in this case, where Y!=0 and is not NA
+  arma::uvec valid_obs;
+  arma::colvec Y_valid = Y;
+  arma::sp_mat X_sp_valid = X_sp;
+  arma::colvec C_valid = C;
+  arma::colvec sigma_Y_inv_valid = sigma_Y_inv;
+  arma::sp_mat sigma_Y_inv_valid_mat = arma::speye<arma::sp_mat>(1,1);
+  
   for( i=0; i<V_net; i++ ) {
+    // Rcpp::Rcout << "i=" << i << std::endl;
+    arma::colvec Y = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
+    arma::colvec linpred = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
     
     for( k=0; k<K_net; k++ ) {
-      
+      // Rcpp::Rcout << "k=" << k << std::endl;
       y_ijt = y_ijtk(k);
       aux_mat_1 = y_ijt.subcube(i,0,0, i,i,T_net-1);
       aux_mat_2 = y_ijt.subcube(i,i,0, V_net-1,i,T_net-1);
@@ -329,27 +368,42 @@ Rcpp::List sample_coord_ith_shared_weight_cpp( arma::cube uv_ith_shared,
       linpred.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1) = aux_mat_1;
       
     }
-    
     // X
     // Update matrix with covariate X
     X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
     for( t=0; t<T_net; t++ ) {
       X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = uv_ith_shared_mat.submat( aux_uvec_3, aux_uvec_2+t );
     }
-    X_sp = arma::sp_mat(X_all);
-    X_sp.shed_rows(T_net*i,T_net*(i+1)-1);
-    X_sp = repmat(X_sp,K_net,1);
-    
-    uv_i_cov_inv = X_sp.t() * X_sp;
-    uv_i_cov_inv = uv_i_cov_inv + uv_i_cov_prior ;
-    uv_i_cov = arma::inv_sympd(uv_i_cov_inv);
+    X = X_all;
+    X.shed_rows(T_net*i,T_net*(i+1)-1);
+    X = repmat(X,K_net,1);
+    X_sp = arma::sp_mat(X);
     
     C = linpred - X_sp * trans(uv_ith_shared_mat.row(i));
     
+    // identifies valid obs
+    Y.replace(0, arma::datum::nan); // replace 0 with NA
+    valid_obs = find_finite(Y); // find valid elements
+    Y_valid = Y.rows(valid_obs);
+    X_sp_valid = arma::sp_mat(X.rows(valid_obs));
+    C_valid = C.rows(valid_obs);
+    
+    X_sp_valid = arma::sp_mat(X.rows(valid_obs));
+    sigma_Y_inv_valid = sigma_Y_inv.rows(valid_obs);
+    sigma_Y_inv_valid_mat = arma::speye<arma::sp_mat>(sigma_Y_inv_valid.n_rows,sigma_Y_inv_valid.n_rows);
+    sigma_Y_inv_valid_mat.diag() = sigma_Y_inv_valid;
+    
+    // Marginal Posterior
+    // Covariance
+    uv_i_cov_inv = X_sp_valid.t() * (sigma_Y_inv_valid_mat * X_sp_valid) + uv_i_cov_prior ;
+    uv_i_cov = arma::inv_sympd(uv_i_cov_inv);
+    
+    // Marginal Posterior
+    // Mean
+    uv_i_mean = uv_i_cov * ( X_sp_valid.t() * (sigma_Y_inv_valid % (Y_valid-C_valid)) );
+    
     // Sampling uv_ith_shared_mat
     uv_ith_shared_mat.row(i) = trans(arma::mvnrnd( uv_i_mean , uv_i_cov ));
-    
-    // Rcpp::Rcout << i << std::endl;
     
     // Recalculate linpred with the new values of uv_ith_shared_mat
     linpred = X_sp * trans(uv_ith_shared_mat.row(i)) + C;
@@ -377,7 +431,6 @@ Rcpp::List sample_coord_ith_shared_weight_cpp( arma::cube uv_ith_shared,
 }
 
 
-// To be checked
 // [[Rcpp::export]]
 Rcpp::List sample_coord_ith_weight_dir_cpp( arma::cube u_ith,
                                             arma::cube v_ith,
@@ -568,7 +621,6 @@ Rcpp::List sample_coord_ith_weight_dir_cpp( arma::cube u_ith,
 }
 
 
-// To be checked
 // [[Rcpp::export]]
 Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
                                                    arma::cube v_ith_shared,
@@ -732,9 +784,6 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
       sigma_Y_inv_valid_mat = arma::speye<arma::sp_mat>(sigma_Y_inv_valid.n_rows,sigma_Y_inv_valid.n_rows);
       sigma_Y_inv_valid_mat.diag() = sigma_Y_inv_valid;
       
-      // The prior for the latent coordinates is uv_t_sigma_prior_inv repeated for each latent dimension
-      uv_i_cov_prior = kron( tau_h_diag, uv_t_sigma_prior_inv );
-      
       // Marginal Posterior
       // Covariance
       uv_i_cov_inv = X_sp_valid.t() * (sigma_Y_inv_valid_mat * X_sp_valid) + uv_i_cov_prior ;
@@ -807,7 +856,7 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
                              Rcpp::Named("mu_ijtk") = mu_ijtk );
 }
 
-// To be checked
+
 // [[Rcpp::export]]
 double sample_var_weight_cpp( double sigma_k,
                               double sigma_k_prop_int,
@@ -825,7 +874,7 @@ double sample_var_weight_cpp( double sigma_k,
   
   // column matrix with the linear predictor
   arma::colvec linpred = arma::zeros<arma::colvec>(1);
-    
+  
   // vector that identifies valid observation for the model
   // in this case, where Y!=0 and is not NA
   arma::uvec valid_obs;

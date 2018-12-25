@@ -19,6 +19,7 @@
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
+#' @param keep_y_ijtk_imp Boolean. Indicates wheter the chain with imputed missing links will be saved (FALSE by default)
 #' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
@@ -86,7 +87,10 @@ dmn_sampling <- function( y_ijtk,
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
+                          keep_y_ijtk_imp = FALSE,
+                          
                           rds_file=NULL, log_file=NULL,
+                          
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
   
@@ -221,6 +225,23 @@ dmn_sampling <- function( y_ijtk,
                               pred_all=pred_all,
                               pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
                               z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                              
+                              H_dim=H_dim, R_dim=R_dim,
+                              delta=delta,
+                              
+                              shrink_lat_space=shrink_lat_space,
+                              a_1=a_1, a_2=a_2,
+                              
+                              procrustes_lat=procrustes_lat,
+                              
+                              n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                              
+                              rds_file=rds_file, log_file=log_file,
+                              quiet_mcmc=quiet_mcmc,
+                              parallel_mcmc=parallel_mcmc )
+  } else if( !directed & weighted ) {
+    dmn_mcmc <- mcmc_d_0_w_1( y_ijtk=y_ijtk,
+                              node_all=node_all, time_all=time_all, layer_all=layer_all,
                               
                               H_dim=H_dim, R_dim=R_dim,
                               delta=delta,

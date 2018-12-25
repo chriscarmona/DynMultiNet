@@ -25,258 +25,6 @@ namespace DynMultiNet {
         }
     }
 
-    inline Rcpp::List sample_baseline_t_link_cpp(arma::colvec mu_t, const arma::mat mu_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube s_ijt, const bool directed = false) {
-        typedef SEXP(*Ptr_sample_baseline_t_link_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_baseline_t_link_cpp p_sample_baseline_t_link_cpp = NULL;
-        if (p_sample_baseline_t_link_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_baseline_t_link_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,arma::cube,const bool)");
-            p_sample_baseline_t_link_cpp = (Ptr_sample_baseline_t_link_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_baseline_t_link_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_baseline_t_link_cpp(Shield<SEXP>(Rcpp::wrap(mu_t)), Shield<SEXP>(Rcpp::wrap(mu_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(s_ijt)), Shield<SEXP>(Rcpp::wrap(directed)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_x_ith_DynMultiNet_bin_cpp(arma::cube x_ith, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube s_ijt) {
-        typedef SEXP(*Ptr_sample_x_ith_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_x_ith_DynMultiNet_bin_cpp p_sample_x_ith_DynMultiNet_bin_cpp = NULL;
-        if (p_sample_x_ith_DynMultiNet_bin_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_x_ith_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::cube,const arma::cube,arma::cube)");
-            p_sample_x_ith_DynMultiNet_bin_cpp = (Ptr_sample_x_ith_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_DynMultiNet_bin_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_x_ith_DynMultiNet_bin_cpp(Shield<SEXP>(Rcpp::wrap(x_ith)), Shield<SEXP>(Rcpp::wrap(x_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(s_ijt)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_x_ith_shared_DynMultiNet_bin_cpp(arma::cube x_ith_shared, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> s_ijtk) {
-        typedef SEXP(*Ptr_sample_x_ith_shared_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_x_ith_shared_DynMultiNet_bin_cpp p_sample_x_ith_shared_DynMultiNet_bin_cpp = NULL;
-        if (p_sample_x_ith_shared_DynMultiNet_bin_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_x_ith_shared_DynMultiNet_bin_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
-            p_sample_x_ith_shared_DynMultiNet_bin_cpp = (Ptr_sample_x_ith_shared_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_x_ith_shared_DynMultiNet_bin_cpp(Shield<SEXP>(Rcpp::wrap(x_ith_shared)), Shield<SEXP>(Rcpp::wrap(x_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(w_ijtk)), Shield<SEXP>(Rcpp::wrap(s_ijtk)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_x_ith_DynMultiNet_bin_dir_cpp(arma::cube x_ith_send, arma::cube x_ith_receive, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h_send, const arma::colvec tau_h_receive, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube s_ijt) {
-        typedef SEXP(*Ptr_sample_x_ith_DynMultiNet_bin_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_x_ith_DynMultiNet_bin_dir_cpp p_sample_x_ith_DynMultiNet_bin_dir_cpp = NULL;
-        if (p_sample_x_ith_DynMultiNet_bin_dir_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_x_ith_DynMultiNet_bin_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,const arma::cube,arma::cube)");
-            p_sample_x_ith_DynMultiNet_bin_dir_cpp = (Ptr_sample_x_ith_DynMultiNet_bin_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_DynMultiNet_bin_dir_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_x_ith_DynMultiNet_bin_dir_cpp(Shield<SEXP>(Rcpp::wrap(x_ith_send)), Shield<SEXP>(Rcpp::wrap(x_ith_receive)), Shield<SEXP>(Rcpp::wrap(x_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_send)), Shield<SEXP>(Rcpp::wrap(tau_h_receive)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(s_ijt)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_x_ith_shared_DynMultiNet_bin_dir_cpp(arma::cube x_ith_shared_send, arma::cube x_ith_shared_receive, const arma::mat x_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> s_ijtk) {
-        typedef SEXP(*Ptr_sample_x_ith_shared_DynMultiNet_bin_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_x_ith_shared_DynMultiNet_bin_dir_cpp p_sample_x_ith_shared_DynMultiNet_bin_dir_cpp = NULL;
-        if (p_sample_x_ith_shared_DynMultiNet_bin_dir_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_x_ith_shared_DynMultiNet_bin_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
-            p_sample_x_ith_shared_DynMultiNet_bin_dir_cpp = (Ptr_sample_x_ith_shared_DynMultiNet_bin_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_x_ith_shared_DynMultiNet_bin_dir_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_x_ith_shared_DynMultiNet_bin_dir_cpp(Shield<SEXP>(Rcpp::wrap(x_ith_shared_send)), Shield<SEXP>(Rcpp::wrap(x_ith_shared_receive)), Shield<SEXP>(Rcpp::wrap(x_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_send)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_receive)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(w_ijtk)), Shield<SEXP>(Rcpp::wrap(s_ijtk)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp(arma::colvec beta_t, arma::colvec z_t, const arma::mat beta_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube s_ijt, const bool directed = false) {
-        typedef SEXP(*Ptr_sample_beta_z_layer_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_beta_z_layer_DynMultiNet_bin_cpp p_sample_beta_z_layer_DynMultiNet_bin_cpp = NULL;
-        if (p_sample_beta_z_layer_DynMultiNet_bin_cpp == NULL) {
-            validateSignature("arma::colvec(*sample_beta_z_layer_DynMultiNet_bin_cpp)(arma::colvec,arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const bool)");
-            p_sample_beta_z_layer_DynMultiNet_bin_cpp = (Ptr_sample_beta_z_layer_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_beta_z_layer_DynMultiNet_bin_cpp(Shield<SEXP>(Rcpp::wrap(beta_t)), Shield<SEXP>(Rcpp::wrap(z_t)), Shield<SEXP>(Rcpp::wrap(beta_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(s_ijt)), Shield<SEXP>(Rcpp::wrap(directed)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<arma::colvec >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_baseline_tk_weight_cpp(arma::colvec theta_t, const arma::mat theta_t_cov_prior_inv, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k, const bool directed = false) {
-        typedef SEXP(*Ptr_sample_baseline_tk_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_baseline_tk_weight_cpp p_sample_baseline_tk_weight_cpp = NULL;
-        if (p_sample_baseline_tk_weight_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_baseline_tk_weight_cpp)(arma::colvec,const arma::mat,const arma::cube,arma::cube,const double,const bool)");
-            p_sample_baseline_tk_weight_cpp = (Ptr_sample_baseline_tk_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_baseline_tk_weight_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_baseline_tk_weight_cpp(Shield<SEXP>(Rcpp::wrap(theta_t)), Shield<SEXP>(Rcpp::wrap(theta_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(directed)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_coord_ith_weight_cpp(arma::cube uv_ith_shared, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k) {
-        typedef SEXP(*Ptr_sample_coord_ith_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_coord_ith_weight_cpp p_sample_coord_ith_weight_cpp = NULL;
-        if (p_sample_coord_ith_weight_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_coord_ith_weight_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::cube,arma::cube,const double)");
-            p_sample_coord_ith_weight_cpp = (Ptr_sample_coord_ith_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_weight_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_coord_ith_weight_cpp(Shield<SEXP>(Rcpp::wrap(uv_ith_shared)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_coord_ith_shared_weight_cpp(arma::cube uv_ith_shared, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> mu_ijtk, const double sigma_k) {
-        typedef SEXP(*Ptr_sample_coord_ith_shared_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_coord_ith_shared_weight_cpp p_sample_coord_ith_shared_weight_cpp = NULL;
-        if (p_sample_coord_ith_shared_weight_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_coord_ith_shared_weight_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,arma::field<arma::cube>,const double)");
-            p_sample_coord_ith_shared_weight_cpp = (Ptr_sample_coord_ith_shared_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_weight_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_coord_ith_shared_weight_cpp(Shield<SEXP>(Rcpp::wrap(uv_ith_shared)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(mu_ijtk)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_coord_ith_weight_dir_cpp(arma::cube u_ith, arma::cube v_ith, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h_send, const arma::colvec tau_h_receive, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k) {
-        typedef SEXP(*Ptr_sample_coord_ith_weight_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_coord_ith_weight_dir_cpp p_sample_coord_ith_weight_dir_cpp = NULL;
-        if (p_sample_coord_ith_weight_dir_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_coord_ith_weight_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,arma::cube,const double)");
-            p_sample_coord_ith_weight_dir_cpp = (Ptr_sample_coord_ith_weight_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_weight_dir_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_coord_ith_weight_dir_cpp(Shield<SEXP>(Rcpp::wrap(u_ith)), Shield<SEXP>(Rcpp::wrap(v_ith)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_send)), Shield<SEXP>(Rcpp::wrap(tau_h_receive)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List sample_coord_ith_shared_weight_dir_cpp(arma::cube u_ith_shared, arma::cube v_ith_shared, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> mu_ijtk, const arma::colvec sigma_k) {
-        typedef SEXP(*Ptr_sample_coord_ith_shared_weight_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_coord_ith_shared_weight_dir_cpp p_sample_coord_ith_shared_weight_dir_cpp = NULL;
-        if (p_sample_coord_ith_shared_weight_dir_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_coord_ith_shared_weight_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec)");
-            p_sample_coord_ith_shared_weight_dir_cpp = (Ptr_sample_coord_ith_shared_weight_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_coord_ith_shared_weight_dir_cpp(Shield<SEXP>(Rcpp::wrap(u_ith_shared)), Shield<SEXP>(Rcpp::wrap(v_ith_shared)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_send)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_receive)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(mu_ijtk)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline double sample_var_weight_cpp(double sigma_k, double sigma_k_prop_int, const arma::cube y_ijt, const arma::cube mu_ijt, const bool directed = false) {
-        typedef SEXP(*Ptr_sample_var_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_sample_var_weight_cpp p_sample_var_weight_cpp = NULL;
-        if (p_sample_var_weight_cpp == NULL) {
-            validateSignature("double(*sample_var_weight_cpp)(double,double,const arma::cube,const arma::cube,const bool)");
-            p_sample_var_weight_cpp = (Ptr_sample_var_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_var_weight_cpp");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_var_weight_cpp(Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(sigma_k_prop_int)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(directed)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<double >(rcpp_result_gen);
-    }
-
     inline SEXP c_initialize1(SEXP Data, SEXP DIMS, SEXP Yy, SEXP XSCALE, SEXP BETAIN, SEXP BETAOUT, SEXP WW) {
         typedef SEXP(*Ptr_c_initialize1)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_c_initialize1 p_c_initialize1 = NULL;
@@ -485,6 +233,258 @@ namespace DynMultiNet {
         if (rcpp_result_gen.inherits("try-error"))
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
         return Rcpp::as<SEXP >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_baseline_t_link_cpp(arma::colvec eta_t, const arma::mat eta_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const bool directed = false) {
+        typedef SEXP(*Ptr_sample_baseline_t_link_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_baseline_t_link_cpp p_sample_baseline_t_link_cpp = NULL;
+        if (p_sample_baseline_t_link_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_baseline_t_link_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,arma::cube,const bool)");
+            p_sample_baseline_t_link_cpp = (Ptr_sample_baseline_t_link_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_baseline_t_link_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_baseline_t_link_cpp(Shield<SEXP>(Rcpp::wrap(eta_t)), Shield<SEXP>(Rcpp::wrap(eta_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)), Shield<SEXP>(Rcpp::wrap(directed)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_link_cpp(arma::cube ab_ith, const arma::mat ab_t_sigma_prior_inv, const arma::colvec tau_h, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt) {
+        typedef SEXP(*Ptr_sample_coord_ith_link_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_link_cpp p_sample_coord_ith_link_cpp = NULL;
+        if (p_sample_coord_ith_link_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_link_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::cube,const arma::cube,arma::cube)");
+            p_sample_coord_ith_link_cpp = (Ptr_sample_coord_ith_link_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_link_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_link_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_shared_link_cpp(arma::cube ab_ith_shared, const arma::mat ab_t_sigma_prior_inv, const arma::colvec tau_h, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> gamma_ijtk) {
+        typedef SEXP(*Ptr_sample_coord_ith_shared_link_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_shared_link_cpp p_sample_coord_ith_shared_link_cpp = NULL;
+        if (p_sample_coord_ith_shared_link_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_shared_link_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
+            p_sample_coord_ith_shared_link_cpp = (Ptr_sample_coord_ith_shared_link_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_link_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_shared_link_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith_shared)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(w_ijtk)), Shield<SEXP>(Rcpp::wrap(gamma_ijtk)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_link_dir_cpp(arma::cube ab_ith_send, arma::cube ab_ith_receive, const arma::mat ab_t_sigma_prior_inv, const arma::colvec tau_h_send, const arma::colvec tau_h_receive, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt) {
+        typedef SEXP(*Ptr_sample_coord_ith_link_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_link_dir_cpp p_sample_coord_ith_link_dir_cpp = NULL;
+        if (p_sample_coord_ith_link_dir_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_link_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,const arma::cube,arma::cube)");
+            p_sample_coord_ith_link_dir_cpp = (Ptr_sample_coord_ith_link_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_link_dir_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_link_dir_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith_send)), Shield<SEXP>(Rcpp::wrap(ab_ith_receive)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_send)), Shield<SEXP>(Rcpp::wrap(tau_h_receive)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_shared_link_dir_cpp(arma::cube ab_ith_shared_send, arma::cube ab_ith_shared_receive, const arma::mat ab_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> gamma_ijtk) {
+        typedef SEXP(*Ptr_sample_coord_ith_shared_link_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_shared_link_dir_cpp p_sample_coord_ith_shared_link_dir_cpp = NULL;
+        if (p_sample_coord_ith_shared_link_dir_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_shared_link_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
+            p_sample_coord_ith_shared_link_dir_cpp = (Ptr_sample_coord_ith_shared_link_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_link_dir_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_shared_link_dir_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith_shared_send)), Shield<SEXP>(Rcpp::wrap(ab_ith_shared_receive)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_send)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_receive)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(w_ijtk)), Shield<SEXP>(Rcpp::wrap(gamma_ijtk)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp(arma::colvec beta_t, arma::colvec z_t, const arma::mat beta_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube gamma_ijt, const bool directed = false) {
+        typedef SEXP(*Ptr_sample_beta_z_layer_DynMultiNet_bin_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_beta_z_layer_DynMultiNet_bin_cpp p_sample_beta_z_layer_DynMultiNet_bin_cpp = NULL;
+        if (p_sample_beta_z_layer_DynMultiNet_bin_cpp == NULL) {
+            validateSignature("arma::colvec(*sample_beta_z_layer_DynMultiNet_bin_cpp)(arma::colvec,arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const bool)");
+            p_sample_beta_z_layer_DynMultiNet_bin_cpp = (Ptr_sample_beta_z_layer_DynMultiNet_bin_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_beta_z_layer_DynMultiNet_bin_cpp(Shield<SEXP>(Rcpp::wrap(beta_t)), Shield<SEXP>(Rcpp::wrap(z_t)), Shield<SEXP>(Rcpp::wrap(beta_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)), Shield<SEXP>(Rcpp::wrap(directed)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<arma::colvec >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_baseline_tk_weight_cpp(arma::colvec theta_t, const arma::mat theta_t_cov_prior_inv, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k, const bool directed = false) {
+        typedef SEXP(*Ptr_sample_baseline_tk_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_baseline_tk_weight_cpp p_sample_baseline_tk_weight_cpp = NULL;
+        if (p_sample_baseline_tk_weight_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_baseline_tk_weight_cpp)(arma::colvec,const arma::mat,const arma::cube,arma::cube,const double,const bool)");
+            p_sample_baseline_tk_weight_cpp = (Ptr_sample_baseline_tk_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_baseline_tk_weight_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_baseline_tk_weight_cpp(Shield<SEXP>(Rcpp::wrap(theta_t)), Shield<SEXP>(Rcpp::wrap(theta_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(directed)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_weight_cpp(arma::cube uv_ith, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k) {
+        typedef SEXP(*Ptr_sample_coord_ith_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_weight_cpp p_sample_coord_ith_weight_cpp = NULL;
+        if (p_sample_coord_ith_weight_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_weight_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::cube,arma::cube,const double)");
+            p_sample_coord_ith_weight_cpp = (Ptr_sample_coord_ith_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_weight_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_weight_cpp(Shield<SEXP>(Rcpp::wrap(uv_ith)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_shared_weight_cpp(arma::cube uv_ith_shared, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> mu_ijtk, const arma::colvec sigma_k) {
+        typedef SEXP(*Ptr_sample_coord_ith_shared_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_shared_weight_cpp p_sample_coord_ith_shared_weight_cpp = NULL;
+        if (p_sample_coord_ith_shared_weight_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_shared_weight_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec)");
+            p_sample_coord_ith_shared_weight_cpp = (Ptr_sample_coord_ith_shared_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_weight_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_shared_weight_cpp(Shield<SEXP>(Rcpp::wrap(uv_ith_shared)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(mu_ijtk)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_weight_dir_cpp(arma::cube u_ith, arma::cube v_ith, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h_send, const arma::colvec tau_h_receive, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k) {
+        typedef SEXP(*Ptr_sample_coord_ith_weight_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_weight_dir_cpp p_sample_coord_ith_weight_dir_cpp = NULL;
+        if (p_sample_coord_ith_weight_dir_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_weight_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,arma::cube,const double)");
+            p_sample_coord_ith_weight_dir_cpp = (Ptr_sample_coord_ith_weight_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_weight_dir_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_weight_dir_cpp(Shield<SEXP>(Rcpp::wrap(u_ith)), Shield<SEXP>(Rcpp::wrap(v_ith)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_send)), Shield<SEXP>(Rcpp::wrap(tau_h_receive)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List sample_coord_ith_shared_weight_dir_cpp(arma::cube u_ith_shared, arma::cube v_ith_shared, const arma::mat uv_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> mu_ijtk, const arma::colvec sigma_k) {
+        typedef SEXP(*Ptr_sample_coord_ith_shared_weight_dir_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_coord_ith_shared_weight_dir_cpp p_sample_coord_ith_shared_weight_dir_cpp = NULL;
+        if (p_sample_coord_ith_shared_weight_dir_cpp == NULL) {
+            validateSignature("Rcpp::List(*sample_coord_ith_shared_weight_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec)");
+            p_sample_coord_ith_shared_weight_dir_cpp = (Ptr_sample_coord_ith_shared_weight_dir_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_coord_ith_shared_weight_dir_cpp(Shield<SEXP>(Rcpp::wrap(u_ith_shared)), Shield<SEXP>(Rcpp::wrap(v_ith_shared)), Shield<SEXP>(Rcpp::wrap(uv_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_send)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_receive)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(mu_ijtk)), Shield<SEXP>(Rcpp::wrap(sigma_k)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline double sample_var_weight_cpp(double sigma_k, double sigma_k_prop_int, const arma::cube y_ijt, const arma::cube mu_ijt, const bool directed = false) {
+        typedef SEXP(*Ptr_sample_var_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_sample_var_weight_cpp p_sample_var_weight_cpp = NULL;
+        if (p_sample_var_weight_cpp == NULL) {
+            validateSignature("double(*sample_var_weight_cpp)(double,double,const arma::cube,const arma::cube,const bool)");
+            p_sample_var_weight_cpp = (Ptr_sample_var_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_var_weight_cpp");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_sample_var_weight_cpp(Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(sigma_k_prop_int)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(directed)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<double >(rcpp_result_gen);
     }
 
 }
