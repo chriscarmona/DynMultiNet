@@ -408,6 +408,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     
     ### Step L2_add_eff. Sample additive effects from its conditional N-variate Gaussian posterior ###
+    browser()
     out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
                                         sp_t_cov_prior_inv=cov_gp_prior_inv,
                                         y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,

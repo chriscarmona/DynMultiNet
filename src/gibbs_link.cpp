@@ -364,13 +364,12 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
       // Way 2:
       aux_mat_1 = sum(w_ijt,dir);
       aux_mat_1.reshape(T_net*V_net,1);
+      sp_it_cov_inv=arma::eye<arma::mat>(T_net*V_net,T_net*V_net);
       sp_it_cov_inv.diag()=aux_mat_1;
     }
-    return Rcpp::List::create( Rcpp::Named("sp_it_cov_inv") = sp_it_cov_inv,
-                               Rcpp::Named("sp_it_cov_prior_inv") = sp_it_cov_prior_inv );
+    
     sp_it_cov_inv = sp_it_cov_inv + sp_it_cov_prior_inv;
     sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
-    
     
     Z = (Y-0.5)/W - C;
     if( dir==0 ){

@@ -69,14 +69,13 @@ sample_add_eff_itk_link <- function( sp_itk,
   
   ### Sample eta_t from its conditional N-variate Gaussian posterior ###
   for( k in 1:K_net ) { # k<-1
-    browser()
     out_aux <- sample_add_eff_it_link_cpp( sp_it=c(sp_itk[,,k,]), # transformed to vector
                                            sp_t_cov_prior_inv=sp_t_cov_prior_inv,
                                            y_ijt=y_ijtk[,,,k],
                                            w_ijt=w_ijtk[,,,k],
                                            gamma_ijt=gamma_ijtk[,,,k],
                                            directed=directed )
-    sp_itk[,,k,] <- out_aux$sp_it
+    sp_itk[,,k,] <- c(out_aux$sp_it)
     gamma_ijtk[,,,k] <- out_aux$gamma_ijt
   }
   
