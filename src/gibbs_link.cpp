@@ -239,23 +239,29 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
   arma::mat X = arma::zeros<arma::mat>(1,1);
   // Setting design matrix //
   aux_mat_1 = arma::eye<arma::mat>(V_net,V_net); // create diagonal matrix
-  aux_mat_1.insert_cols(aux_mat_1.n_cols,2*T_net*V_net-V_net); // insert zero columns to end up having 2TV columns
+  if( !directed ){
+    aux_mat_1.insert_cols(aux_mat_1.n_cols,(T_net-1)*V_net); // insert zero columns to end up having TV columns
+  } else {
+    aux_mat_1.insert_cols(aux_mat_1.n_cols,(2*T_net-1)*V_net); // insert zero columns to end up having 2TV columns
+  }
   // aux_mat_1 will be the mold duplicated
-  aux_mat_3 = arma::zeros<arma::mat>(1,2*T_net*V_net);
+  aux_mat_3 = arma::zeros<arma::mat>(1,aux_mat_1.n_cols);
   for( i=0; i<V_net; i++ ) {
     aux_mat_2 = aux_mat_1;
-    aux_mat_2.col(T_net*V_net+i) = arma::ones<arma::mat>(V_net,1); // set TV+1-th column to 1
     if( !directed ){
+      aux_mat_2.col(i) = arma::ones<arma::mat>(V_net,1); // set i-th column to 1
       aux_mat_2.shed_rows(0,i);
     } else {
+      aux_mat_2.col(T_net*V_net+i) = arma::ones<arma::mat>(V_net,1); // set TV+i-th column to 1
       aux_mat_2.shed_row(i);
     }
     aux_mat_3.insert_rows(aux_mat_3.n_rows,aux_mat_2);
   }
   aux_mat_3.shed_row(0);
+  
   X = aux_mat_3;
   for( t=1; t<T_net; t++ ) {
-    aux_mat_3.shed_cols(2*T_net*V_net-V_net,2*T_net*V_net-1);
+    aux_mat_3.shed_cols(aux_mat_3.n_cols-V_net,aux_mat_3.n_cols-1);
     aux_mat_3.insert_cols(0,V_net);
     X.insert_rows(X.n_rows,aux_mat_3);
   }
@@ -275,7 +281,6 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
     
     aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
     for( i=1; i<V_net; i++ ) {
-      Rcpp::Rcout << "v=" << i << std::endl;
       aux_mat_2 = y_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
       aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
     }
@@ -334,77 +339,87 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
     linpred = aux_mat_1;
     
   }
-  
+  // Rcpp::Rcout << "(1)" << std::endl;
+
   // Constant term for theta in the linear predictor
-  C = linpred - (X_sp * sp_it);
+  C_all = linpred - (X_sp * sp_it);
   
   // identifies valid obs
   valid_obs = find_finite(Y); // find valid elements
   
   // Keep only valid cases
-  C_all = C;
   Y = Y.rows(valid_obs);
   W = W.rows(valid_obs);
   linpred = linpred.rows(valid_obs);
-  C = C.rows(valid_obs);
+  C = C_all.rows(valid_obs);
   X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   
   for( dir=0; dir<2; dir++ ) { // dir=0 samples p ; dir=1 samples s
-    // marginal posterior covariance
-    if(false){
-      // Way 1:
-      Omega_sp=arma::speye<arma::sp_mat>(W.n_rows/2,W.n_rows/2);
-      Omega_sp.diag() = W;
-      if( dir==0 ){
-        sp_it_cov_inv = X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * Omega_sp * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1);
-      } else if( dir==1 ){
-        sp_it_cov_inv = X_sp_valid.cols(0,T_net*V_net-1).t() * Omega_sp * X_sp_valid.cols(0,T_net*V_net-1);
+    if( (dir==1) | (directed&(dir==0)) ) { // if directed, sample s and p. if undirected sample only s
+      // marginal posterior covariance
+      if(false){
+        // Way 1:
+        Omega_sp=arma::speye<arma::sp_mat>(W.n_rows/2,W.n_rows/2);
+        Omega_sp.diag() = W;
+        if( dir==0 ){
+          sp_it_cov_inv = X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * Omega_sp * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1);
+        } else if( dir==1 ){
+          sp_it_cov_inv = X_sp_valid.cols(0,T_net*V_net-1).t() * Omega_sp * X_sp_valid.cols(0,T_net*V_net-1);
+        }
+      } else {
+        // Way 2:
+        if(!directed){
+          for( t=0; t<T_net; t++ ) {
+            aux_mat_1 = symmatl(w_ijt.slice(t)); // symmetric matrix from w_ijt, reflecting lower triangular matrix
+            aux_mat_1.diag() = sum(aux_mat_1,1); // diagonal equal to the sum by row or column
+            sp_it_cov_inv.submat(t*V_net,t*V_net,(t+1)*V_net-1,(t+1)*V_net-1) = aux_mat_1;
+          }
+        } else {
+          aux_mat_1 = sum(w_ijt,dir);
+          aux_mat_1.reshape(T_net*V_net,1);
+          sp_it_cov_inv=arma::eye<arma::mat>(T_net*V_net,T_net*V_net);
+          sp_it_cov_inv.diag()=aux_mat_1;
+        }
       }
-    } else {
-      // Way 2:
-      aux_mat_1 = sum(w_ijt,dir);
-      aux_mat_1.reshape(T_net*V_net,1);
-      sp_it_cov_inv=arma::eye<arma::mat>(T_net*V_net,T_net*V_net);
-      sp_it_cov_inv.diag()=aux_mat_1;
-    }
-    
-    sp_it_cov_inv = sp_it_cov_inv + sp_it_cov_prior_inv;
-    sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
-    
-    Z = (Y-0.5)/W - C;
-    if( dir==0 ){
-      // marginal posterior mean
-      sp_it_mean = sp_it_cov * (X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (W % Z));
+      // adding prior covariance
+      sp_it_cov_inv = sp_it_cov_inv + sp_it_cov_prior_inv;
+      sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
       
-      // Sampling sp_it
-      sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
-    } else if( dir==1 ){
-      // marginal posterior mean
-      sp_it_mean = sp_it_cov * (X_sp_valid.cols(0,T_net*V_net-1).t() * (W % Z));
-      
-      // Sampling sp_it
-      sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+      Z = (Y-0.5)/W - C;
+      if( dir==0 ){
+        // marginal posterior mean
+        sp_it_mean = sp_it_cov * (X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (W % Z));
+        
+        // Sampling sp_it
+        sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+      } else if( dir==1 ){
+        // marginal posterior mean
+        sp_it_mean = sp_it_cov * (X_sp_valid.cols(0,T_net*V_net-1).t() * (W % Z));
+        
+        // Sampling sp_it
+        sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+      }
     }
   }
   // return sp_it;
   
-  // Recalculate linpred with the new values of mu
+  // Recalculate linpred with the new values of sp_it
   linpred = X_sp * sp_it + C_all;
   // Redefine gamma_ijt with the new values of linpred
-  if( directed ){
+  if( !directed ){
+    aux_mat_1 = linpred;
+    aux_mat_1.reshape(V_net*(V_net-1)/2,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = aux_mat_1.rows((i-1)*V_net-((i-1)*i)/2,i*V_net-(i*(i+1))/2-1);
+      gamma_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1) = aux_mat_2;
+    }
+  } else {
     aux_mat_1 = linpred;
     aux_mat_1.reshape(V_net*(V_net-1),T_net);
     for( i=0; i<V_net; i++ ) {
       aux_mat_2 = aux_mat_1.rows(i*(V_net-1),(i+1)*(V_net-1)-1);
       aux_mat_2.insert_rows(i,arma::zeros<arma::mat>(1,T_net));
       gamma_ijt.subcube(0,i,0, V_net-1,i,T_net-1) = aux_mat_2;
-    }
-  } else {
-    aux_mat_1 = linpred;
-    aux_mat_1.reshape(V_net*(V_net-1)/2,T_net);
-    for( i=1; i<V_net; i++ ) {
-      aux_mat_2 = aux_mat_1.rows((i-1)*V_net-((i-1)*i)/2,i*V_net-(i*(i+1))/2-1);
-      gamma_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1) = aux_mat_2;
     }
   }
   

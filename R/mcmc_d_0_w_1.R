@@ -102,13 +102,23 @@ mcmc_d_0_w_1 <- function( y_ijtk,
   # theta_tk[,k] ~ Norm( 0 , C(t,t) )
   
   
-  
   # Baseline parameter for weights #
   # at time t for layer k
   theta_tk <- matrix( data=runif(T_net*K_net),
                       nrow=T_net,
                       ncol=K_net )
   theta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  
+  
+  ### Dynamic additive effects for each node ###
+  sp_weight_it_shared <- array(runif(V_net*T_net),dim=c(V_net,T_net))
+  if(K_net>1){
+    sp_weight_itk <- array(runif(V_net*T_net*K_net),dim=c(V_net,T_net,K_net))
+    sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,n_iter_mcmc_out))
+  } else {
+    sp_weight_itk <- NULL
+    sp_weight_itk_mcmc <- NULL
+  }
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
@@ -142,6 +152,8 @@ mcmc_d_0_w_1 <- function( y_ijtk,
   
   # Mean of the weight between actors i and j at time t in layer k
   mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
+                               add_eff_it_shared=sp_weight_it_shared,
+                               add_eff_itk=sp_weight_itk,
                                coord_ith_shared=uv_ith_shared,
                                coord_ithk=uv_ithk,
                                directed=FALSE )
@@ -185,6 +197,7 @@ mcmc_d_0_w_1 <- function( y_ijtk,
   w_ijtk <- y_ijtk
   w_ijtk[] <- 0
   
+  
   # Baseline parameter #
   # at time t for layer k
   eta_tk <- matrix( #data=0,
@@ -192,6 +205,18 @@ mcmc_d_0_w_1 <- function( y_ijtk,
     nrow=T_net,
     ncol=K_net )
   eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  
+  
+  ### Dynamic additive effects for each node ###
+  sp_link_it_shared <- array(runif(V_net*T_net),dim=c(V_net,T_net))
+  if(K_net>1){
+    sp_link_itk <- array(runif(V_net*T_net*K_net),dim=c(V_net,T_net,K_net))
+    sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,n_iter_mcmc_out))
+  } else {
+    sp_link_itk <- NULL
+    sp_link_itk_mcmc <- NULL
+  }
+  
   
   # Latent coordinates #
   # shared coordinates #
@@ -225,7 +250,11 @@ mcmc_d_0_w_1 <- function( y_ijtk,
   
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
   gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
-                                  coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+                                  add_eff_it_shared=sp_link_it_shared,
+                                  add_eff_itk=sp_link_itk,
+                                  coord_ith_shared=ab_ith_shared,
+                                  coord_ithk=ab_ithk,
+                                  directed=FALSE )
   gamma_ijtk[!lowtri_y_idx] <- NA
   
   # Probability of an edge between actors i and j at time t in layer k
@@ -403,7 +432,24 @@ mcmc_d_0_w_1 <- function( y_ijtk,
                                      gamma_ijtk=gamma_ijtk,
                                      directed=FALSE )
     
+    ### Step L2_add_eff. Sample additive effects from its conditional N-variate Gaussian posterior ###
+    out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
+                                        sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                        directed=FALSE )
+    sp_link_itk <- out_aux$sp_itk
+    gamma_ijtk <- out_aux$gamma_ijtk
+    # gamma_ijtk[!lowtri_y_idx] <- NA
     
+    # gamma_ijtk_old <- gamma_ijtk
+    # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+    #                                 add_eff_it_shared=sp_link_it_shared,
+    #                                 add_eff_itk=sp_link_itk,
+    #                                 coord_ith_shared=ab_ith_shared,
+    #                                 coord_ithk=ab_ithk,
+    #                                 directed=FALSE )
+    # gamma_ijtk[!lowtri_y_idx] <- NA
+    # all.equal(gamma_ijtk,gamma_ijtk_old)
     
     ### Step L2_mu. Sample eta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
@@ -422,7 +468,9 @@ mcmc_d_0_w_1 <- function( y_ijtk,
     # # Linear predictor for the probability of an edge between actors i and j at time t in layer k #
     # gamma_ijtk_old <- gamma_ijtk
     # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
-    #                                 coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+    #                                 coord_ith_shared=ab_ith_shared,
+    #                                 coord_ithk=ab_ithk,
+    #                                 directed=FALSE )
     # gamma_ijtk[!lowtri_y_idx] <- NA
     # all.equal(gamma_ijtk,gamma_ijtk_old)
     
@@ -460,7 +508,9 @@ mcmc_d_0_w_1 <- function( y_ijtk,
         
         # update linear predictor
         gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
-                                        coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+                                        coord_ith_shared=ab_ith_shared,
+                                        coord_ithk=ab_ithk,
+                                        directed=FALSE )
         # gamma_ijtk[!lowtri_y_idx] <- NA
       }
       
@@ -507,7 +557,9 @@ mcmc_d_0_w_1 <- function( y_ijtk,
           
           # update linear predictor
           gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
-                                          coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk )
+                                          coord_ith_shared=ab_ith_shared,
+                                          coord_ithk=ab_ithk,
+                                          directed=FALSE )
           # gamma_ijtk[!lowtri_y_idx] <- NA
         }
       }
