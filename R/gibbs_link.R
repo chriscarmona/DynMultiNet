@@ -7,20 +7,14 @@ sample_pg_w_ijtk_link <- function( w_ijtk,
   
   ### Update each augmented data w_ijtk from the full conditional Polya-gamma posterior ###
   V_net <- dim(w_ijtk)[1]
-  T_net <- dim(w_ijtk)[3]
   K_net <- dim(w_ijtk)[4]
   
   if(directed){
     idx_tmp <- matrix(TRUE,V_net,V_net); diag(idx_tmp)<-FALSE
     idx_tmp <- array(idx_tmp,dim=dim(gamma_ijtk))
-    # s_aux <- gamma_ijtk[idx_tmp]
-    # n_sim <- K_net*T_net*V_net*(V_net-1)
   } else {
     idx_tmp <- array(lower.tri(gamma_ijtk[,,1,1]),dim=dim(gamma_ijtk))
-    # s_aux <- gamma_ijtk[idx_tmp]
-    # n_sim <- K_net*T_net*V_net*(V_net-1)/2
   }
-  # if( length(s_aux)!=n_sim ){ stop("There was an error sampling w_ijtk") }
   
   w_ijtk[idx_tmp] <- BayesLogit::rpg.devroye( num=sum(idx_tmp), n=1, z=gamma_ijtk[idx_tmp] )
   w_ijtk[!idx_tmp] <- NA
@@ -30,22 +24,19 @@ sample_pg_w_ijtk_link <- function( w_ijtk,
 }
 
 
-#' @import foreach
 #' @keywords internal
 sample_baseline_tk_link <- function( eta_tk,
                                      y_ijtk, w_ijtk, gamma_ijtk,
                                      eta_t_cov_prior_inv,
                                      directed=FALSE ) {
   
+  K_net <- dim(y_ijtk)[4]
+  
   # This function only deals with binary edges (non-weighted)
   y_ijtk[y_ijtk>0] <- 1
   y_ijtk[y_ijtk<0] <- NA
   
   ### Sample eta_t from its conditional N-variate Gaussian posterior ###
-  V_net <- dim(y_ijtk)[1]
-  T_net <- dim(y_ijtk)[3]
-  K_net <- dim(y_ijtk)[4]
-  
   for( k in 1:K_net ) { # k<-1
     out_aux <- sample_baseline_t_link_cpp( eta_t=eta_tk[,k,drop=F],
                                            eta_t_cov_prior_inv=eta_t_cov_prior_inv,
@@ -61,6 +52,37 @@ sample_baseline_tk_link <- function( eta_tk,
                 gamma_ijtk=gamma_ijtk ) );
 }
 
+#' @keywords internal
+sample_add_eff_itk_link <- function( sp_itk,
+                                     sp_t_cov_prior_inv,
+                                     y_ijtk, w_ijtk, gamma_ijtk,
+                                     directed=FALSE ) {
+  
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  
+  K_net <- dim(y_ijtk)[4]
+  
+  # This function only deals with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
+  y_ijtk[y_ijtk<0] <- NA
+  
+  ### Sample eta_t from its conditional N-variate Gaussian posterior ###
+  for( k in 1:K_net ) { # k<-1
+    browser()
+    out_aux <- sample_add_eff_it_link_cpp( sp_it=c(sp_itk[,,k,]), # transformed to vector
+                                           sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+                                           y_ijt=y_ijtk[,,,k],
+                                           w_ijt=w_ijtk[,,,k],
+                                           gamma_ijt=gamma_ijtk[,,,k],
+                                           directed=directed )
+    sp_itk[,,k,] <- out_aux$sp_it
+    gamma_ijtk[,,,k] <- out_aux$gamma_ijt
+  }
+  
+  return( list( sp_itk=sp_itk,
+                gamma_ijtk=gamma_ijtk ) );
+}
 
 #' @keywords internal
 sample_coord_ith_shared_link <- function( ab_ith_shared,

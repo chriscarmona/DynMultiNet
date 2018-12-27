@@ -84,7 +84,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # u_ith[i,,h] ~ Norm( 0 , C(t,t) )
   # theta_tk[,k] ~ Norm( 0 , C(t,t) )
   
-  
+  ### Dynamic additive effects for each node ###
+  sp_weight_it_shared <- array(runif(V_net*T_net*2),dim=c(V_net,T_net,2))
+  if(K_net>1){
+    sp_weight_itk <- array(runif(V_net*T_net*K_net*2),dim=c(V_net,T_net,K_net,2))
+    sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
+  } else {
+    sp_weight_itk <- NULL
+    sp_weight_itk_mcmc <- NULL
+  }
   
   # Baseline parameter for weights #
   # at time t for layer k
@@ -127,7 +135,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # Covariance matrix prior for latent coordinates
   cov_gp_prior <- outer( time_all, time_all, FUN=function(x,y,k=delta){ exp(-((x-y)/delta)^2) } )
   diag(cov_gp_prior) <- diag(cov_gp_prior) + 1e-3 # numerical stability
-  cov_gp_prior_inv <- solve(cov_gp_prior)
+  # cov_gp_prior_inv <- solve(cov_gp_prior)
+  cov_gp_prior_inv <- chol2inv(chol(cov_gp_prior))
   
   # Mean of the weight between actors i and j at time t in layer k
   mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
@@ -144,6 +153,16 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # Augmented Polya-gamma data
   w_ijtk <- y_ijtk
   w_ijtk[!is.na(w_ijtk)] <- 0
+  
+  ### Dynamic additive effects for each node ###
+  sp_link_it_shared <- array(runif(V_net*T_net*2),dim=c(V_net,T_net,2))
+  if(K_net>1){
+    sp_link_itk <- array(runif(V_net*T_net*K_net*2),dim=c(V_net,T_net,K_net,2))
+    sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
+  } else {
+    sp_link_itk <- NULL
+    sp_link_itk_mcmc <- NULL
+  }
   
   # Baseline parameter for link #
   # at time t for layer k
@@ -294,8 +313,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     #cat(iter_i,",")
     
     ##### SAMPLING WEIGHTS #####
-    
-    ### Step W1. Sample theta_tk from its conditional N-variate Gaussian posterior ###
+      
+    ### Step W1. Sample baseline theta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_weight( theta_tk=theta_tk,
                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                           sigma_k=sigma_k,
@@ -388,8 +407,16 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                      directed=TRUE )
     
     
+    ### Step L2_add_eff. Sample additive effects from its conditional N-variate Gaussian posterior ###
+    out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
+                                        sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                        directed=TRUE )
+    sp_link_itk <- out_aux$sp_itk
+    gamma_ijtk <- out_aux$gamma_ijtk
     
-    ### Step L2_mu. Sample eta_tk from its conditional N-variate Gaussian posterior ###
+    
+    ### Step L2_baseline. Sample eta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
                                         y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
                                         eta_t_cov_prior_inv=cov_gp_prior_inv,

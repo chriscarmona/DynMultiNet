@@ -45,6 +45,10 @@ sample_baseline_t_link_cpp <- function(eta_t, eta_t_cov_prior_inv, y_ijt, w_ijt,
     .Call(`_DynMultiNet_sample_baseline_t_link_cpp`, eta_t, eta_t_cov_prior_inv, y_ijt, w_ijt, gamma_ijt, directed)
 }
 
+sample_add_eff_it_link_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijt, w_ijt, gamma_ijt, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_add_eff_it_link_cpp`, sp_it, sp_t_cov_prior_inv, y_ijt, w_ijt, gamma_ijt, directed)
+}
+
 sample_coord_ith_link_cpp <- function(ab_ith, ab_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, gamma_ijt) {
     .Call(`_DynMultiNet_sample_coord_ith_link_cpp`, ab_ith, ab_t_sigma_prior_inv, tau_h, y_ijt, w_ijt, gamma_ijt)
 }
