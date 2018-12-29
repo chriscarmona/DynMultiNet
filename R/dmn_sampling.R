@@ -10,6 +10,7 @@
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
+#' @param add_eff Boolean. Indicates if dynamic additive effects by node should be considered.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -77,6 +78,9 @@ dmn_sampling <- function( y_ijtk,
                           directed=FALSE, weighted=FALSE,
                           
                           H_dim=10, R_dim=10,
+                          
+                          add_eff=FALSE,
+                          
                           delta=36,
                           
                           shrink_lat_space=TRUE,

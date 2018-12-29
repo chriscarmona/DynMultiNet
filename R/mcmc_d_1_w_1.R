@@ -10,6 +10,7 @@
 #' @param layer_all Character vector. Id's of layers in the network.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
+#' @param add_eff Boolean. Indicates if dynamic additive effects by node should be considered.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -94,15 +95,18 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   
   ### Dynamic additive effects for each node ###
-  sp_weight_it_shared <- array(runif(V_net*T_net*2),dim=c(V_net,T_net,2))
-  if(K_net>1){
-    sp_weight_itk <- array(runif(V_net*T_net*K_net*2),dim=c(V_net,T_net,K_net,2))
-    sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-  } else {
-    sp_weight_itk <- NULL
-    sp_weight_itk_mcmc <- NULL
+  sp_weight_it_shared <- array(0,dim=c(V_net,T_net,2))
+  sp_weight_itk <- NULL
+  if(add_eff){
+    sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
+    if(K_net>1){
+      sp_weight_itk <- array(0,dim=c(V_net,T_net,K_net,2))
+      sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
+    } else {
+      sp_weight_itk <- NULL
+      sp_weight_itk_mcmc <- NULL
+    }
   }
-  
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
@@ -170,15 +174,18 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   
   ### Dynamic additive effects for each node ###
-  sp_link_it_shared <- array(runif(V_net*T_net*2),dim=c(V_net,T_net,2))
-  if(K_net>1){
-    sp_link_itk <- array(runif(V_net*T_net*K_net*2),dim=c(V_net,T_net,K_net,2))
-    sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-  } else {
-    sp_link_itk <- NULL
-    sp_link_itk_mcmc <- NULL
+  sp_link_it_shared <- array(0,dim=c(V_net,T_net,2))
+  sp_link_itk <- NULL
+  if(add_eff){
+    sp_link_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
+    if(K_net>1){
+      sp_link_itk <- array(0,dim=c(V_net,T_net,K_net,2))
+      sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
+    } else {
+      sp_link_itk <- NULL
+      sp_link_itk_mcmc <- NULL
+    }
   }
-  
   
   # Latent coordinates #
   # shared: hth coordinate of actor v at time t shared across the different layers
@@ -323,7 +330,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     #cat(iter_i,",")
     
     ##### SAMPLING WEIGHTS #####
-      
+    
     ### Step W1. Sample baseline theta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_weight( theta_tk=theta_tk,
                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
@@ -347,6 +354,52 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     #                                  directed=TRUE )
     # mu_ijtk_new[diag_y_idx] <- NA
     # all.equal(mu_ijtk,mu_ijtk_new)
+    
+    if(add_eff){
+      ### Step W0_add_eff_shared. Sample global additive effects ###
+      out_aux <- sample_add_eff_it_shared_weight( sp_it_shared=sp_weight_it_shared,
+                                                  sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                                  y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
+                                                  sigma_k=sigma_k,
+                                                  directed=TRUE )
+      sp_weight_it_shared <- out_aux$sp_it_shared
+      mu_ijtk <- out_aux$mu_ijtk
+      mu_ijtk[diag_y_idx] <- NA
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        sp_weight_it_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- sp_weight_it_shared
+      }
+      
+      # # Checking consistency of linear predictor mu_ijtk
+      # mu_ijtk_old <- mu_ijtk
+      # mu_ijtk_old[diag_y_idx] <- NA
+      # mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
+      #                              add_eff_it_shared=sp_weight_it_shared,
+      #                              add_eff_itk=sp_weight_itk,
+      #                              coord_ith_shared=uv_ith_shared,
+      #                              coord_ithk=uv_ithk,
+      #                              directed=TRUE )
+      # mu_ijtk[diag_y_idx] <- NA
+      # all.equal(mu_ijtk,mu_ijtk_old)
+      
+      ### Step W0_add_eff_itk. Sample layer-specific additive effects ###
+      if(!is.null(sp_weight_itk)){
+        out_aux <- sample_add_eff_itk_weight( sp_itk=sp_weight_itk,
+                                              sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                              y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
+                                              sigma_k=sigma_k,
+                                              directed=TRUE )
+        sp_weight_itk <- out_aux$sp_itk
+        mu_ijtk <- out_aux$mu_ijtk
+        mu_ijtk[diag_y_idx] <- NA
+        
+        # MCMC chain #
+        if(is.element(iter_i,iter_out_mcmc)){
+          sp_weight_itk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- sp_weight_itk
+        }
+      }
+    }
     
     
     ### Step W2. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
@@ -419,25 +472,47 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                      directed=TRUE )
     
     
-    ### Step L2_add_eff. Sample additive effects from its conditional N-variate Gaussian posterior ###
-    browser()
-    out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
-                                        sp_t_cov_prior_inv=cov_gp_prior_inv,
-                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
-                                        directed=TRUE )
-    sp_link_itk <- out_aux$sp_itk
-    gamma_ijtk <- out_aux$gamma_ijtk
-    
-    # gamma_ijtk_old <- gamma_ijtk
-    # gamma_ijtk_old[diag_y_idx] <- NA
-    # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
-    #                                 add_eff_it_shared=sp_link_it_shared,
-    #                                 add_eff_itk=sp_link_itk,
-    #                                 coord_ith_shared=ab_ith_shared,
-    #                                 coord_ithk=ab_ithk,
-    #                                 directed=TRUE )
-    # gamma_ijtk[diag_y_idx] <- NA
-    # all.equal(gamma_ijtk,gamma_ijtk_old)
+    ### Step L2_add_eff_shared. Sample global additive effects ###
+    if(add_eff){
+      out_aux <- sample_add_eff_it_shared_link( sp_it_shared=sp_link_it_shared,
+                                                sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                                y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                                directed=TRUE )
+      sp_link_it_shared <- out_aux$sp_it_shared
+      gamma_ijtk <- out_aux$gamma_ijtk
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        sp_link_it_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- sp_link_it_shared
+      }
+      
+      # Checking consistency of linear predictor gamma_ijtk
+      # gamma_ijtk_old <- gamma_ijtk
+      # gamma_ijtk_old[diag_y_idx] <- NA
+      # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+      #                                 add_eff_it_shared=sp_link_it_shared,
+      #                                 add_eff_itk=sp_link_itk,
+      #                                 coord_ith_shared=ab_ith_shared,
+      #                                 coord_ithk=ab_ithk,
+      #                                 directed=TRUE )
+      # gamma_ijtk[diag_y_idx] <- NA
+      # all.equal(gamma_ijtk,gamma_ijtk_old)
+      
+      ### Step L2_add_eff_itk. Sample layer-specific additive effects ###
+      if(!is.null(sp_link_itk)){
+        out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
+                                            sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                            directed=TRUE )
+        sp_link_itk <- out_aux$sp_itk
+        gamma_ijtk <- out_aux$gamma_ijtk
+        
+        # MCMC chain #
+        if(is.element(iter_i,iter_out_mcmc)){
+          sp_link_itk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- sp_link_itk
+        }
+      }
+    }
     
     ### Step L2_baseline. Sample eta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
@@ -448,12 +523,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     gamma_ijtk <- out_aux$gamma_ijtk # This updates gamma_ijtk except for the diagonal
     gamma_ijtk[diag_y_idx] <- NA
     
-    # gamma_ijtk_new <- get_linpred_ijtk( baseline_tk=eta_tk,
-    #                                     coord_ith_shared=ab_ith_shared,
-    #                                     coord_ithk=ab_ithk,
-    #                                     directed=TRUE )
-    # gamma_ijtk_new[diag_y_idx] <- NA
-    # all.equal(gamma_ijtk,gamma_ijtk_new)
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){

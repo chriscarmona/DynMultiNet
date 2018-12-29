@@ -62,7 +62,6 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
   arma::mat theta_t_cov = arma::zeros<arma::mat>(T_net,T_net);
   arma::mat theta_t_cov_inv = arma::zeros<arma::mat>(T_net,T_net);
   
-  
   if( directed ){
     aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
     for( i=0; i<V_net; i++ ) {
@@ -150,7 +149,429 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
 }
 
 
-// To be checked
+// [[Rcpp::export]]
+Rcpp::List sample_add_eff_it_weight_cpp( arma::colvec sp_it,
+                                       const arma::mat sp_t_cov_prior_inv,
+                                       const arma::cube y_ijt,
+                                       arma::cube mu_ijt,
+                                       const double sigma_k,
+                                       const bool directed=false ) {
+  // Network and latent space dimensions
+  unsigned int V_net = y_ijt.n_rows;
+  unsigned int T_net = y_ijt.n_slices;
+  
+  // Auxiliar objects
+  unsigned int i=0;
+  unsigned int t=0;
+  unsigned int dir=0;
+  arma::uvec aux_uvec_1;
+  arma::colvec aux_vec;
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
+  arma::mat aux_mat_3;
+  arma::cube aux_cube_1;
+  
+  // Objects for the calculation
+  arma::colvec Y = arma::zeros<arma::colvec>(1);
+  arma::colvec linpred = arma::zeros<arma::colvec>(1);
+  
+  arma::colvec C = arma::zeros<arma::colvec>(1);
+  arma::colvec C_all = C;
+  
+  arma::sp_mat Omega_sp;
+  
+  // Prior covariance
+  arma::mat sp_it_cov_prior_inv = kron( sp_t_cov_prior_inv, arma::eye<arma::mat>(V_net,V_net) );
+  
+  // Design matrix //
+  arma::mat X = arma::zeros<arma::mat>(1,1);
+  // Setting design matrix //
+  aux_mat_1 = arma::eye<arma::mat>(V_net,V_net); // create diagonal matrix
+  if( !directed ){
+    aux_mat_1.insert_cols(aux_mat_1.n_cols,(T_net-1)*V_net); // insert zero columns to end up having TV columns
+  } else {
+    aux_mat_1.insert_cols(aux_mat_1.n_cols,(2*T_net-1)*V_net); // insert zero columns to end up having 2TV columns
+  }
+  // aux_mat_1 will be the mold duplicated
+  aux_mat_3 = arma::zeros<arma::mat>(1,aux_mat_1.n_cols);
+  for( i=0; i<V_net; i++ ) {
+    aux_mat_2 = aux_mat_1;
+    if( !directed ){
+      aux_mat_2.col(i) = arma::ones<arma::mat>(V_net,1); // set i-th column to 1
+      aux_mat_2.shed_rows(0,i);
+    } else {
+      aux_mat_2.col(T_net*V_net+i) = arma::ones<arma::mat>(V_net,1); // set TV+i-th column to 1
+      aux_mat_2.shed_row(i);
+    }
+    aux_mat_3.insert_rows(aux_mat_3.n_rows,aux_mat_2);
+  }
+  aux_mat_3.shed_row(0);
+  
+  X = aux_mat_3;
+  for( t=1; t<T_net; t++ ) {
+    aux_mat_3.shed_cols(aux_mat_3.n_cols-V_net,aux_mat_3.n_cols-1);
+    aux_mat_3.insert_cols(0,V_net);
+    X.insert_rows(X.n_rows,aux_mat_3);
+  }
+  arma::sp_mat X_sp = arma::sp_mat(X);
+  arma::sp_mat X_sp_valid = X_sp;
+  
+  // vector that identifies valid observation for the model
+  // in this case, where Y!=0 and is not NA
+  arma::uvec valid_obs;
+  
+  // Marginal posterior covariance matrix for sp_it
+  arma::mat sp_it_cov_inv=arma::eye<arma::mat>(T_net*V_net,T_net*V_net);
+  arma::mat sp_it_cov;
+  arma::colvec sp_it_mean = arma::zeros<arma::colvec>(2*V_net*T_net);
+  
+  if( !directed ){
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = y_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+    Y = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = mu_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+    linpred = aux_mat_1;
+    
+  } else {
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = y_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+      aux_mat_2.shed_row(i);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+    Y = aux_mat_1;
+    
+    aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = mu_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+      aux_mat_2.shed_row(i);
+      aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+    }
+    aux_mat_1.shed_row(0);
+    aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+    linpred = aux_mat_1;
+    
+  }
+  
+  // Constant term for theta in the linear predictor
+  C_all = linpred - (X_sp * sp_it);
+  
+  // identifies valid obs
+  valid_obs = find_finite(Y); // find valid elements
+  
+  // Keep only valid cases
+  Y = Y.rows(valid_obs);
+  linpred = linpred.rows(valid_obs);
+  C = C_all.rows(valid_obs);
+  X_sp_valid = arma::sp_mat(X.rows(valid_obs));
+  
+  for( dir=0; dir<2; dir++ ) { // dir=0 samples p ; dir=1 samples s
+    if( (dir==1) | (directed&(dir==0)) ) { // if directed, sample s and p. if undirected sample only s
+      // Rcpp::Rcout << "dir=" << dir << std::endl;
+      
+      if( dir==0 ){
+        // Marginal Posterior Covariance
+        sp_it_cov_inv = (1/pow(sigma_k,2)) * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1) ;
+        sp_it_cov_inv += sp_it_cov_prior_inv;
+        sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
+        // Marginal Posterior Mean
+        sp_it_mean = sp_it_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (Y-C) );
+        
+        // Sampling sp_it
+        sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+      } else if( dir==1 ){
+        // Marginal Posterior Covariance
+        sp_it_cov_inv = (1/pow(sigma_k,2)) * X_sp_valid.cols(0,T_net*V_net-1).t() * X_sp_valid.cols(0,T_net*V_net-1);
+        sp_it_cov_inv += sp_it_cov_prior_inv;
+        sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
+        // Marginal Posterior Mean
+        sp_it_mean = sp_it_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.cols(0,T_net*V_net-1).t() * (Y-C) );
+        
+        // Sampling sp_it
+        sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+      }
+    }
+  }
+  // return sp_it;
+  
+  // Recalculate linpred with the new values of sp_it
+  linpred = X_sp * sp_it + C_all;
+  // Redefine mu_ijt with the new values of linpred
+  if( !directed ){
+    aux_mat_1 = linpred;
+    aux_mat_1.reshape(V_net*(V_net-1)/2,T_net);
+    for( i=1; i<V_net; i++ ) {
+      aux_mat_2 = aux_mat_1.rows((i-1)*V_net-((i-1)*i)/2,i*V_net-(i*(i+1))/2-1);
+      mu_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1) = aux_mat_2;
+    }
+  } else {
+    aux_mat_1 = linpred;
+    aux_mat_1.reshape(V_net*(V_net-1),T_net);
+    for( i=0; i<V_net; i++ ) {
+      aux_mat_2 = aux_mat_1.rows(i*(V_net-1),(i+1)*(V_net-1)-1);
+      aux_mat_2.insert_rows(i,arma::zeros<arma::mat>(1,T_net));
+      mu_ijt.subcube(0,i,0, V_net-1,i,T_net-1) = aux_mat_2;
+    }
+  }
+  
+  return Rcpp::List::create( Rcpp::Named("sp_it") = sp_it,
+                             Rcpp::Named("mu_ijt") = mu_ijt );
+}
+
+
+// [[Rcpp::export]]
+Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
+                                                const arma::mat sp_t_cov_prior_inv,
+                                                const arma::field<arma::cube> y_ijtk,
+                                                arma::field<arma::cube> mu_ijtk,
+                                                const arma::colvec sigma_k,
+                                                const bool directed=false ) {
+  
+  arma::cube y_ijt = y_ijtk(0);
+  arma::cube mu_ijt = mu_ijtk(0);
+  
+  // Network and latent space dimensions
+  unsigned int V_net = y_ijt.n_rows;
+  unsigned int T_net = y_ijt.n_slices;
+  unsigned int K_net = y_ijtk.n_rows;
+  
+  // Auxiliar objects
+  unsigned int i=0;
+  unsigned int t=0;
+  unsigned int k=0;
+  unsigned int dir=0;
+  arma::uvec aux_uvec_1;
+  arma::colvec aux_vec;
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
+  arma::mat aux_mat_3;
+  arma::cube aux_cube_1;
+  
+  // Objects for the calculation
+  arma::colvec Y = arma::zeros<arma::colvec>(1);
+  arma::colvec linpred = arma::zeros<arma::colvec>(1);
+  
+  arma::colvec C = arma::zeros<arma::colvec>(1);
+  arma::colvec C_all = C;
+  
+  // Variance associated with each observation in Y
+  arma::colvec sigma_Y_inv = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
+  if(!directed){
+    sigma_Y_inv = arma::zeros<arma::colvec>(K_net*T_net*V_net*(V_net-1)/2);
+    for( k=0; k<K_net; k++ ) {
+      sigma_Y_inv.rows( k*T_net*V_net*(V_net-1)/2,(k+1)*T_net*V_net*(V_net-1)/2-1 ).fill( 1/sigma_k(k) );
+    }
+  } else {
+    sigma_Y_inv = arma::zeros<arma::colvec>(K_net*T_net*V_net*(V_net-1));
+    for( k=0; k<K_net; k++ ) {
+      sigma_Y_inv.rows( k*T_net*V_net*(V_net-1),(k+1)*T_net*V_net*(V_net-1)-1 ).fill( 1/sigma_k(k) );
+    }
+  }
+  // arma::sp_mat Omega_sp;
+  
+  // Prior covariance
+  arma::mat sp_it_cov_prior_inv = kron( sp_t_cov_prior_inv, arma::eye<arma::mat>(V_net,V_net) );
+  
+  // Design matrix //
+  arma::mat X = arma::zeros<arma::mat>(1,1);
+  // Setting design matrix //
+  aux_mat_1 = arma::eye<arma::mat>(V_net,V_net); // create diagonal matrix
+  if( !directed ){
+    aux_mat_1.insert_cols(aux_mat_1.n_cols,(T_net-1)*V_net); // insert zero columns to end up having TV columns
+  } else {
+    aux_mat_1.insert_cols(aux_mat_1.n_cols,(2*T_net-1)*V_net); // insert zero columns to end up having 2TV columns
+  }
+  // aux_mat_1 will be the mold duplicated
+  aux_mat_3 = arma::zeros<arma::mat>(1,aux_mat_1.n_cols);
+  for( i=0; i<V_net; i++ ) {
+    aux_mat_2 = aux_mat_1;
+    if( !directed ){
+      aux_mat_2.col(i) = arma::ones<arma::mat>(V_net,1); // set i-th column to 1
+      aux_mat_2.shed_rows(0,i);
+    } else {
+      aux_mat_2.col(T_net*V_net+i) = arma::ones<arma::mat>(V_net,1); // set TV+i-th column to 1
+      aux_mat_2.shed_row(i);
+    }
+    aux_mat_3.insert_rows(aux_mat_3.n_rows,aux_mat_2);
+  }
+  aux_mat_3.shed_row(0);
+  
+  X = aux_mat_3;
+  for( t=1; t<T_net; t++ ) {
+    aux_mat_3.shed_cols(aux_mat_3.n_cols-V_net,aux_mat_3.n_cols-1);
+    aux_mat_3.insert_cols(0,V_net);
+    X.insert_rows(X.n_rows,aux_mat_3);
+  }
+  X = repmat(X,K_net,1);
+  arma::sp_mat X_sp = arma::sp_mat(X);
+  arma::sp_mat X_sp_valid = X_sp;
+  
+  // vector that identifies valid observation for the model
+  // in this case, where Y!=0 and is not NA
+  arma::uvec valid_obs;
+  arma::colvec sigma_Y_inv_valid = sigma_Y_inv;
+  arma::sp_mat sigma_Y_inv_valid_mat = arma::speye<arma::sp_mat>(1,1);
+  
+  // Marginal posterior covariance matrix for sp_it
+  arma::mat sp_it_cov_inv=arma::zeros<arma::mat>(T_net*V_net,T_net*V_net);
+  arma::mat sp_it_cov;
+  arma::colvec sp_it_mean = arma::zeros<arma::colvec>(2*V_net*T_net);
+  
+  
+  // Create vectors Y and linpred tht serve as response and  //
+  if( !directed ){
+    Y = arma::zeros<arma::colvec>(K_net*T_net*V_net*(V_net-1)/2);
+    linpred = arma::zeros<arma::colvec>(K_net*T_net*V_net*(V_net-1)/2);
+  } else {
+    Y = arma::zeros<arma::colvec>(K_net*T_net*V_net*(V_net-1));
+    linpred = arma::zeros<arma::colvec>(K_net*T_net*V_net*(V_net-1));
+  }
+  
+  
+  for( k=0; k<K_net; k++ ) {
+    // Rcpp::Rcout << "k=" << k << std::endl;
+    y_ijt = y_ijtk(k);
+    mu_ijt = mu_ijtk(k);
+    
+    if( !directed ){
+      
+      aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+      for( i=1; i<V_net; i++ ) {
+        aux_mat_2 = y_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+        aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+      }
+      aux_mat_1.shed_row(0);
+      aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+      Y.rows(k*T_net*V_net*(V_net-1)/2, (k+1)*T_net*V_net*(V_net-1)/2-1) = aux_mat_1;
+      
+      aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+      for( i=1; i<V_net; i++ ) {
+        aux_mat_2 = mu_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
+        aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+      }
+      aux_mat_1.shed_row(0);
+      aux_mat_1.reshape(T_net*V_net*(V_net-1)/2,1);
+      linpred.rows(k*T_net*V_net*(V_net-1)/2, (k+1)*T_net*V_net*(V_net-1)/2-1) = aux_mat_1;
+      
+    } else {
+      
+      aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+      for( i=0; i<V_net; i++ ) {
+        aux_mat_2 = y_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+        aux_mat_2.shed_row(i);
+        aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+      }
+      aux_mat_1.shed_row(0);
+      aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+      Y.rows(k*T_net*V_net*(V_net-1), (k+1)*T_net*V_net*(V_net-1)-1) = aux_mat_1;
+      
+      aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+      for( i=0; i<V_net; i++ ) {
+        aux_mat_2 = mu_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
+        aux_mat_2.shed_row(i);
+        aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
+      }
+      aux_mat_1.shed_row(0);
+      aux_mat_1.reshape(T_net*V_net*(V_net-1),1);
+      linpred.rows(k*T_net*V_net*(V_net-1), (k+1)*T_net*V_net*(V_net-1)-1) = aux_mat_1;
+      
+    }
+  }
+  
+  // Constant term for theta in the linear predictor
+  C_all = linpred - (X_sp * sp_it);
+  
+  // identifies valid obs
+  valid_obs = find_finite(Y); // find valid elements
+  
+  // Keep only valid cases
+  Y = Y.rows(valid_obs);
+  linpred = linpred.rows(valid_obs);
+  C = C_all.rows(valid_obs);
+  X_sp_valid = arma::sp_mat(X.rows(valid_obs));
+  sigma_Y_inv_valid = sigma_Y_inv.rows(valid_obs);
+  sigma_Y_inv_valid_mat = arma::speye<arma::sp_mat>(sigma_Y_inv_valid.n_rows,sigma_Y_inv_valid.n_rows);
+  sigma_Y_inv_valid_mat.diag() = sigma_Y_inv_valid;
+  
+  for( dir=0; dir<2; dir++ ) { // dir=0 samples p ; dir=1 samples s
+    if( (dir==1) | (directed&(dir==0)) ) { // if directed, sample s and p. if undirected sample only s
+      // Rcpp::Rcout << "dir=" << dir << std::endl;
+      
+      if( dir==0 ){
+        // Marginal Posterior Covariance
+        sp_it_cov_inv = X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (sigma_Y_inv_valid_mat * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1));
+        sp_it_cov_inv += sp_it_cov_prior_inv;
+        sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
+        // Marginal Posterior Mean
+        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C)) );
+        
+        // Sampling sp_it
+        sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+      } else if( dir==1 ){
+        // Marginal Posterior Covariance
+        sp_it_cov_inv = X_sp_valid.cols(0,T_net*V_net-1).t() * (sigma_Y_inv_valid_mat * X_sp_valid.cols(0,T_net*V_net-1));
+        sp_it_cov_inv += sp_it_cov_prior_inv;
+        sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
+        // Marginal Posterior Mean
+        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(0,T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C)) );
+        
+        // Sampling sp_it
+        sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+      }
+    }
+  }
+  // return sp_it;
+  
+  // Recalculate linpred with the new values of sp_it
+  linpred = X_sp * sp_it + C_all;
+  // Redefine mu_ijt with the new values of linpred
+  for( k=0; k<K_net; k++ ) {
+    // Rcpp::Rcout << "k=" << k << std::endl;
+    mu_ijt = mu_ijtk(k);
+    
+    if( !directed ){
+      aux_mat_1 = linpred.rows(k*T_net*V_net*(V_net-1)/2, (k+1)*T_net*V_net*(V_net-1)/2-1);
+      aux_mat_1.reshape(V_net*(V_net-1)/2,T_net);
+      for( i=1; i<V_net; i++ ) {
+        aux_mat_2 = aux_mat_1.rows((i-1)*V_net-((i-1)*i)/2,i*V_net-(i*(i+1))/2-1);
+        mu_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1) = aux_mat_2;
+      }
+    } else {
+      aux_mat_1 = linpred.rows(k*T_net*V_net*(V_net-1), (k+1)*T_net*V_net*(V_net-1)-1);
+      aux_mat_1.reshape(V_net*(V_net-1),T_net);
+      for( i=0; i<V_net; i++ ) {
+        aux_mat_2 = aux_mat_1.rows(i*(V_net-1),(i+1)*(V_net-1)-1);
+        aux_mat_2.insert_rows(i,arma::zeros<arma::mat>(1,T_net));
+        mu_ijt.subcube(0,i,0, V_net-1,i,T_net-1) = aux_mat_2;
+      }
+    }
+    
+    mu_ijtk(k) = mu_ijt;
+  }
+  
+  return Rcpp::List::create( Rcpp::Named("sp_it") = sp_it,
+                             Rcpp::Named("mu_ijtk") = mu_ijtk );
+}
+
+
 // [[Rcpp::export]]
 Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith,
                                         const arma::mat uv_t_sigma_prior_inv,
@@ -276,7 +697,6 @@ Rcpp::List sample_coord_ith_weight_cpp( arma::cube uv_ith,
 }
 
 
-// To be checked
 // [[Rcpp::export]]
 Rcpp::List sample_coord_ith_shared_weight_cpp( arma::cube uv_ith_shared,
                                                const arma::mat uv_t_sigma_prior_inv,
@@ -707,7 +1127,7 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
       // Rcpp::Rcout << " i=" << i << std::endl;
       
       if( dir==0 ) {
-        // Updating Y, W, linpred as vectors, lower triangular adjacency
+        // Updating Y, linpred as vectors, lower triangular adjacency
         for( k=0; k<K_net; k++ ) {
           
           y_ijt = y_ijtk(k);
@@ -740,7 +1160,7 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
         X_sp = arma::sp_mat(X);
         
       } else if( dir==1 ) {
-        // Updating Y, W, linpred as vectors, upper triangular adjacency
+        // Updating Y, linpred as vectors, upper triangular adjacency
         for( k=0; k<K_net; k++ ) {
           y_ijt = y_ijtk(k);
           aux_mat_1 = y_ijt.subcube(0,i,0, V_net-1,i,T_net-1);
@@ -862,7 +1282,6 @@ double sample_var_weight_cpp( double sigma_k,
                               double sigma_k_prop_int,
                               const arma::cube y_ijt,
                               const arma::cube mu_ijt,
-                              
                               const bool directed=false ) {
   
   // Network and latent space dimensions

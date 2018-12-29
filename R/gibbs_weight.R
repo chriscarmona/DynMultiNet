@@ -29,6 +29,84 @@ sample_baseline_tk_weight <- function( theta_tk,
 
 
 #' @keywords internal
+sample_add_eff_itk_weight <- function( sp_itk,
+                                       sp_t_cov_prior_inv,
+                                       y_ijtk, mu_ijtk,
+                                       sigma_k,
+                                       directed=FALSE ) {
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  K_net <- dim(y_ijtk)[4]
+  
+  # This function only deals with positive weighted edges
+  y_ijtk[y_ijtk<0] <- NA
+  
+  ### Sample sp_it ###
+  for( k in 1:K_net ) { # k<-1
+    if(!directed) {
+      sp_it = c(sp_itk[,,k])
+    } else {
+      sp_it = c(sp_itk[,,k,])
+    }
+    out_aux <- sample_add_eff_it_weight_cpp( sp_it=sp_it, # transformed to vector
+                                             sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+                                             y_ijt=y_ijtk[,,,k],
+                                             mu_ijt=mu_ijtk[,,,k],
+                                             sigma_k=sigma_k[k],
+                                             directed=directed )
+    if(!directed) {
+      sp_itk[,,k] <- array(out_aux$sp_it,dim=c(V_net,T_net))
+    } else {
+      sp_itk[,,k,] <- array(out_aux$sp_it,dim=c(V_net,T_net,2))
+    }
+    mu_ijtk[,,,k] <- out_aux$mu_ijt
+  }
+  
+  return( list( sp_itk=sp_itk,
+                mu_ijtk=mu_ijtk ) );
+}
+
+
+#' @keywords internal
+sample_add_eff_it_shared_weight <- function( sp_it_shared,
+                                             sp_t_cov_prior_inv,
+                                             y_ijtk, mu_ijtk,
+                                             sigma_k,
+                                             directed=FALSE ) {
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  K_net <- dim(y_ijtk)[4]
+  
+  # This function only deals with positive weighted edges
+  y_ijtk[y_ijtk<0] <- NA
+  
+  # transform arrays to list, as armadillo fields are required as input
+  y_ijtk_list <- mu_ijtk_list <- list(NULL)
+  for(k in 1:K_net) {
+    y_ijtk_list[[k]] <- y_ijtk[,,,k]
+    mu_ijtk_list[[k]] <- mu_ijtk[,,,k]
+  }
+  
+  ### Sample sp_it_shared ###
+  out_aux <- sample_add_eff_it_shared_weight_cpp( sp_it=c(sp_it_shared), # transformed to vector
+                                                  sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+                                                  y_ijt=y_ijtk_list,
+                                                  mu_ijt=mu_ijtk_list,
+                                                  sigma_k=sigma_k,
+                                                  directed=directed )
+  if(!directed) {
+    sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net))
+  } else {
+    sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net,2))
+  }
+  for(k in 1:K_net) {mu_ijtk[,,,k] <- out_aux$mu_ijtk[k,1][[1]]}
+  
+  return( list( sp_it_shared=sp_it_shared,
+                mu_ijtk=mu_ijtk ) );
+}
+
+
+#' @keywords internal
 sample_coord_ith_shared_weight <- function( uv_ith_shared,
                                             uv_t_sigma_prior_inv,
                                             tau_h,

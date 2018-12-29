@@ -52,6 +52,7 @@ sample_baseline_tk_link <- function( eta_tk,
                 gamma_ijtk=gamma_ijtk ) );
 }
 
+
 #' @keywords internal
 sample_add_eff_itk_link <- function( sp_itk,
                                      sp_t_cov_prior_inv,
@@ -60,14 +61,13 @@ sample_add_eff_itk_link <- function( sp_itk,
   
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
-  
   K_net <- dim(y_ijtk)[4]
   
   # This function only deals with binary edges (non-weighted)
   y_ijtk[y_ijtk>0] <- 1
   y_ijtk[y_ijtk<0] <- NA
   
-  ### Sample eta_t from its conditional N-variate Gaussian posterior ###
+  ### Sample sp_it ###
   for( k in 1:K_net ) { # k<-1
     if(!directed) {
       sp_it = c(sp_itk[,,k])
@@ -91,6 +91,48 @@ sample_add_eff_itk_link <- function( sp_itk,
   return( list( sp_itk=sp_itk,
                 gamma_ijtk=gamma_ijtk ) );
 }
+
+
+#' @keywords internal
+sample_add_eff_it_shared_link <- function( sp_it_shared,
+                                           sp_t_cov_prior_inv,
+                                           y_ijtk, w_ijtk, gamma_ijtk,
+                                           directed=FALSE ) {
+  
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  K_net <- dim(y_ijtk)[4]
+  
+  # This function only deals with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
+  y_ijtk[y_ijtk<0] <- NA
+  
+  # transform arrays to list, as armadillo fields are required as input
+  y_ijtk_list <- w_ijtk_list <- gamma_ijtk_list <- list(NULL)
+  for(k in 1:K_net) {
+    y_ijtk_list[[k]] <- y_ijtk[,,,k]
+    w_ijtk_list[[k]] <- w_ijtk[,,,k]
+    gamma_ijtk_list[[k]] <- gamma_ijtk[,,,k]
+  }
+  
+  ### Sample sp_it_shared ###
+  out_aux <- sample_add_eff_it_shared_link_cpp( sp_it=c(sp_it_shared), # transformed to vector
+                                                sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+                                                y_ijt=y_ijtk_list,
+                                                w_ijt=w_ijtk_list,
+                                                gamma_ijt=gamma_ijtk_list,
+                                                directed=directed )
+  if(!directed) {
+    sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net))
+  } else {
+    sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net,2))
+  }
+  for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
+  
+  return( list( sp_it_shared=sp_it_shared,
+                gamma_ijtk=gamma_ijtk ) );
+}
+
 
 #' @keywords internal
 sample_coord_ith_shared_link <- function( ab_ith_shared,

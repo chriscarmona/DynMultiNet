@@ -10,6 +10,7 @@
 #' @param layer_all Character vector. Id's of layers in the network.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
+#' @param add_eff Boolean. Indicates if dynamic additive effects by node should be considered.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -36,6 +37,9 @@ mcmc_d_0_w_1 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           
                           H_dim=10, R_dim=10,
+                          
+                          add_eff=FALSE,
+                          
                           delta=delta,
                           
                           shrink_lat_space=FALSE,
@@ -432,16 +436,24 @@ mcmc_d_0_w_1 <- function( y_ijtk,
                                      gamma_ijtk=gamma_ijtk,
                                      directed=FALSE )
     
-    ### Step L2_add_eff. Sample additive effects from its conditional N-variate Gaussian posterior ###
-    out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
-                                        sp_t_cov_prior_inv=cov_gp_prior_inv,
-                                        y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
-                                        directed=FALSE )
-    sp_link_itk <- out_aux$sp_itk
+    ### Step L2_add_eff_shared. Sample global additive effects ###
+    browser()
+    out_aux <- sample_add_eff_it_shared_link( sp_it_shared=sp_link_it_shared,
+                                              sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                              y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                              directed=FALSE )
+    sp_link_it_shared <- out_aux$sp_it_shared
     gamma_ijtk <- out_aux$gamma_ijtk
-    # gamma_ijtk[!lowtri_y_idx] <- NA
+    gamma_ijtk[!lowtri_y_idx] <- NA
     
+    # MCMC chain #
+    if(is.element(iter_i,iter_out_mcmc)){
+      sp_link_it_shared_mcmc[,,match(iter_i,iter_out_mcmc)] <- eta_tk
+    }
+    
+    # Checking consistency of linear predictor gamma_ijtk
     # gamma_ijtk_old <- gamma_ijtk
+    # gamma_ijtk_old[!lowtri_y_idx] <- NA
     # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
     #                                 add_eff_it_shared=sp_link_it_shared,
     #                                 add_eff_itk=sp_link_itk,
@@ -450,6 +462,21 @@ mcmc_d_0_w_1 <- function( y_ijtk,
     #                                 directed=FALSE )
     # gamma_ijtk[!lowtri_y_idx] <- NA
     # all.equal(gamma_ijtk,gamma_ijtk_old)
+    
+    ### Step L2_add_eff_itk. Sample layer-specific additive effects ###
+    if(!is.null(sp_link_itk)){
+      out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
+                                          sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                          y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                          directed=FALSE )
+      sp_link_itk <- out_aux$sp_itk
+      gamma_ijtk <- out_aux$gamma_ijtk
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        sp_link_itk_mcmc[,,,match(iter_i,iter_out_mcmc)] <- eta_tk
+      }
+    }
     
     ### Step L2_mu. Sample eta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
