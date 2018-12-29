@@ -10,7 +10,8 @@
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param add_eff Boolean. Indicates if dynamic additive effects by node should be considered.
+#' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
+#' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -79,7 +80,8 @@ dmn_sampling <- function( y_ijtk,
                           
                           H_dim=10, R_dim=10,
                           
-                          add_eff=FALSE,
+                          add_eff_weight=FALSE,
+                          add_eff_link=FALSE,
                           
                           delta=36,
                           
@@ -210,6 +212,9 @@ dmn_sampling <- function( y_ijtk,
                               z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                               
                               H_dim=H_dim, R_dim=R_dim,
+                              
+                              add_eff_link=add_eff_link,
+                              
                               delta=delta,
                               
                               shrink_lat_space=shrink_lat_space,
@@ -231,6 +236,9 @@ dmn_sampling <- function( y_ijtk,
                               z_tkp=z_tkp, z_ijtkp=z_ijtkp,
                               
                               H_dim=H_dim, R_dim=R_dim,
+                              
+                              add_eff_link=add_eff_link,
+                              
                               delta=delta,
                               
                               shrink_lat_space=shrink_lat_space,
@@ -248,6 +256,10 @@ dmn_sampling <- function( y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
                               
                               H_dim=H_dim, R_dim=R_dim,
+                              
+                              add_eff_link=add_eff_link,
+                              add_eff_weight=add_eff_weight,
+                              
                               delta=delta,
                               
                               shrink_lat_space=shrink_lat_space,
@@ -265,6 +277,10 @@ dmn_sampling <- function( y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
                               
                               H_dim=H_dim, R_dim=R_dim,
+                              
+                              add_eff_link=add_eff_link,
+                              add_eff_weight=add_eff_weight,
+                              
                               delta=delta,
                               
                               shrink_lat_space=shrink_lat_space,

@@ -7,19 +7,24 @@
 #' @param x an object of class "\code{plot_dmn_mcmc}"
 #' @param param Character. Specifies the parameter that will be plotted. Possible parameters are:
 #'        \describe{
-#'            \item{\code{"pi_ijtk"}}{Edge probabilities between node_i and node_j at time t in layer_k.}
-#'            \item{\code{"eta_tk"}}{Baseline process for edge probability at layer_k.}
-#'            \item{\code{"ab_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge probability.}
-#'            \item{\code{"ab_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge probability.}
-#'            \item{\code{"tau_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h, corresponding to edge probability.}
-#'            \item{\code{"tau_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h, corresponding to edge probability.}
 #'            \item{\code{"mu_ijtk"}}{Expected value of edge weight between node_i and node_j at time t in layer_k.}
 #'            \item{\code{"sigma_k"}}{Variance of edge weight at layer_k.}
 #'            \item{\code{"theta_tk_mcmc"}}{Baseline process for edge weight at layer_k.}
-#'            \item{\code{"uv_ith_shared"}}{Shared latent coordinates for node_i in dimension h, corresponding to edge weight.}
+#'            \item{\code{"sp_weight_it_shared"}}{Global additive effects for node_i, interpreted as a sociability parameter.}
+#'            \item{\code{"sp_weight_itk"}}{Layer-specific additive effects for node_i at layer k, interpreted as a sociability parameter.}
+#'            \item{\code{"uv_ith_shared"}}{Global latent coordinates for node_i in dimension h, corresponding to edge weight.}
 #'            \item{\code{"uv_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge weight}
 #'            \item{\code{"rho_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h, corresponding to edge weight}
 #'            \item{\code{"rho_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h, corresponding to edge weight}
+#'            
+#'            \item{\code{"pi_ijtk"}}{Edge probabilities between node_i and node_j at time t in layer_k.}
+#'            \item{\code{"eta_tk"}}{Baseline process for edge probability at layer_k.}
+#'            \item{\code{"sp_link_it_shared"}}{Global additive effects for node_i, interpreted as a sociability parameter.}
+#'            \item{\code{"sp_link_itk"}}{Layer-specific additive effects for node_i at layer k, interpreted as a sociability parameter.}
+#'            \item{\code{"ab_ith_shared"}}{Global latent coordinates for node_i in dimension h, corresponding to edge probability.}
+#'            \item{\code{"ab_ithk"}}{Layer-specific latent coordinates for node_i at layer_k in dimension h, corresponding to edge probability.}
+#'            \item{\code{"tau_h_shared"}}{MCMC chain for the shrinkage parameter of the global latent space in dimension h, corresponding to edge probability.}
+#'            \item{\code{"tau_h_k"}}{MCMC chain for the shrinkage parameter of the layer-specific latent space in dimension h, corresponding to edge probability.}
 #'            }
 #' @param node_i character/numeric. Id of a node in the network.
 #' @param node_j character/numeric. Id of a node in the network.
@@ -64,10 +69,15 @@
 
 plot_dmn_mcmc <- function( x,
                            param = c( "pi_ijtk",
-                                      "eta_tk", "ab_ith_shared", "ab_ithk",
+                                      "eta_tk",
+                                      "sp_link_it_shared","sp_link_itk",
+                                      "ab_ith_shared", "ab_ithk",
                                       "tau_h_shared","tau_h_k",
+                                      
                                       "mu_ijtk","sigma_k",
-                                      "lambda_tk","uv_ith_shared","uv_ithk",
+                                      "lambda_tk",
+                                      "sp_weight_it_shared","sp_weight_link_itk",
+                                      "uv_ith_shared","uv_ithk",
                                       "rho_h_shared","rho_h_k" )[1],
                            node_i=NULL, node_j=NULL, layer_k=NULL, h=NULL, pred_p=NULL,
                            lat_space=NULL,

@@ -10,7 +10,8 @@
 #' @param layer_all Character vector. Id's of layers in the network.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param add_eff Boolean. Indicates if dynamic additive effects by node should be considered.
+#' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
+#' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -38,6 +39,9 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           
                           H_dim=10, R_dim=10,
+                          
+                          add_eff_weight=FALSE,
+                          add_eff_link=FALSE,
                           
                           delta=36,
                           
@@ -96,15 +100,14 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   ### Dynamic additive effects for each node ###
   sp_weight_it_shared <- array(0,dim=c(V_net,T_net,2))
+  sp_weight_it_shared_mcmc <- NULL
   sp_weight_itk <- NULL
-  if(add_eff){
+  sp_weight_itk_mcmc <- NULL
+  if(add_eff_weight){
     sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
     if(K_net>1){
       sp_weight_itk <- array(0,dim=c(V_net,T_net,K_net,2))
       sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-    } else {
-      sp_weight_itk <- NULL
-      sp_weight_itk_mcmc <- NULL
     }
   }
   
@@ -175,15 +178,14 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   ### Dynamic additive effects for each node ###
   sp_link_it_shared <- array(0,dim=c(V_net,T_net,2))
+  sp_link_it_shared_mcmc <- NULL
   sp_link_itk <- NULL
-  if(add_eff){
+  sp_link_itk_mcmc <- NULL
+  if(add_eff_link){
     sp_link_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
     if(K_net>1){
       sp_link_itk <- array(0,dim=c(V_net,T_net,K_net,2))
       sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-    } else {
-      sp_link_itk <- NULL
-      sp_link_itk_mcmc <- NULL
     }
   }
   
@@ -355,7 +357,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     # mu_ijtk_new[diag_y_idx] <- NA
     # all.equal(mu_ijtk,mu_ijtk_new)
     
-    if(add_eff){
+    if(add_eff_weight){
       ### Step W0_add_eff_shared. Sample global additive effects ###
       out_aux <- sample_add_eff_it_shared_weight( sp_it_shared=sp_weight_it_shared,
                                                   sp_t_cov_prior_inv=cov_gp_prior_inv,
@@ -473,7 +475,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     
     ### Step L2_add_eff_shared. Sample global additive effects ###
-    if(add_eff){
+    if(add_eff_link){
       out_aux <- sample_add_eff_it_shared_link( sp_it_shared=sp_link_it_shared,
                                                 sp_t_cov_prior_inv=cov_gp_prior_inv,
                                                 y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
@@ -657,6 +659,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           # For link probabilities #
                           pi_ijtk_mcmc=pi_ijtk_mcmc,
                           eta_tk_mcmc=eta_tk_mcmc,
+                          sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
+                          sp_link_itk_mcmc=sp_link_itk_mcmc,
                           ab_ith_shared_mcmc=ab_ith_shared_mcmc,
                           ab_ithk_mcmc=ab_ithk_mcmc,
                           tau_h_shared_mcmc=tau_h_shared_mcmc,
@@ -670,6 +674,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           mu_ijtk_mcmc = mu_ijtk_mcmc,
                           sigma_k_mcmc = sigma_k_mcmc,
                           theta_tk_mcmc = theta_tk_mcmc,
+                          sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
+                          sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                           uv_ith_shared_mcmc = uv_ith_shared_mcmc,
                           uv_ithk_mcmc = uv_ithk_mcmc,
                           rho_h_shared_mcmc=rho_h_shared_mcmc,
@@ -712,6 +718,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     # For link probabilities #
                     pi_ijtk_mcmc=pi_ijtk_mcmc,
                     eta_tk_mcmc=eta_tk_mcmc,
+                    sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
+                    sp_link_itk_mcmc=sp_link_itk_mcmc,
                     ab_ith_shared_mcmc=ab_ith_shared_mcmc,
                     ab_ithk_mcmc=ab_ithk_mcmc,
                     tau_h_shared_mcmc=tau_h_shared_mcmc,
@@ -725,6 +733,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     mu_ijtk_mcmc = mu_ijtk_mcmc,
                     sigma_k_mcmc = sigma_k_mcmc,
                     theta_tk_mcmc = theta_tk_mcmc,
+                    sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
+                    sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                     uv_ith_shared_mcmc = uv_ith_shared_mcmc,
                     uv_ithk_mcmc = uv_ithk_mcmc,
                     rho_h_shared_mcmc=rho_h_shared_mcmc,

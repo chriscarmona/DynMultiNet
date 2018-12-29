@@ -122,6 +122,7 @@ sample_add_eff_it_shared_link <- function( sp_it_shared,
                                                 w_ijt=w_ijtk_list,
                                                 gamma_ijt=gamma_ijtk_list,
                                                 directed=directed )
+  
   if(!directed) {
     sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net))
   } else {

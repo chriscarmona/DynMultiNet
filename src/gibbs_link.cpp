@@ -227,7 +227,7 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
   arma::colvec linpred = arma::zeros<arma::colvec>(1);
   
   arma::colvec C = arma::zeros<arma::colvec>(1);
-  arma::colvec C_all = C;
+  arma::colvec C_valid = C;
   arma::colvec Z = arma::zeros<arma::colvec>(1);
   
   arma::sp_mat Omega_sp;
@@ -339,10 +339,6 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
     linpred = aux_mat_1;
     
   }
-  // Rcpp::Rcout << "(1)" << std::endl;
-
-  // Constant term for theta in the linear predictor
-  C_all = linpred - (X_sp * sp_it);
   
   // identifies valid obs
   valid_obs = find_finite(Y); // find valid elements
@@ -350,8 +346,6 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
   // Keep only valid cases
   Y = Y.rows(valid_obs);
   W = W.rows(valid_obs);
-  linpred = linpred.rows(valid_obs);
-  C = C_all.rows(valid_obs);
   X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   
   for( dir=0; dir<2; dir++ ) { // dir=0 samples p ; dir=1 samples s
@@ -370,7 +364,7 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
         // }
       } else {
         // Way 2:
-        sp_it_cov_inv=arma::eye<arma::mat>(T_net*V_net,T_net*V_net);
+        sp_it_cov_inv=arma::zeros<arma::mat>(T_net*V_net,T_net*V_net);
         if(!directed){
           for( t=0; t<T_net; t++ ) {
             aux_mat_1 = symmatl(w_ijt.slice(t)); // symmetric matrix from w_ijt, reflecting lower triangular matrix
@@ -380,7 +374,6 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
         } else {
           aux_mat_1 = sum(w_ijt,dir);
           aux_mat_1.reshape(T_net*V_net,1);
-          sp_it_cov_inv=arma::eye<arma::mat>(T_net*V_net,T_net*V_net);
           sp_it_cov_inv.diag()=aux_mat_1;
         }
       }
@@ -388,26 +381,37 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
       sp_it_cov_inv = sp_it_cov_inv + sp_it_cov_prior_inv;
       sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
       
-      Z = (Y-0.5)/W - C;
+      
       if( dir==0 ){
         // marginal posterior mean
+        C = linpred - (X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        Z = (Y-0.5)/W - C_valid;
         sp_it_mean = sp_it_cov * (X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (W % Z));
         
         // Sampling sp_it
         sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1) + C;
+        
       } else if( dir==1 ){
         // marginal posterior mean
+        C = linpred - (X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        Z = (Y-0.5)/W - C_valid;
         sp_it_mean = sp_it_cov * (X_sp_valid.cols(0,T_net*V_net-1).t() * (W % Z));
         
         // Sampling sp_it
         sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1) + C;
+        
       }
     }
   }
-  // return sp_it;
   
-  // Recalculate linpred with the new values of sp_it
-  linpred = X_sp * sp_it + C_all;
   // Redefine gamma_ijt with the new values of linpred
   if( !directed ){
     aux_mat_1 = linpred;
@@ -481,9 +485,10 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
   arma::colvec Y = arma::zeros<arma::colvec>(1);
   arma::colvec W = arma::zeros<arma::colvec>(1);
   arma::colvec linpred = arma::zeros<arma::colvec>(1);
+  arma::colvec linpred_all = linpred;
   
   arma::colvec C = arma::zeros<arma::colvec>(1);
-  arma::colvec C_all = C;
+  arma::colvec C_valid = C;
   arma::colvec Z = arma::zeros<arma::colvec>(1);
   
   // arma::sp_mat Omega_sp;
@@ -617,17 +622,12 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
     }
   }
   
-  // Constant term for theta in the linear predictor
-  C_all = linpred - (X_sp * sp_it);
-  
   // identifies valid obs
   valid_obs = find_finite(Y); // find valid elements
   
   // Keep only valid cases
   Y = Y.rows(valid_obs);
   W = W.rows(valid_obs);
-  linpred = linpred.rows(valid_obs);
-  C = C_all.rows(valid_obs);
   X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   
   for( dir=0; dir<2; dir++ ) { // dir=0 samples p ; dir=1 samples s
@@ -667,27 +667,34 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
       sp_it_cov_inv = sp_it_cov_inv + sp_it_cov_prior_inv;
       sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
       
-      
-      Z = (Y-0.5)/W - C;
       if( dir==0 ){
         // marginal posterior mean
+        C = linpred - (X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        Z = (Y-0.5)/W - C_valid;
         sp_it_mean = sp_it_cov * (X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (W % Z));
         
         // Sampling sp_it
         sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1) + C;
       } else if( dir==1 ){
         // marginal posterior mean
+        C = linpred - (X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        Z = (Y-0.5)/W - C_valid;
         sp_it_mean = sp_it_cov * (X_sp_valid.cols(0,T_net*V_net-1).t() * (W % Z));
         
         // Sampling sp_it
         sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1) + C;
       }
     }
   }
-  // return sp_it;
   
-  // Recalculate linpred with the new values of sp_it
-  linpred = X_sp * sp_it + C_all;
   // Redefine gamma_ijt with the new values of linpred
   for( k=0; k<K_net; k++ ) {
     // Rcpp::Rcout << "k=" << k << std::endl;

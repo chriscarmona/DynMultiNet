@@ -176,7 +176,7 @@ Rcpp::List sample_add_eff_it_weight_cpp( arma::colvec sp_it,
   arma::colvec linpred = arma::zeros<arma::colvec>(1);
   
   arma::colvec C = arma::zeros<arma::colvec>(1);
-  arma::colvec C_all = C;
+  arma::colvec C_valid = C;
   
   arma::sp_mat Omega_sp;
   
@@ -269,16 +269,11 @@ Rcpp::List sample_add_eff_it_weight_cpp( arma::colvec sp_it,
     
   }
   
-  // Constant term for theta in the linear predictor
-  C_all = linpred - (X_sp * sp_it);
-  
   // identifies valid obs
   valid_obs = find_finite(Y); // find valid elements
   
   // Keep only valid cases
   Y = Y.rows(valid_obs);
-  linpred = linpred.rows(valid_obs);
-  C = C_all.rows(valid_obs);
   X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   
   for( dir=0; dir<2; dir++ ) { // dir=0 samples p ; dir=1 samples s
@@ -291,27 +286,37 @@ Rcpp::List sample_add_eff_it_weight_cpp( arma::colvec sp_it,
         sp_it_cov_inv += sp_it_cov_prior_inv;
         sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
         // Marginal Posterior Mean
-        sp_it_mean = sp_it_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (Y-C) );
+        C = linpred - (X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        sp_it_mean = sp_it_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (Y-C_valid) );
         
         // Sampling sp_it
         sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1) + C;
+        
       } else if( dir==1 ){
         // Marginal Posterior Covariance
         sp_it_cov_inv = (1/pow(sigma_k,2)) * X_sp_valid.cols(0,T_net*V_net-1).t() * X_sp_valid.cols(0,T_net*V_net-1);
         sp_it_cov_inv += sp_it_cov_prior_inv;
         sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
         // Marginal Posterior Mean
-        sp_it_mean = sp_it_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.cols(0,T_net*V_net-1).t() * (Y-C) );
+        C = linpred - (X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        sp_it_mean = sp_it_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.cols(0,T_net*V_net-1).t() * (Y-C_valid) );
         
         // Sampling sp_it
         sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1) + C;
+        
       }
     }
   }
   // return sp_it;
   
-  // Recalculate linpred with the new values of sp_it
-  linpred = X_sp * sp_it + C_all;
   // Redefine mu_ijt with the new values of linpred
   if( !directed ){
     aux_mat_1 = linpred;
@@ -368,7 +373,7 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
   arma::colvec linpred = arma::zeros<arma::colvec>(1);
   
   arma::colvec C = arma::zeros<arma::colvec>(1);
-  arma::colvec C_all = C;
+  arma::colvec C_valid = C;
   
   // Variance associated with each observation in Y
   arma::colvec sigma_Y_inv = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
@@ -494,16 +499,11 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
     }
   }
   
-  // Constant term for theta in the linear predictor
-  C_all = linpred - (X_sp * sp_it);
-  
   // identifies valid obs
   valid_obs = find_finite(Y); // find valid elements
   
   // Keep only valid cases
   Y = Y.rows(valid_obs);
-  linpred = linpred.rows(valid_obs);
-  C = C_all.rows(valid_obs);
   X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   sigma_Y_inv_valid = sigma_Y_inv.rows(valid_obs);
   sigma_Y_inv_valid_mat = arma::speye<arma::sp_mat>(sigma_Y_inv_valid.n_rows,sigma_Y_inv_valid.n_rows);
@@ -518,11 +518,17 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
         sp_it_cov_inv = X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (sigma_Y_inv_valid_mat * X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1));
         sp_it_cov_inv += sp_it_cov_prior_inv;
         sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
+        
         // Marginal Posterior Mean
-        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C)) );
+        C = linpred - (X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C_valid)) );
         
         // Sampling sp_it
         sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1) + C;
         
       } else if( dir==1 ){
         // Marginal Posterior Covariance
@@ -530,18 +536,21 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
         sp_it_cov_inv += sp_it_cov_prior_inv;
         sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
         // Marginal Posterior Mean
-        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(0,T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C)) );
+        C = linpred - (X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1));
+        C_valid = C.rows(valid_obs);
+        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(0,T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C_valid)) );
         
         // Sampling sp_it
         sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
+        
+        // Recalculate linpred with the new values of sp_it
+        linpred = X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1) + C;
         
       }
     }
   }
   // return sp_it;
   
-  // Recalculate linpred with the new values of sp_it
-  linpred = X_sp * sp_it + C_all;
   // Redefine mu_ijt with the new values of linpred
   for( k=0; k<K_net; k++ ) {
     // Rcpp::Rcout << "k=" << k << std::endl;
