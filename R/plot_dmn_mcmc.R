@@ -75,7 +75,7 @@ plot_dmn_mcmc <- function( x,
                                       "tau_h_shared","tau_h_k",
                                       
                                       "mu_ijtk","sigma_k",
-                                      "lambda_tk",
+                                      "theta_tk",
                                       "sp_weight_it_shared","sp_weight_link_itk",
                                       "uv_ith_shared","uv_ithk",
                                       "rho_h_shared","rho_h_k" )[1],
@@ -89,7 +89,7 @@ plot_dmn_mcmc <- function( x,
                               "eta_tk", "ab_ith_shared", "ab_ithk",
                               "tau_h_shared","tau_h_k",
                               "mu_ijtk","sigma_k",
-                              "lambda_tk","uv_ith_shared","uv_ithk",
+                              "theta_tk","uv_ith_shared","uv_ithk",
                               "rho_h_shared","rho_h_k" ) ) ) {stop("param=",param," not supported.")}
   
   directed <- x$directed
@@ -209,7 +209,7 @@ plot_dmn_mcmc <- function( x,
     p <- p + labs(title="sigma_k",subtitle="MCMC trace")
     return(p)
     
-  } else if( is.element(param,"lambda_tk") ){
+  } else if( is.element(param,"theta_tk") ){
     
     if(is.null(layer_k)){ layer_k=x$layer_all[1]; warning("Plotting layer_k=",layer_k," as layer_k was not specified") }
     if(!is.element(layer_k,x$layer_all)) {stop("layer_k=",layer_k," is not a valid layer")}
@@ -294,8 +294,8 @@ plot_dmn_mcmc <- function( x,
     p <- p + geom_point( aes( y=x$y_ijtk[i,j,t_valid_idx,k],
                               x=x$time_all[t_valid_idx]), col="blue" ) +
       labs(x="time",y="mu_ijtk",title="Expected weight",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))
-  } else if( is.element(param,"lambda_tk") ){
-    p <- p + labs(x="time",y="lambda_tk",title="lambda_tk",subtitle=paste("layer_k=",layer_k,sep=""))
+  } else if( is.element(param,"theta_tk") ){
+    p <- p + labs(x="time",y="theta_tk",title="theta_tk",subtitle=paste("layer_k=",layer_k,sep=""))
   }
   
   return(p)
