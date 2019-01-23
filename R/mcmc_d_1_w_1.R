@@ -8,6 +8,7 @@
 #' @param node_all Character vector. Id's of nodes in the network.
 #' @param time_all Numeric vector. Timestamps of all relevant epochs for the MCMC, those observed and those for forecast
 #' @param layer_all Character vector. Id's of layers in the network.
+#' @param x_ijtkp Array. Edge Specific external covariates.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
@@ -16,7 +17,6 @@
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
 #' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
-#' @param procrustes_lat Boolean. Indicates if the latent coordinates should be stabilised using the procustres transformation.
 #' @param n_chains_mcmc Integer. Number of parallel MCMC chains.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
@@ -38,6 +38,8 @@
 mcmc_d_1_w_1 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           
+                          x_ijtkp=NULL,
+                          
                           H_dim=10, R_dim=10,
                           
                           add_eff_weight=FALSE,
@@ -47,8 +49,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           
                           shrink_lat_space=FALSE,
                           a_1=2, a_2=2.5,
-                          
-                          procrustes_lat=FALSE,
                           
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
@@ -79,8 +79,18 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   
   #### Start: MCMC initialization ####
-  # Edge between actors i and j at time t in layer k
   
+  # Coefficients for external covariates #
+  beta_mu_tp <- beta_lambda_tp <- NULL
+  beta_mu_tp_mcmc <- beta_lambda_tp_mcmc <- NULL
+  if(!is.null(x_ijtkp)) {
+    P_pred <- dim(x_ijtkp)[5]
+    beta_mu_tp <- beta_lambda_tp <- matrix( runif(T_net*P_pred), nrow=T_net, ncol=P_pred )
+    beta_mu_tp_mcmc <- beta_lambda_tp_mcmc <- array( NA, dim=c(T_net,P_pred,n_iter_mcmc_out) )
+    x_ijtkp_mat <- get_x_ijtkp_mat( x_ijtkp=x_ijtkp,
+                                    directed=TRUE,
+                                    weighted=TRUE )
+  }
   
   ### GAUSSIAN MODEL FOR WEIGHTS ###
   
@@ -105,7 +115,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   sp_weight_itk_mcmc <- NULL
   if(add_eff_weight){
     sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
-    if(K_net>1){
+    if(F&K_net>1){ # we will only consider global additive effects
       sp_weight_itk <- array(0,dim=c(V_net,T_net,K_net,2))
       sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
     }
@@ -141,7 +151,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   sigma_k_mcmc <- matrix( NA, nrow=K_net, ncol=n_iter_mcmc_out )
   
-  
   # Covariance matrix prior for latent coordinates
   cov_gp_prior <- outer( time_all, time_all, FUN=function(x,y,k=delta){ exp(-((x-y)/delta)^2) } )
   diag(cov_gp_prior) <- diag(cov_gp_prior) + 1e-3 # numerical stability
@@ -154,6 +163,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                add_eff_itk=sp_weight_itk,
                                coord_ith_shared=uv_ith_shared,
                                coord_ithk=uv_ithk,
+                               beta_edge_tp=beta_mu_tp, x_ijtkp=x_ijtkp,
                                directed=TRUE )
   mu_ijtk[diag_y_idx] <- NA
   
@@ -183,7 +193,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   sp_link_itk_mcmc <- NULL
   if(add_eff_link){
     sp_link_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
-    if(K_net>1){
+    if(F&K_net>1){ # we will only consider global additive effects
       sp_link_itk <- array(0,dim=c(V_net,T_net,K_net,2))
       sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
     }
@@ -219,6 +229,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                   add_eff_itk=sp_link_itk,
                                   coord_ith_shared=ab_ith_shared,
                                   coord_ithk=ab_ithk,
+                                  beta_edge_tp=beta_lambda_tp, x_ijtkp=x_ijtkp,
                                   directed=TRUE )
   gamma_ijtk[diag_y_idx] <- NA
   
@@ -348,14 +359,18 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       theta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- theta_tk
     }
     
-    # mu_ijtk_new <- get_linpred_ijtk( baseline_tk=theta_tk,
-    #                                  add_eff_it_shared=sp_weight_it_shared,
-    #                                  add_eff_itk=sp_weight_itk,
-    #                                  coord_ith_shared=uv_ith_shared,
-    #                                  coord_ithk=uv_ithk,
-    #                                  directed=TRUE )
-    # mu_ijtk_new[diag_y_idx] <- NA
-    # all.equal(mu_ijtk,mu_ijtk_new)
+    # mu_ijtk_old <- mu_ijtk
+    # mu_ijtk_old[diag_y_idx] <- NA
+    # mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
+    #                              add_eff_it_shared=sp_weight_it_shared,
+    #                              add_eff_itk=sp_weight_itk,
+    #                              coord_ith_shared=uv_ith_shared,
+    #                              coord_ithk=uv_ithk,
+    #                              beta_edge_tp=beta_mu_tp, x_ijtkp=x_ijtkp,
+    #                              directed=TRUE )
+    # mu_ijtk[diag_y_idx] <- NA
+    # all.equal(mu_ijtk,mu_ijtk_old)
+    
     
     if(add_eff_weight){
       ### Step W0_add_eff_shared. Sample global additive effects ###
@@ -381,6 +396,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       #                              add_eff_itk=sp_weight_itk,
       #                              coord_ith_shared=uv_ith_shared,
       #                              coord_ithk=uv_ithk,
+      #                              beta_edge_tp=beta_mu_tp, x_ijtkp=x_ijtkp,
       #                              directed=TRUE )
       # mu_ijtk[diag_y_idx] <- NA
       # all.equal(mu_ijtk,mu_ijtk_old)
@@ -445,7 +461,26 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       
     }
     
-    ### Step W3. Sample weight variance ###
+    ### Step W3. Sample coefficients ###
+    if( !is.null(beta_mu_tp) ) {
+      out_aux <- sample_coeff_tp_weight( beta_tp=beta_mu_tp,
+                                         beta_t_cov_prior_inv=cov_gp_prior_inv,
+                                         y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
+                                         sigma_k=sigma_k,
+                                         x_ijtkp_mat=x_ijtkp_mat,
+                                         directed=TRUE )
+      beta_mu_tp <- out_aux$beta_tp
+      mu_ijtk <- out_aux$mu_ijtk
+      mu_ijtk[diag_y_idx] <- NA
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        beta_mu_tp_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_mu_tp
+      }
+    }
+    
+    
+    ### Step W4. Sample weight variance ###
     sigma_k_old <- sigma_k
     sigma_k <- sample_var_weight( sigma_k=sigma_k,
                                   sigma_k_prop_int=sigma_k_prop_int,
@@ -496,6 +531,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       #                                 add_eff_itk=sp_link_itk,
       #                                 coord_ith_shared=ab_ith_shared,
       #                                 coord_ithk=ab_ithk,
+      #                                 beta_edge_tp=beta_lambda_tp, x_ijtkp=x_ijtkp,
       #                                 directed=TRUE )
       # gamma_ijtk[diag_y_idx] <- NA
       # all.equal(gamma_ijtk,gamma_ijtk_old)
@@ -573,7 +609,23 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       }
     }
     
-    
+    ### Step W3. Sample coefficients ###
+    if( !is.null(beta_lambda_tp) ) {
+      out_aux <- sample_coeff_tp_link( beta_tp=beta_lambda_tp,
+                                       beta_t_cov_prior_inv=cov_gp_prior_inv,
+                                       y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                       x_ijtkp_mat=x_ijtkp_mat,
+                                       directed=TRUE )
+      
+      beta_lambda_tp <- out_aux$beta_tp
+      gamma_ijtk <- out_aux$gamma_ijtk
+      gamma_ijtk[diag_y_idx] <- NA
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        beta_lambda_tp_mcmc[,,match(iter_i,iter_out_mcmc)] <- beta_lambda_tp
+      }
+    }
     
     ### Edge probabilities ###
     if(is.element(iter_i,iter_out_mcmc)){
@@ -590,37 +642,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
         Z_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(gamma_ijtk[y_ijtk_miss_idx]) )
         Y_imp <- rnorm( n=nrow(y_ijtk_miss_idx), mean=mu_ijtk[y_ijtk_miss_idx], sd=sigma_k[y_ijtk_miss_idx[,4]] )
         y_ijtk_imp_mcmc[match(iter_i,iter_out_mcmc),] <- Z_imp * Y_imp
-      }
-    }
-    
-    
-    
-    ### Step L4. Sample the global shrinkage hyperparameters from conditional gamma distributions ###
-    if(shrink_lat_space){
-      for( dir_i in 1:2 ) {
-        v_shrink_shared[[dir_i]] <- sample_v_shrink_DynMultiNet_bin( v_shrink_shared[[dir_i]],
-                                                                     a_1, a_2,
-                                                                     ab_ith_shared[[dir_i]],
-                                                                     cov_gp_prior_inv )
-        tau_h_shared[[dir_i]] <- matrix(cumprod(v_shrink_shared[[dir_i]]), nrow=H_dim, ncol=1 )
-        if(is.element(iter_i,iter_out_mcmc)){
-          tau_h_shared_mcmc[[dir_i]][,match(iter_i,iter_out_mcmc)] <- tau_h_shared[[dir_i]]
-        }
-      }
-      
-      if(K_net>1){
-        for( dir_i in 1:2 ) {
-          for(k in 1:K_net) {
-            v_shrink_k[[dir_i]][,k] <- sample_v_shrink_DynMultiNet_bin( v_shrink_k[[dir_i]][,k,drop=F],
-                                                                        a_1, a_2,
-                                                                        ab_ithk[[dir_i]][,,,k],
-                                                                        cov_gp_prior_inv )
-          }
-          tau_h_k[[dir_i]] <- matrix(apply(v_shrink_k[[dir_i]],2,cumprod), nrow=R_dim, ncol=K_net )
-          if(is.element(iter_i,iter_out_mcmc)){
-            tau_h_k_mcmc[[dir_i]][,,match(iter_i,iter_out_mcmc)] <- tau_h_k[[dir_i]]
-          }
-        }
       }
     }
     
@@ -643,6 +664,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           directed=TRUE,
                           weighted=TRUE,
                           
+                          x_ijtkp=x_ijtkp,
+                          
                           n_chains_mcmc=n_chains_mcmc,
                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                           
@@ -651,8 +674,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           
                           shrink_lat_space=shrink_lat_space,
                           a_1=a_1, a_2=a_2,
-                          
-                          procrustes_lat=procrustes_lat,
                           
                           node_all=node_all, time_all=time_all, layer_all=layer_all,
                           
@@ -663,8 +684,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           sp_link_itk_mcmc=sp_link_itk_mcmc,
                           ab_ith_shared_mcmc=ab_ith_shared_mcmc,
                           ab_ithk_mcmc=ab_ithk_mcmc,
-                          tau_h_shared_mcmc=tau_h_shared_mcmc,
-                          tau_h_k_mcmc=tau_h_k_mcmc,
+                          beta_mu_tp_mcmc=beta_mu_tp_mcmc,
                           
                           # imputed links
                           y_ijtk_miss_idx=y_ijtk_miss_idx,
@@ -678,12 +698,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                           uv_ith_shared_mcmc = uv_ith_shared_mcmc,
                           uv_ithk_mcmc = uv_ithk_mcmc,
-                          rho_h_shared_mcmc=rho_h_shared_mcmc,
-                          rho_h_k_mcmc=rho_h_k_mcmc,
-                          
-                          pred_id_layer=NULL, pred_id_edge=NULL,
-                          beta_z_layer_mcmc=NULL,
-                          beta_z_edge_mcmc=NULL )
+                          beta_lambda_tp_mcmc=beta_lambda_tp_mcmc )
+        
         dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
         saveRDS(dmn_mcmc,file=rds_file)
       }
@@ -702,6 +718,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     directed=TRUE,
                     weighted=TRUE,
                     
+                    x_ijtkp=x_ijtkp,
+                    
                     n_chains_mcmc=n_chains_mcmc,
                     n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                     
@@ -710,8 +728,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     
                     shrink_lat_space=shrink_lat_space,
                     a_1=a_1, a_2=a_2,
-                    
-                    procrustes_lat=procrustes_lat,
                     
                     node_all=node_all, time_all=time_all, layer_all=layer_all,
                     
@@ -722,8 +738,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     sp_link_itk_mcmc=sp_link_itk_mcmc,
                     ab_ith_shared_mcmc=ab_ith_shared_mcmc,
                     ab_ithk_mcmc=ab_ithk_mcmc,
-                    tau_h_shared_mcmc=tau_h_shared_mcmc,
-                    tau_h_k_mcmc=tau_h_k_mcmc,
+                    beta_mu_tp_mcmc=beta_mu_tp_mcmc,
                     
                     # imputed links
                     y_ijtk_miss_idx=y_ijtk_miss_idx,
@@ -737,12 +752,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                     uv_ith_shared_mcmc = uv_ith_shared_mcmc,
                     uv_ithk_mcmc = uv_ithk_mcmc,
-                    rho_h_shared_mcmc=rho_h_shared_mcmc,
-                    rho_h_k_mcmc=rho_h_k_mcmc,
-                    
-                    pred_id_layer=NULL, pred_id_edge=NULL,
-                    beta_z_layer_mcmc=NULL,
-                    beta_z_edge_mcmc=NULL )
+                    beta_lambda_tp_mcmc=beta_lambda_tp_mcmc )
   
   dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
   

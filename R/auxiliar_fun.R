@@ -42,8 +42,8 @@ bounce_limit <- function(x,a,b){
 
 #' @export
 get_y_ijtk_from_edges <- function( net_data,
-                                   directed=TRUE,
-                                   weighted=TRUE,
+                                   directed=FALSE,
+                                   weighted=FALSE,
                                    self_edges=FALSE,
                                    quiet=FALSE ) {
   
@@ -199,4 +199,35 @@ get_z_pred <- function( pred_data,
   
   return(pred_net)
   
+}
+
+#' @keywords internal
+get_x_ijtkp_mat <- function( x_ijtkp,
+                             directed=FALSE,
+                             weighted=FALSE ) {
+  # Transforms the 5-dim x_ijtkp into a matrix x_ijtkp_mat
+  # Let beta=(beta_1(t_1),...,beta_P(t_1),...,beta_1(t_T),,beta_P(t_T))
+  # then
+  # Y = x_ijtkp_mat %*% beta
+  
+  V_net <- dim(x_ijtkp)[1]
+  T_net <- dim(x_ijtkp)[3]
+  K_net <- dim(x_ijtkp)[4]
+  P_pred <- dim(x_ijtkp)[5]
+  
+  if(!directed) {
+    valid_idx <- which(c(lower.tri(diag(V_net))))
+  } else {
+    valid_idx <- which(c(diag(V_net))==0)
+  }
+  x_ijtkp_mat <- matrix(0,length(valid_idx)*T_net*K_net,P_pred*T_net)
+  for(k in 1:K_net) { #k<-1
+    for(t in 1:T_net) { #t<-1
+      idx_row <- (k-1)*T_net*length(valid_idx)+(t-1)*length(valid_idx)+1:length(valid_idx)
+      idx_col <- t+(1:P_pred-1)*T_net
+      x_ijtkp_mat[idx_row,idx_col] <- matrix( c(x_ijtkp[,,t,k,]), nrow=V_net*V_net, ncol=P_pred )[valid_idx,]
+    }
+  }
+  
+  return(x_ijtkp_mat)
 }

@@ -4,25 +4,21 @@
 #' @description
 #'    \code{gen_synth_net} Generates a Network.
 #'
-#' @param node_all Vector. Id's of nodes in the network.
-#' @param time_all Vector. Timestamps of network's observations.
-#' @param layer_all Vector. Id's of layers in the network.
-#' @param directed Boolean. Indicates if the generated network must be directed, i.e. assymetric adjacency matrix.
+#' @param nodes_net Vector. Id's of nodes in the network.
+#' @param times_net Vector. Timestamps of network's observations.
+#' @param layers_net Vector. Id's of layers in the network.
+#' @param directed Boolean. Indicates if the provided network is directed, i.e. the adjacency matrix is assymetrical.
+#' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param k_x Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Smaller=smoother.
-#' @param k_mu Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the baseline process. Smaller=smoother.
-#' @param k_p Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of the predictor coefficients. Smaller=smoother.
-#' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
-#' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
-#' @param pred_all Vector. Id's of predictors.
-#' @param pred_id_layer Data Frame. Catalogue matching predictors id's and layers, for layer-specific predictors.
-#' @param pred_id_edge Data Frame. Catalogue matching predictors id's and layers, for edge-specific predictors.
-#' @param z_tkp Numeric array. Data for layer-specific predictor p, for time t and layer k.
-#' @param z_ijtkp Numeric array. Data for edge-specific predictor p, for edge i-j at time t and layer k.
-#' @param beta_z_layer Numeric array. Layer specific predictor p, for edge i-j at time t and layer k.
-#' @param beta_z_edge Numeric array. Layer specific predictor p, for edge i-j at time t and layer k.
-#' @param out_file String. Indicates a file (.RData) where the output will be saved.
+#' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
+#' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
+#' @param nu_sigma Positive scalar. Hyperparameter controlling the prior of the weight variance.
+#' @param tau_sigma Positive scalar. Hyperparameter controlling the prior of the weight variance.
+#' @param nu_delta Positive scalar. Hyperparameter controlling the prior for smoothness in the dynamic of latent elements.
+#' @param tau_delta Positive scalar. Hyperparameter controlling the prior for smoothness in the dynamic of latent elements.
+#' @param x_ijtkp Numeric array. External covariates (edge specific) to inform network.
+#' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' 
 #' @details
 #'    The model assumes a latent variable approach
@@ -30,13 +26,12 @@
 #' @return
 #'    A list with the following components:
 #' \describe{
-#'     \item{\code{edge_data}}{}
 #'     \item{\code{y_ijtk}}{Numeric array. Network data, weight of edge between nodes i and j at time t in layer k.}
-#'     \item{\code{pi_ijtk}}{Numeric array. Underlying probability of edge existence.}
-#'     \item{\code{s_ijtk}}{Numeric array. Associated linear predictor in the logit model.}
-#'     \item{\code{mu_tk}}{Numeric matrix. Baseline process at time t for layer k.}
-#'     \item{\code{x_ith_shared}}{Numeric array. Global latent coordinates.}
-#'     \item{\code{x_ithk}}{Numeric array. Latent specific latent coordinates.}
+#'     \item{\code{pi_ijtk}}{Numeric array. Underlying probability of link existence.}
+#'     \item{\code{gamma_ijtk}}{Numeric array. Associated linear predictor in the logit model.}
+#'     \item{\code{eta_tk}}{Numeric matrix. Baseline process at time t for layer k.}
+#'     \item{\code{ab_ith_shared}}{Numeric array. Global latent coordinates.}
+#'     \item{\code{ab_ithk}}{Numeric array. Latent specific latent coordinates.}
 #'     \item{\code{tau_h_shared}}{Numeric matrix. Shrinkage parameter for global latent coordinates.}
 #'     \item{\code{tau_h_k}}{Numeric matrix. Shrinkage parameter for layer-specific latent coordinates.}
 #' }
@@ -44,239 +39,278 @@
 #'
 #' @examples
 #' 
-#' synth_net <- gen_synth_net( node_all=seq(1,5),
-#'                             time_all=seq(1,10),
-#'                             layer_all=seq(1,3),
+#' synth_net <- gen_synth_net( nodes_net=seq(1,5),
+#'                             times_net=seq(1,10),
+#'                             layers_net=seq(1,3),
 #'                             H_dim=3, R_dim=3,
 #'                             k_x=0.10, k_mu=0.10, k_p=0.10,
 #'                             a_1=2, a_2=2.5 )
 #' 
-#' head(synth_net$edge_data)
-#' 
 #' @useDynLib DynMultiNet
 #' 
 #' @import mvtnorm
+#' @importFrom MCMCpack rinvgamma
 #' @importFrom stats plogis rbinom rgamma runif
-#' 
 #' @export
 #' 
 
-gen_synth_net <- function( node_all,
-                           time_all,
-                           layer_all,
-                           directed=FALSE,
+gen_synth_net <- function( nodes_net,
+                           times_net,
+                           layers_net,
+                           directed=TRUE, weighted=TRUE,
                            H_dim=3, R_dim=3,
-                           k_x=0.10, k_mu=0.10, k_p=0.10,
-                           a_1=2, a_2=2.5,
-                           
-                           pred_all=NULL,
-                           pred_id_layer=NULL, pred_id_edge=NULL,
-                           z_tkp=NULL, z_ijtkp=NULL,
-                           beta_z_layer=NULL, beta_z_edge=NULL,
-                           
-                           out_file=NULL ) {
+                           add_eff_weight=TRUE, add_eff_link=TRUE,
+                           nu_sigma=1,tau_sigma=1,
+                           nu_delta=1,tau_delta=1,
+                           x_ijtkp=NULL,
+                           rds_file=NULL ) {
   
-  V_net <- length(node_all)
-  T_net <- length(time_all)
-  K_net <- length(layer_all)
+  V_net <- length(nodes_net)
+  T_net <- length(times_net)
+  K_net <- length(layers_net)
+  P_pred <- NULL
+  if(!is.null(x_ijtkp)){P_pred<-dim(x_ijtkp)[5]}
   
+  ### NETWORK ###
+  y_ijtk <- array( data=NA,
+                   dim=c(V_net,V_net,T_net,K_net) )
+  dimnames(y_ijtk) <- list(nodes_net,nodes_net,times_net,layers_net)
+  # indicator y_ijtk>0
+  z_ijtk <- y_ijtk
+  
+  # Generating model parameters #
+  # sigma_k <- 1/rgamma(4+P_pred,shape=nu_sigma,scale=tau_sigma)
+  sigma_k <- MCMCpack::rinvgamma(K_net,shape=nu_sigma,scale=tau_sigma)
+  
+  delta <- setNames( MCMCpack::rinvgamma(4+P_pred,shape=nu_delta,scale=tau_delta),
+                     paste("delta",c("mu","lambda","s","p",paste("beta",1:P_pred,sep="_")),sep="_") )
+  if(!directed){delta["delta_p"]=delta["delta_s"]}
   
   ### Baseline parameter ###
   # at time t for layer k
   
-  # Covariance matrix prior for baseline mu_tk
-  mu_t_cov_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_mu){ exp(-k*(x-y)^2) } )
+  # Prior Covariance matrix for GPs
+  GP_cov_prior <- vector("list",4+P_pred)
+  names(GP_cov_prior) <- names(delta)
+  for(i in 1:(4+P_pred)) { #i<-1
+    GP_cov_prior[[i]] <- outer( times_net, times_net, FUN=function(x,y,k=delta[i]){ exp(-((x-y)/k)^2) } )
+  }
   
-  mu_tk <- matrix( NA,
-                   nrow=T_net,
-                   ncol=K_net )
+  ## then we do:
+  # GP_cov_prior_mu = GP_cov_prior^(-1/delta["delta_mu"]^2)
+  ## ...and so on
+  
+  ### Start: Dynamics ###
+  
+  ## Baseline process ##
+  theta_tk <- eta_tk <- matrix( NA, nrow=T_net, ncol=K_net )
   for(k in 1:K_net){ # k<-1
-    mu_tk[,k] <- mvtnorm::rmvnorm( n = 1,
-                                   mean = matrix(0,T_net,1),
-                                   sigma = mu_t_cov_prior )
+    theta_tk[,k] <- mvtnorm::rmvnorm( n = 1,
+                                      mean = rep(0,T_net),
+                                      sigma = GP_cov_prior[["delta_mu"]] )
+    eta_tk[,k] <- mvtnorm::rmvnorm( n = 1,
+                                    mean = rep(0,T_net),
+                                    sigma = GP_cov_prior[["delta_lambda"]] )
   }
   
-  # Shrinkage Parameters for latent Coordinates
-  v_shrink_shared <- matrix(NA, nrow=H_dim, ncol=1 )
-  v_shrink_shared[1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
-  tau_h_shared <- matrix(cumprod(v_shrink_shared), nrow=H_dim, ncol=1 )
-  if(directed){
-    v_shrink_shared <- list( sender=v_shrink_shared,
-                             receiver=v_shrink_shared)
-    v_shrink_shared[[2]][1,1] <- rgamma(n=1,shape=a_1,rate=1); v_shrink_shared[[2]][-1,1] <- rgamma(n=H_dim-1,shape=a_2,rate=1)
-    tau_h_shared <- list( sender=tau_h_shared,
-                          receiver=tau_h_shared )
-    tau_h_shared[[2]] <- matrix(cumprod(v_shrink_shared[[2]]), nrow=H_dim, ncol=1 )
-  }
-  
-  if( K_net>1 ){
-    v_shrink_k <- matrix(NA, nrow=R_dim, ncol=K_net )
-    v_shrink_k[1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
-    tau_h_k <- matrix(apply(v_shrink_k,2,cumprod), nrow=R_dim, ncol=K_net )
-    if(directed){
-      v_shrink_k <- list( sender=v_shrink_k,
-                          receiver=v_shrink_k)
-      v_shrink_k[[2]][1,] <- rgamma(n=K_net,shape=a_1,rate=1); v_shrink_k[[2]][-1,] <- rgamma(n=K_net*(R_dim-1),shape=a_2,rate=1)
-      tau_h_k <- list( sender=tau_h_k,
-                       receiver=tau_h_k )
-      tau_h_k[[2]] <- matrix(apply(v_shrink_k[[2]],2,cumprod), nrow=R_dim, ncol=K_net )
+  ## Global Latent coordinates ##
+  if(!directed){
+    uv_ith_shared <- ab_ith_shared <- array( NA, dim=c(V_net,T_net,H_dim) )
+    for( i in 1:V_net){
+      for( h in 1:H_dim){
+        uv_ith_shared[i,,h] <- mvtnorm::rmvnorm( n = 1,
+                                                 mean = rep(0,T_net),
+                                                 sigma = GP_cov_prior[["delta_mu"]] )
+        ab_ith_shared[i,,h] <- mvtnorm::rmvnorm( n = 1,
+                                                 mean = rep(0,T_net),
+                                                 sigma = GP_cov_prior[["delta_lambda"]] )
+      }
     }
   } else {
-    v_shrink_k <- NULL
-    tau_h_k <- NULL
-    if(directed){
-      v_shrink_k <- list( sender=v_shrink_k,
-                          receiver=v_shrink_k)
-      tau_h_k <- list( sender=tau_h_k,
-                       receiver=tau_h_k )
-    }
-  }
-  
-  
-  ### Latent coordinates ###
-  # Covariance matrix prior for coordinates x_t
-  x_t_sigma_prior <- outer( time_all, time_all, FUN=function(x,y,k=k_x){ exp(-k*(x-y)^2) } )
-  # shared: hth coordinate of actor v at time t shared across the different layers
-  x_ith_shared <- array( NA,
-                         dim=c(V_net,T_net,H_dim) )
-  # i<-1;h<-1;plot(y=x_ith_shared[i,,h],x=time_all,type="l")
-  if(directed){
-    x_ith_shared <- list( sender=x_ith_shared,
-                          receiver=x_ith_shared )
+    uv_ith_shared <- ab_ith_shared <- list( sender=array( NA, dim=c(V_net,T_net,H_dim) ),
+                                            receiver=array( NA, dim=c(V_net,T_net,H_dim) ) )
     for( dir_i in 1:2 ) {
       for( i in 1:V_net){
         for( h in 1:H_dim){
-          x_ith_shared[[dir_i]][i,,h] <- mvtnorm::rmvnorm( n = 1,
-                                                           mean = matrix(0,T_net,1),
-                                                           sigma = (1/tau_h_shared[[dir_i]][h,1]) * x_t_sigma_prior )
+          uv_ith_shared[[dir_i]][i,,h] <- mvtnorm::rmvnorm( n = 1,
+                                                            mean = rep(0,T_net),
+                                                            sigma = GP_cov_prior[["delta_mu"]] )
+          ab_ith_shared[[dir_i]][i,,h] <- mvtnorm::rmvnorm( n = 1,
+                                                            mean = rep(0,T_net),
+                                                            sigma = GP_cov_prior[["delta_lambda"]] )
         }
       }
-    }; rm(dir_i,i,h)
-  } else {
-    for( i in 1:V_net){
-      for( h in 1:H_dim){
-        x_ith_shared[i,,h] <- mvtnorm::rmvnorm( n = 1,
-                                                mean = matrix(0,T_net,1),
-                                                sigma = (1/tau_h_shared[h,1]) * x_t_sigma_prior )
-      }
-    }; rm(i,h)
+    }
   }
-  
+  ## Layer-specific Latent coordinates ##
   if( K_net>1 ){
-    # by layer: hth coordinate of actor v at time t specific to layer k
-    x_ithk <- array( NA,
-                     dim=c(V_net,T_net,R_dim,K_net) )
-    
-    # i<-1;h<-1;k<-1;plot(y=x_ithk[i,,h,k],x=time_all,type="l")
-    if(directed){
-      x_ithk <- list( sender=x_ithk,
-                      receiver=x_ithk )
+    if(!directed){
+      uv_ithk <- ab_ithk <- array( NA, dim=c(V_net,T_net,R_dim,K_net) )
+      for( k in 1:K_net){
+        for( i in 1:V_net){
+          for( h in 1:R_dim){
+            # Link strength #
+            uv_ithk[i,,h,k] <- mvtnorm::rmvnorm( n = 1,
+                                                 mean = matrix(0,T_net,1),
+                                                 sigma = GP_cov_prior[["delta_mu"]] )
+            # Link incidence #
+            ab_ithk[i,,h,k] <- mvtnorm::rmvnorm( n = 1,
+                                                 mean = matrix(0,T_net,1),
+                                                 sigma = GP_cov_prior[["delta_lambda"]] )
+          }
+        }
+      }
+    } else {
+      uv_ithk <- ab_ithk <- list( sender=array( NA, dim=c(V_net,T_net,R_dim,K_net) ),
+                                  receiver=array( NA, dim=c(V_net,T_net,R_dim,K_net) ) )
       for( dir_i in 1:2){
         for( k in 1:K_net){
           for( i in 1:V_net){
             for( h in 1:H_dim){
-              x_ithk[[dir_i]][i,,h,k] <- mvtnorm::rmvnorm( n = 1,
-                                                           mean = matrix(0,T_net,1),
-                                                           sigma = (1/tau_h_k[[dir_i]][h,k]) * x_t_sigma_prior )
+              # Link strength #
+              uv_ithk[[dir_i]][i,,h,k] <- mvtnorm::rmvnorm( n = 1,
+                                                            mean = matrix(0,T_net,1),
+                                                            sigma = GP_cov_prior[["delta_mu"]] )
+              # Link incidence #
+              ab_ithk[[dir_i]][i,,h,k] <- mvtnorm::rmvnorm( n = 1,
+                                                            mean = matrix(0,T_net,1),
+                                                            sigma = GP_cov_prior[["delta_lambda"]] )
             }
           }
         }
-      }; rm(dir_i,i,h)
-    } else {
-      for( k in 1:K_net){
-        for( i in 1:V_net){
-          for( h in 1:R_dim){
-            x_ithk[i,,h,k] <- mvtnorm::rmvnorm( n = 1,
-                                                mean = matrix(0,T_net,1),
-                                                sigma = (1/tau_h_k[h,k]) * x_t_sigma_prior )
-          }
-        }
-      }; rm(i,h,k)
+      }
     }
   } else {
-    x_ithk <- NULL
+    uv_ithk <- ab_ithk <- NULL
   }
   
-  ### Edges ###
-  # Initialization #
-  y_ijtk <- array( data=0,
-                   dim=c(V_net,V_net,T_net,K_net) )
-  for( k in 1:K_net) {
-    for( t in 1:T_net) { #t<-1;k<-1
-      diag(y_ijtk[,,t,k]) <- NA
-    }
-  }; rm(k,t)
+  ## Additive effects ##
   if(!directed){
-    for( k in 1:K_net) {
-      for( t in 1:T_net) { #t<-1;k<-1
-        y_ijtk[,,t,k][upper.tri(y_ijtk[,,t,k])] <- NA
-      }
-    }; rm(k,t)
-  }
-  
-  ### Linear Predictor ###
-  s_ijtk <- get_linpred_s_ijtk( y_ijtk=y_ijtk, mu_tk=mu_tk,
-                                x_ith_shared=x_ith_shared, x_ithk=x_ithk,
-                                pred_all=pred_all, layer_all=layer_all,
-                                z_tkp=z_tkp, z_ijtkp=z_ijtkp,
-                                beta_z_layer=beta_z_layer, beta_z_edge=beta_z_edge,
-                                pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                                directed=directed )
-  
-  ### Edges probabilities ###
-  pi_ijtk <- plogis(s_ijtk)
-  
-  ### Edges ###
-  probs <- pi_ijtk[!is.na(y_ijtk)]
-  if(any(is.na(probs))) {stop("There's a problem generating pi_ijtk.")}
-  if( directed ){
-    if(length(probs)!=K_net*T_net*V_net*(V_net-1)) {stop("There's a problem generating y_ijtk")}
-    y_ijtk[!is.na(y_ijtk)] <- rbinom(n=length(probs),size=1,prob=probs)
+    sp_link_it_shared <- sp_weight_it_shared <- array(NA,dim=c(V_net,T_net))
+    for( i in 1:V_net){
+      # Link incidence #
+      sp_link_it_shared[i,] <- mvtnorm::rmvnorm( n = 1,
+                                                 mean = rep(0,T_net),
+                                                 sigma = GP_cov_prior[["delta_s"]] )
+      # Link strength #
+      sp_weight_it_shared[i,] <- mvtnorm::rmvnorm( n = 1,
+                                                   mean = rep(0,T_net),
+                                                   sigma = GP_cov_prior[["delta_s"]] )
+      
+    }
   } else {
-    if(length(probs)!=K_net*T_net*V_net*(V_net-1)/2) {stop("There's a problem generating y_ijtk")}
-    y_ijtk[!is.na(y_ijtk)] <- rbinom(n=length(probs),size=1,prob=probs)
-  }
-  # sum(y_ijtk,na.rm=T)
-  
-  
-  # Edge list data frame #
-  edge_data <- data.frame( source=NA,
-                           target=NA,
-                           time=NA,
-                           layer=NA,
-                           weight=NA )
-  
-  for(t in 1:T_net) {
-    for(k in 1:K_net) {
-      for(i in 1:V_net) {
-        for(j in 1:V_net) {
-          if(!is.na(y_ijtk[i,j,t,k])){
-            if(y_ijtk[i,j,t,k]!=0){
-              edge_data_aux <- data.frame( source=node_all[i],
-                                           target=node_all[j],
-                                           time=time_all[t],
-                                           layer=layer_all[k],
-                                           weight=1 )
-              edge_data <- rbind(edge_data,edge_data_aux)
-            }
-          }
-        }
+    sp_link_it_shared <- sp_weight_it_shared <- array(NA,dim=c(V_net,T_net,2))
+    for( dir_i in 1:2){
+      for( i in 1:V_net){
+        # Link incidence #
+        sp_link_it_shared[i,,dir_i] <- mvtnorm::rmvnorm( n = 1,
+                                                         mean = rep(0,T_net),
+                                                         sigma = GP_cov_prior[[ c("delta_s","delta_p")[dir_i] ]] )
+        # Link strength #
+        sp_weight_it_shared[i,,dir_i] <- mvtnorm::rmvnorm( n = 1,
+                                                           mean = rep(0,T_net),
+                                                           sigma = GP_cov_prior[[ c("delta_s","delta_p")[dir_i] ]] )
       }
     }
   }
-  edge_data <- edge_data[-1,]
+  if( !add_eff_link ){ sp_link_it_shared <- NULL }
+  if( !add_eff_weight ){ sp_weight_it_shared <- NULL }
   
-  synth_net <- list( edge_data=edge_data,
-                     y_ijtk = y_ijtk,
+  ## External effects ##
+  if(!is.null(x_ijtkp)) {
+    beta_mu_tp <- beta_lambda_tp <- matrix( NA, nrow=T_net, ncol=P_pred )
+    for(l in 1:P_pred){ # k<-1
+      beta_mu_tp[,l] <- mvtnorm::rmvnorm( n = 1,
+                                          mean = rep(0,T_net),
+                                          sigma = GP_cov_prior[[ paste("delta_beta",l,sep="_") ]] )
+      beta_lambda_tp[,l] <- mvtnorm::rmvnorm( n = 1,
+                                           mean = rep(0,T_net),
+                                           sigma = GP_cov_prior[[ paste("delta_beta",l,sep="_") ]] )
+    }
+  } else {
+    beta_mu_tp <- beta_lambda_tp <- NULL
+  }
+  ### End: Latent dynamics ###
+  
+  ### Start: Linear predictors ###
+  mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
+                               add_eff_it_shared=sp_weight_it_shared,
+                               coord_ith_shared=uv_ith_shared, coord_ithk=uv_ithk,
+                               beta_edge_tp=beta_mu_tp, x_ijtkp=x_ijtkp,
+                               directed=directed )
+  # Make mu more insteresting
+  mu_ijtk[] <- scale(c(mu_ijtk)) + rep(rnorm(K_net,8,1),each=V_net*V_net*T_net)
+  
+  gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+                                  add_eff_it_shared=sp_link_it_shared,
+                                  coord_ith_shared=ab_ith_shared, coord_ithk=ab_ithk,
+                                  beta_edge_tp=beta_lambda_tp, x_ijtkp=x_ijtkp,
+                                  directed=directed )
+  ### End: Linear predictors ###
+  
+  ### links probabilities ###
+  pi_ijtk <- plogis(gamma_ijtk)
+  for( t in 1:T_net){
+    for( k in 1:K_net){
+      diag(pi_ijtk[,,t,k])<-0
+    }
+  }
+  
+  ### link incidence ###
+  z_ijtk[] <- rbinom(n=length(c(gamma_ijtk)),size=1,prob=c(pi_ijtk))
+  ### link weight, assuming there's a link ###
+  y_ijtk[] <- rnorm(n=length(c(mu_ijtk)),mean=c(mu_ijtk),sd=rep(sigma_k,each=V_net*V_net*T_net))
+  
+  low_tri <-lower.tri(y_ijtk[,,t,k])
+  
+  if(!directed){
+    for( t in 1:T_net) {
+      for( k in 1:K_net) { #t<-1;k<-1
+        z_ijtk[,,t,k][t(low_tri)] <- z_ijtk[,,t,k][low_tri]
+        y_ijtk[,,t,k][t(low_tri)] <- y_ijtk[,,t,k][low_tri]
+      }
+    }
+  }
+  
+  ### Weights ###
+  if(!weighted){
+    y_ijtk = z_ijtk
+  } else {
+    y_ijtk = z_ijtk * y_ijtk
+  }
+  
+  synth_net <- list( y_ijtk = y_ijtk,
+                     
+                     x_ijtkp = x_ijtkp,
+                     
+                     nodes_net=nodes_net,
+                     times_net=times_net,
+                     layers_net=layers_net,
+                     directed=directed,
+                     weighted=weighted,
+                     H_dim=H_dim,
+                     R_dim=R_dim,
+                     
+                     mu_ijtk = mu_ijtk,
+                     sigma_k=sigma_k,
+                     theta_tk = theta_tk,
+                     uv_ith_shared=uv_ith_shared,
+                     uv_ithk=uv_ithk,
+                     sp_weight_it_shared=sp_weight_it_shared,
+                     beta_mu_tp=beta_mu_tp,
+                     
                      pi_ijtk = pi_ijtk,
-                     s_ijtk = s_ijtk,
-                     mu_tk = mu_tk,
-                     x_ith_shared=x_ith_shared,
-                     x_ithk=x_ithk,
-                     tau_h_shared=tau_h_shared,
-                     tau_h_k=tau_h_k )
-  if(!is.null(out_file)){
-    save( synth_net, file=out_file )
+                     
+                     gamma_ijtk = gamma_ijtk,
+                     eta_tk = eta_tk,
+                     ab_ith_shared=ab_ith_shared,
+                     ab_ithk=ab_ithk,
+                     sp_link_it_shared=sp_link_it_shared,
+                     beta_lambda_tp=beta_lambda_tp )
+  
+  if(!is.null(rds_file)){
+    if( substr(rds_file,nchar(rds_file)-3,nchar(rds_file))!=".rds" ) {rds_file<-paste(rds_file,".rds",sep="")}
+    saveRDS( synth_net, file=rds_file )
   }
   return( synth_net )
 }

@@ -8,6 +8,7 @@
 #' @param pred_data Data frame. Linked predictors information.
 #' @param directed Boolean. Indicates if the provided network is directed, i.e. the adjacency matrix is assymetrical.
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
+#' @param x_ijtkp Array. Edge Specific external covariates.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
@@ -78,6 +79,8 @@ dmn_sampling <- function( y_ijtk,
                           pred_data=NULL,
                           directed=FALSE, weighted=FALSE,
                           
+                          x_ijtkp=NULL,
+                          
                           H_dim=10, R_dim=10,
                           
                           add_eff_weight=FALSE,
@@ -85,7 +88,7 @@ dmn_sampling <- function( y_ijtk,
                           
                           delta=36,
                           
-                          shrink_lat_space=TRUE,
+                          shrink_lat_space=FALSE,
                           a_1=2, a_2=2.5,
                           
                           procrustes_lat=FALSE,
@@ -176,6 +179,10 @@ dmn_sampling <- function( y_ijtk,
         "Times steps = ",T_net,"\n",
         "Directed = ",directed,"\n",
         "Weighted = ",weighted,"\n",
+        
+        "----- External covariates -----\n",
+        "P = ",ifelse(is.null(x_ijtkp),0,dim(x_ijtkp)[5]),"\n",
+        
         "----- Inferential parameters -----\n",
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
@@ -207,9 +214,7 @@ dmn_sampling <- function( y_ijtk,
     dmn_mcmc <- mcmc_d_0_w_0( y_ijtk=y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
                               
-                              pred_all=pred_all,
-                              pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                              z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                              x_ijtkp=x_ijtkp,
                               
                               H_dim=H_dim, R_dim=R_dim,
                               
@@ -231,9 +236,7 @@ dmn_sampling <- function( y_ijtk,
     dmn_mcmc <- mcmc_d_1_w_0( y_ijtk=y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
                               
-                              pred_all=pred_all,
-                              pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                              z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                              x_ijtkp=x_ijtkp,
                               
                               H_dim=H_dim, R_dim=R_dim,
                               
@@ -254,6 +257,8 @@ dmn_sampling <- function( y_ijtk,
   } else if( !directed & weighted ) {
     dmn_mcmc <- mcmc_d_0_w_1( y_ijtk=y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
+                              
+                              x_ijtkp=x_ijtkp,
                               
                               H_dim=H_dim, R_dim=R_dim,
                               
@@ -276,17 +281,14 @@ dmn_sampling <- function( y_ijtk,
     dmn_mcmc <- mcmc_d_1_w_1( y_ijtk=y_ijtk,
                               node_all=node_all, time_all=time_all, layer_all=layer_all,
                               
+                              x_ijtkp=x_ijtkp,
+                              
                               H_dim=H_dim, R_dim=R_dim,
                               
                               add_eff_link=add_eff_link,
                               add_eff_weight=add_eff_weight,
                               
                               delta=delta,
-                              
-                              shrink_lat_space=shrink_lat_space,
-                              a_1=a_1, a_2=a_2,
-                              
-                              procrustes_lat=procrustes_lat,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               

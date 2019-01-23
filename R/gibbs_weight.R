@@ -201,6 +201,38 @@ sample_coord_ithk_weight <- function( uv_ithk,
 
 
 #' @keywords internal
+sample_coeff_tp_weight <- function( beta_tp,
+                                    beta_t_cov_prior_inv,
+                                    y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
+                                    sigma_k=sigma_k,
+                                    x_ijtkp_mat=x_ijtkp_mat,
+                                    directed=FALSE ){
+  
+  # transform arrays to list, as armadillo fields are required as input
+  K_net <- dim(y_ijtk)[4]
+  y_ijtk_list <- mu_ijtk_list <- list(NULL)
+  for(k in 1:K_net) {
+    y_ijtk_list[[k]] <- y_ijtk[,,,k]
+    mu_ijtk_list[[k]] <- mu_ijtk[,,,k]
+  }
+  
+  out_aux <- sample_coeff_tp_weight_cpp( beta_tp=beta_tp,
+                                         beta_t_cov_prior_inv=beta_t_cov_prior_inv,
+                                         y_ijtk=y_ijtk_list, mu_ijtk=mu_ijtk_list,
+                                         sigma_k=sigma_k,
+                                         x_ijtkp_mat=x_ijtkp_mat,
+                                         directed=directed )
+  
+  for(k in 1:K_net) {mu_ijtk[,,,k] <- out_aux$mu_ijtk[k,1][[1]]}
+  
+  return( list( beta_tp=out_aux$beta_tp,
+                mu_ijtk=mu_ijtk ) );
+  
+  return(out_aux)
+}
+
+
+#' @keywords internal
 sample_var_weight <- function( sigma_k,
                                sigma_k_prop_int,
                                y_ijtk, mu_ijtk,
@@ -217,3 +249,4 @@ sample_var_weight <- function( sigma_k,
   
   return( sigma_k )
 }
+

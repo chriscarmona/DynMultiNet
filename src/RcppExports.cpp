@@ -9,436 +9,6 @@
 
 using namespace Rcpp;
 
-// c_initialize1
-SEXP c_initialize1(SEXP Data, SEXP DIMS, SEXP Yy, SEXP XSCALE, SEXP BETAIN, SEXP BETAOUT, SEXP WW);
-static SEXP _DynMultiNet_c_initialize1_try(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP XSCALESEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP WWSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Data(DataSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Yy(YySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type XSCALE(XSCALESEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAIN(BETAINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAOUT(BETAOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WW(WWSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_initialize1(Data, DIMS, Yy, XSCALE, BETAIN, BETAOUT, WW));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_initialize1(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP XSCALESEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP WWSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_initialize1_try(DataSEXP, DIMSSEXP, YySEXP, XSCALESEXP, BETAINSEXP, BETAOUTSEXP, WWSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_initialize1_grad
-SEXP c_initialize1_grad(SEXP Data, SEXP DIMS, SEXP Yy, SEXP XSCALE, SEXP BETAIN, SEXP BETAOUT, SEXP WW);
-static SEXP _DynMultiNet_c_initialize1_grad_try(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP XSCALESEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP WWSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Data(DataSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Yy(YySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type XSCALE(XSCALESEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAIN(BETAINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAOUT(BETAOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WW(WWSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_initialize1_grad(Data, DIMS, Yy, XSCALE, BETAIN, BETAOUT, WW));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_initialize1_grad(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP XSCALESEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP WWSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_initialize1_grad_try(DataSEXP, DIMSSEXP, YySEXP, XSCALESEXP, BETAINSEXP, BETAOUTSEXP, WWSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_update2
-SEXP c_update2(SEXP Xitm1, SEXP DIMS, SEXP TUNEX, SEXP Yy, SEXP BETAIN, SEXP BETAOUT, SEXP TUNEBIO, SEXP WW, SEXP t2X, SEXP s2X, SEXP xiBIN, SEXP xiBOUT, SEXP nuBIN, SEXP nuBOUT, SEXP CAUCHY, SEXP RNORMS, SEXP RNORMSBIO, SEXP ELOUT, SEXP ELIN, SEXP SUBSEQ, SEXP DEG);
-static SEXP _DynMultiNet_c_update2_try(SEXP Xitm1SEXP, SEXP DIMSSEXP, SEXP TUNEXSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEBIOSEXP, SEXP WWSEXP, SEXP t2XSEXP, SEXP s2XSEXP, SEXP xiBINSEXP, SEXP xiBOUTSEXP, SEXP nuBINSEXP, SEXP nuBOUTSEXP, SEXP CAUCHYSEXP, SEXP RNORMSSEXP, SEXP RNORMSBIOSEXP, SEXP ELOUTSEXP, SEXP ELINSEXP, SEXP SUBSEQSEXP, SEXP DEGSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Xitm1(Xitm1SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type TUNEX(TUNEXSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Yy(YySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAIN(BETAINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAOUT(BETAOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type TUNEBIO(TUNEBIOSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WW(WWSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type t2X(t2XSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type s2X(s2XSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type xiBIN(xiBINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type xiBOUT(xiBOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type nuBIN(nuBINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type nuBOUT(nuBOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type CAUCHY(CAUCHYSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type RNORMS(RNORMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type RNORMSBIO(RNORMSBIOSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type ELOUT(ELOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type ELIN(ELINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type SUBSEQ(SUBSEQSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DEG(DEGSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_update2(Xitm1, DIMS, TUNEX, Yy, BETAIN, BETAOUT, TUNEBIO, WW, t2X, s2X, xiBIN, xiBOUT, nuBIN, nuBOUT, CAUCHY, RNORMS, RNORMSBIO, ELOUT, ELIN, SUBSEQ, DEG));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_update2(SEXP Xitm1SEXP, SEXP DIMSSEXP, SEXP TUNEXSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEBIOSEXP, SEXP WWSEXP, SEXP t2XSEXP, SEXP s2XSEXP, SEXP xiBINSEXP, SEXP xiBOUTSEXP, SEXP nuBINSEXP, SEXP nuBOUTSEXP, SEXP CAUCHYSEXP, SEXP RNORMSSEXP, SEXP RNORMSBIOSEXP, SEXP ELOUTSEXP, SEXP ELINSEXP, SEXP SUBSEQSEXP, SEXP DEGSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_update2_try(Xitm1SEXP, DIMSSEXP, TUNEXSEXP, YySEXP, BETAINSEXP, BETAOUTSEXP, TUNEBIOSEXP, WWSEXP, t2XSEXP, s2XSEXP, xiBINSEXP, xiBOUTSEXP, nuBINSEXP, nuBOUTSEXP, CAUCHYSEXP, RNORMSSEXP, RNORMSBIOSEXP, ELOUTSEXP, ELINSEXP, SUBSEQSEXP, DEGSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_update1
-SEXP c_update1(SEXP Xitm1, SEXP DIMS, SEXP TUNEX, SEXP Yy, SEXP BETAIN, SEXP BETAOUT, SEXP TUNEBIO, SEXP WW, SEXP t2X, SEXP s2X, SEXP xiBIN, SEXP xiBOUT, SEXP nuBIN, SEXP nuBOUT, SEXP CAUCHY, SEXP RNORMS, SEXP RNORMSBIO);
-static SEXP _DynMultiNet_c_update1_try(SEXP Xitm1SEXP, SEXP DIMSSEXP, SEXP TUNEXSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEBIOSEXP, SEXP WWSEXP, SEXP t2XSEXP, SEXP s2XSEXP, SEXP xiBINSEXP, SEXP xiBOUTSEXP, SEXP nuBINSEXP, SEXP nuBOUTSEXP, SEXP CAUCHYSEXP, SEXP RNORMSSEXP, SEXP RNORMSBIOSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Xitm1(Xitm1SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type TUNEX(TUNEXSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Yy(YySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAIN(BETAINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAOUT(BETAOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type TUNEBIO(TUNEBIOSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WW(WWSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type t2X(t2XSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type s2X(s2XSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type xiBIN(xiBINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type xiBOUT(xiBOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type nuBIN(nuBINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type nuBOUT(nuBOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type CAUCHY(CAUCHYSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type RNORMS(RNORMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type RNORMSBIO(RNORMSBIOSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_update1(Xitm1, DIMS, TUNEX, Yy, BETAIN, BETAOUT, TUNEBIO, WW, t2X, s2X, xiBIN, xiBOUT, nuBIN, nuBOUT, CAUCHY, RNORMS, RNORMSBIO));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_update1(SEXP Xitm1SEXP, SEXP DIMSSEXP, SEXP TUNEXSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEBIOSEXP, SEXP WWSEXP, SEXP t2XSEXP, SEXP s2XSEXP, SEXP xiBINSEXP, SEXP xiBOUTSEXP, SEXP nuBINSEXP, SEXP nuBOUTSEXP, SEXP CAUCHYSEXP, SEXP RNORMSSEXP, SEXP RNORMSBIOSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_update1_try(Xitm1SEXP, DIMSSEXP, TUNEXSEXP, YySEXP, BETAINSEXP, BETAOUTSEXP, TUNEBIOSEXP, WWSEXP, t2XSEXP, s2XSEXP, xiBINSEXP, xiBOUTSEXP, nuBINSEXP, nuBOUTSEXP, CAUCHYSEXP, RNORMSSEXP, RNORMSBIOSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_t2s2Parms
-SEXP c_t2s2Parms(SEXP DATA, SEXP DIMS, SEXP THETAT, SEXP THETAS, SEXP PHIT, SEXP PHIS);
-static SEXP _DynMultiNet_c_t2s2Parms_try(SEXP DATASEXP, SEXP DIMSSEXP, SEXP THETATSEXP, SEXP THETASSEXP, SEXP PHITSEXP, SEXP PHISSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type DATA(DATASEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type THETAT(THETATSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type THETAS(THETASSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type PHIT(PHITSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type PHIS(PHISSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_t2s2Parms(DATA, DIMS, THETAT, THETAS, PHIT, PHIS));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_t2s2Parms(SEXP DATASEXP, SEXP DIMSSEXP, SEXP THETATSEXP, SEXP THETASSEXP, SEXP PHITSEXP, SEXP PHISSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_t2s2Parms_try(DATASEXP, DIMSSEXP, THETATSEXP, THETASSEXP, PHITSEXP, PHISSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_WAccProb2
-SEXP c_WAccProb2(SEXP Data, SEXP DIMS, SEXP Yy, SEXP BETAIN, SEXP BETAOUT, SEXP TUNEW, SEXP WWOld, SEXP WWNew, SEXP ELOUT, SEXP ELIN, SEXP SUBSEQ, SEXP DEG);
-static SEXP _DynMultiNet_c_WAccProb2_try(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEWSEXP, SEXP WWOldSEXP, SEXP WWNewSEXP, SEXP ELOUTSEXP, SEXP ELINSEXP, SEXP SUBSEQSEXP, SEXP DEGSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Data(DataSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Yy(YySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAIN(BETAINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAOUT(BETAOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type TUNEW(TUNEWSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WWOld(WWOldSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WWNew(WWNewSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type ELOUT(ELOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type ELIN(ELINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type SUBSEQ(SUBSEQSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DEG(DEGSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_WAccProb2(Data, DIMS, Yy, BETAIN, BETAOUT, TUNEW, WWOld, WWNew, ELOUT, ELIN, SUBSEQ, DEG));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_WAccProb2(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEWSEXP, SEXP WWOldSEXP, SEXP WWNewSEXP, SEXP ELOUTSEXP, SEXP ELINSEXP, SEXP SUBSEQSEXP, SEXP DEGSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_WAccProb2_try(DataSEXP, DIMSSEXP, YySEXP, BETAINSEXP, BETAOUTSEXP, TUNEWSEXP, WWOldSEXP, WWNewSEXP, ELOUTSEXP, ELINSEXP, SUBSEQSEXP, DEGSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_WAccProb1
-SEXP c_WAccProb1(SEXP Data, SEXP DIMS, SEXP Yy, SEXP BETAIN, SEXP BETAOUT, SEXP TUNEW, SEXP WWOld, SEXP WWNew);
-static SEXP _DynMultiNet_c_WAccProb1_try(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEWSEXP, SEXP WWOldSEXP, SEXP WWNewSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Data(DataSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Yy(YySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAIN(BETAINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAOUT(BETAOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type TUNEW(TUNEWSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WWOld(WWOldSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WWNew(WWNewSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_WAccProb1(Data, DIMS, Yy, BETAIN, BETAOUT, TUNEW, WWOld, WWNew));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_WAccProb1(SEXP DataSEXP, SEXP DIMSSEXP, SEXP YySEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP TUNEWSEXP, SEXP WWOldSEXP, SEXP WWNewSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_WAccProb1_try(DataSEXP, DIMSSEXP, YySEXP, BETAINSEXP, BETAOUTSEXP, TUNEWSEXP, WWOldSEXP, WWNewSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_missing
-SEXP c_missing(SEXP Data, SEXP DIMS, SEXP MMM, SEXP Yy, SEXP Ttt, SEXP BETAIN, SEXP BETAOUT, SEXP WW);
-static SEXP _DynMultiNet_c_missing_try(SEXP DataSEXP, SEXP DIMSSEXP, SEXP MMMSEXP, SEXP YySEXP, SEXP TttSEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP WWSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Data(DataSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type DIMS(DIMSSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type MMM(MMMSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Yy(YySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Ttt(TttSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAIN(BETAINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BETAOUT(BETAOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WW(WWSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_missing(Data, DIMS, MMM, Yy, Ttt, BETAIN, BETAOUT, WW));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_missing(SEXP DataSEXP, SEXP DIMSSEXP, SEXP MMMSEXP, SEXP YySEXP, SEXP TttSEXP, SEXP BETAINSEXP, SEXP BETAOUTSEXP, SEXP WWSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_missing_try(DataSEXP, DIMSSEXP, MMMSEXP, YySEXP, TttSEXP, BETAINSEXP, BETAOUTSEXP, WWSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_postzeroprob
-SEXP c_postzeroprob(SEXP Xi1, SEXP Xi2, SEXP Xj1, SEXP Xj2, SEXP SS2, SEXP LAM, SEXP PP0);
-static SEXP _DynMultiNet_c_postzeroprob_try(SEXP Xi1SEXP, SEXP Xi2SEXP, SEXP Xj1SEXP, SEXP Xj2SEXP, SEXP SS2SEXP, SEXP LAMSEXP, SEXP PP0SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type Xi1(Xi1SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Xi2(Xi2SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Xj1(Xj1SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type Xj2(Xj2SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type SS2(SS2SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type LAM(LAMSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type PP0(PP0SEXP);
-    rcpp_result_gen = Rcpp::wrap(c_postzeroprob(Xi1, Xi2, Xj1, Xj2, SS2, LAM, PP0));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_postzeroprob(SEXP Xi1SEXP, SEXP Xi2SEXP, SEXP Xj1SEXP, SEXP Xj2SEXP, SEXP SS2SEXP, SEXP LAMSEXP, SEXP PP0SEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_postzeroprob_try(Xi1SEXP, Xi2SEXP, Xj1SEXP, Xj2SEXP, SS2SEXP, LAMSEXP, PP0SEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
-// c_prediction
-SEXP c_prediction(SEXP EX, SEXP SIG2, SEXP X1T, SEXP X2T, SEXP BIN, SEXP BOUT, SEXP WW);
-static SEXP _DynMultiNet_c_prediction_try(SEXP EXSEXP, SEXP SIG2SEXP, SEXP X1TSEXP, SEXP X2TSEXP, SEXP BINSEXP, SEXP BOUTSEXP, SEXP WWSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type EX(EXSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type SIG2(SIG2SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type X1T(X1TSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type X2T(X2TSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BIN(BINSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type BOUT(BOUTSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type WW(WWSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_prediction(EX, SIG2, X1T, X2T, BIN, BOUT, WW));
-    return rcpp_result_gen;
-END_RCPP_RETURN_ERROR
-}
-RcppExport SEXP _DynMultiNet_c_prediction(SEXP EXSEXP, SEXP SIG2SEXP, SEXP X1TSEXP, SEXP X2TSEXP, SEXP BINSEXP, SEXP BOUTSEXP, SEXP WWSEXP) {
-    SEXP rcpp_result_gen;
-    {
-        Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_c_prediction_try(EXSEXP, SIG2SEXP, X1TSEXP, X2TSEXP, BINSEXP, BOUTSEXP, WWSEXP));
-    }
-    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
-    if (rcpp_isInterrupt_gen) {
-        UNPROTECT(1);
-        Rf_onintr();
-    }
-    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
-    if (rcpp_isLongjump_gen) {
-        Rcpp::internal::resumeJump(rcpp_result_gen);
-    }
-    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
-    if (rcpp_isError_gen) {
-        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
-        UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
-    }
-    UNPROTECT(1);
-    return rcpp_result_gen;
-}
 // sample_baseline_t_link_cpp
 Rcpp::List sample_baseline_t_link_cpp(arma::colvec eta_t, const arma::mat eta_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const bool directed);
 static SEXP _DynMultiNet_sample_baseline_t_link_cpp_try(SEXP eta_tSEXP, SEXP eta_t_cov_prior_invSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP gamma_ijtSEXP, SEXP directedSEXP) {
@@ -716,27 +286,27 @@ RcppExport SEXP _DynMultiNet_sample_coord_ith_shared_link_dir_cpp(SEXP ab_ith_sh
     UNPROTECT(1);
     return rcpp_result_gen;
 }
-// sample_beta_z_layer_DynMultiNet_bin_cpp
-arma::colvec sample_beta_z_layer_DynMultiNet_bin_cpp(arma::colvec beta_t, arma::colvec z_t, const arma::mat beta_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, const arma::cube gamma_ijt, const bool directed);
-static SEXP _DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp_try(SEXP beta_tSEXP, SEXP z_tSEXP, SEXP beta_t_cov_prior_invSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP gamma_ijtSEXP, SEXP directedSEXP) {
+// sample_coeff_tp_link_cpp
+Rcpp::List sample_coeff_tp_link_cpp(arma::mat beta_tp, const arma::mat beta_t_cov_prior_inv, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> w_ijtk, arma::field<arma::cube> gamma_ijtk, const arma::mat x_ijtkp_mat, const bool directed);
+static SEXP _DynMultiNet_sample_coeff_tp_link_cpp_try(SEXP beta_tpSEXP, SEXP beta_t_cov_prior_invSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP gamma_ijtkSEXP, SEXP x_ijtkp_matSEXP, SEXP directedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< arma::colvec >::type beta_t(beta_tSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type z_t(z_tSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type beta_tp(beta_tpSEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type beta_t_cov_prior_inv(beta_t_cov_prior_invSEXP);
-    Rcpp::traits::input_parameter< const arma::cube >::type y_ijt(y_ijtSEXP);
-    Rcpp::traits::input_parameter< const arma::cube >::type w_ijt(w_ijtSEXP);
-    Rcpp::traits::input_parameter< const arma::cube >::type gamma_ijt(gamma_ijtSEXP);
+    Rcpp::traits::input_parameter< const arma::field<arma::cube> >::type y_ijtk(y_ijtkSEXP);
+    Rcpp::traits::input_parameter< arma::field<arma::cube> >::type w_ijtk(w_ijtkSEXP);
+    Rcpp::traits::input_parameter< arma::field<arma::cube> >::type gamma_ijtk(gamma_ijtkSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type x_ijtkp_mat(x_ijtkp_matSEXP);
     Rcpp::traits::input_parameter< const bool >::type directed(directedSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_beta_z_layer_DynMultiNet_bin_cpp(beta_t, z_t, beta_t_cov_prior_inv, y_ijt, w_ijt, gamma_ijt, directed));
+    rcpp_result_gen = Rcpp::wrap(sample_coeff_tp_link_cpp(beta_tp, beta_t_cov_prior_inv, y_ijtk, w_ijtk, gamma_ijtk, x_ijtkp_mat, directed));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp(SEXP beta_tSEXP, SEXP z_tSEXP, SEXP beta_t_cov_prior_invSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP gamma_ijtSEXP, SEXP directedSEXP) {
+RcppExport SEXP _DynMultiNet_sample_coeff_tp_link_cpp(SEXP beta_tpSEXP, SEXP beta_t_cov_prior_invSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP gamma_ijtkSEXP, SEXP x_ijtkp_matSEXP, SEXP directedSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp_try(beta_tSEXP, z_tSEXP, beta_t_cov_prior_invSEXP, y_ijtSEXP, w_ijtSEXP, gamma_ijtSEXP, directedSEXP));
+        rcpp_result_gen = PROTECT(_DynMultiNet_sample_coeff_tp_link_cpp_try(beta_tpSEXP, beta_t_cov_prior_invSEXP, y_ijtkSEXP, w_ijtkSEXP, gamma_ijtkSEXP, x_ijtkp_matSEXP, directedSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -1033,6 +603,46 @@ RcppExport SEXP _DynMultiNet_sample_coord_ith_shared_weight_dir_cpp(SEXP u_ith_s
     UNPROTECT(1);
     return rcpp_result_gen;
 }
+// sample_coeff_tp_weight_cpp
+Rcpp::List sample_coeff_tp_weight_cpp(arma::mat beta_tp, const arma::mat beta_t_cov_prior_inv, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> mu_ijtk, const arma::colvec sigma_k, const arma::mat x_ijtkp_mat, const bool directed);
+static SEXP _DynMultiNet_sample_coeff_tp_weight_cpp_try(SEXP beta_tpSEXP, SEXP beta_t_cov_prior_invSEXP, SEXP y_ijtkSEXP, SEXP mu_ijtkSEXP, SEXP sigma_kSEXP, SEXP x_ijtkp_matSEXP, SEXP directedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type beta_tp(beta_tpSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type beta_t_cov_prior_inv(beta_t_cov_prior_invSEXP);
+    Rcpp::traits::input_parameter< const arma::field<arma::cube> >::type y_ijtk(y_ijtkSEXP);
+    Rcpp::traits::input_parameter< arma::field<arma::cube> >::type mu_ijtk(mu_ijtkSEXP);
+    Rcpp::traits::input_parameter< const arma::colvec >::type sigma_k(sigma_kSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type x_ijtkp_mat(x_ijtkp_matSEXP);
+    Rcpp::traits::input_parameter< const bool >::type directed(directedSEXP);
+    rcpp_result_gen = Rcpp::wrap(sample_coeff_tp_weight_cpp(beta_tp, beta_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, x_ijtkp_mat, directed));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _DynMultiNet_sample_coeff_tp_weight_cpp(SEXP beta_tpSEXP, SEXP beta_t_cov_prior_invSEXP, SEXP y_ijtkSEXP, SEXP mu_ijtkSEXP, SEXP sigma_kSEXP, SEXP x_ijtkp_matSEXP, SEXP directedSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_DynMultiNet_sample_coeff_tp_weight_cpp_try(beta_tpSEXP, beta_t_cov_prior_invSEXP, y_ijtkSEXP, mu_ijtkSEXP, sigma_kSEXP, x_ijtkp_matSEXP, directedSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
 // sample_var_weight_cpp
 double sample_var_weight_cpp(double sigma_k, double sigma_k_prop_int, const arma::cube y_ijt, const arma::cube mu_ijt, const bool directed);
 static SEXP _DynMultiNet_sample_var_weight_cpp_try(SEXP sigma_kSEXP, SEXP sigma_k_prop_intSEXP, SEXP y_ijtSEXP, SEXP mu_ijtSEXP, SEXP directedSEXP) {
@@ -1076,16 +686,6 @@ RcppExport SEXP _DynMultiNet_sample_var_weight_cpp(SEXP sigma_kSEXP, SEXP sigma_
 static int _DynMultiNet_RcppExport_validate(const char* sig) { 
     static std::set<std::string> signatures;
     if (signatures.empty()) {
-        signatures.insert("SEXP(*c_initialize1)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_initialize1_grad)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_update2)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_update1)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_t2s2Parms)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_WAccProb2)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_WAccProb1)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_missing)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_postzeroprob)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
-        signatures.insert("SEXP(*c_prediction)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP)");
         signatures.insert("Rcpp::List(*sample_baseline_t_link_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,arma::cube,const bool)");
         signatures.insert("Rcpp::List(*sample_add_eff_it_link_cpp)(arma::colvec,const arma::mat,const arma::cube,arma::cube,arma::cube,const bool)");
         signatures.insert("Rcpp::List(*sample_add_eff_it_shared_link_cpp)(arma::colvec,const arma::mat,const arma::field<arma::cube>,arma::field<arma::cube>,arma::field<arma::cube>,const bool)");
@@ -1093,7 +693,7 @@ static int _DynMultiNet_RcppExport_validate(const char* sig) {
         signatures.insert("Rcpp::List(*sample_coord_ith_shared_link_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
         signatures.insert("Rcpp::List(*sample_coord_ith_link_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,const arma::cube,arma::cube)");
         signatures.insert("Rcpp::List(*sample_coord_ith_shared_link_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>)");
-        signatures.insert("arma::colvec(*sample_beta_z_layer_DynMultiNet_bin_cpp)(arma::colvec,arma::colvec,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const bool)");
+        signatures.insert("Rcpp::List(*sample_coeff_tp_link_cpp)(arma::mat,const arma::mat,const arma::field<arma::cube>,arma::field<arma::cube>,arma::field<arma::cube>,const arma::mat,const bool)");
         signatures.insert("Rcpp::List(*sample_baseline_tk_weight_cpp)(arma::colvec,const arma::mat,const arma::cube,arma::cube,const double,const bool)");
         signatures.insert("Rcpp::List(*sample_add_eff_it_weight_cpp)(arma::colvec,const arma::mat,const arma::cube,arma::cube,const double,const bool)");
         signatures.insert("Rcpp::List(*sample_add_eff_it_shared_weight_cpp)(arma::colvec,const arma::mat,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec,const bool)");
@@ -1101,6 +701,7 @@ static int _DynMultiNet_RcppExport_validate(const char* sig) {
         signatures.insert("Rcpp::List(*sample_coord_ith_shared_weight_cpp)(arma::cube,const arma::mat,const arma::colvec,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec)");
         signatures.insert("Rcpp::List(*sample_coord_ith_weight_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::cube,arma::cube,const double)");
         signatures.insert("Rcpp::List(*sample_coord_ith_shared_weight_dir_cpp)(arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec)");
+        signatures.insert("Rcpp::List(*sample_coeff_tp_weight_cpp)(arma::mat,const arma::mat,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec,const arma::mat,const bool)");
         signatures.insert("double(*sample_var_weight_cpp)(double,double,const arma::cube,const arma::cube,const bool)");
     }
     return signatures.find(sig) != signatures.end();
@@ -1108,16 +709,6 @@ static int _DynMultiNet_RcppExport_validate(const char* sig) {
 
 // registerCCallable (register entry points for exported C++ functions)
 RcppExport SEXP _DynMultiNet_RcppExport_registerCCallable() { 
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_initialize1", (DL_FUNC)_DynMultiNet_c_initialize1_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_initialize1_grad", (DL_FUNC)_DynMultiNet_c_initialize1_grad_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_update2", (DL_FUNC)_DynMultiNet_c_update2_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_update1", (DL_FUNC)_DynMultiNet_c_update1_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_t2s2Parms", (DL_FUNC)_DynMultiNet_c_t2s2Parms_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_WAccProb2", (DL_FUNC)_DynMultiNet_c_WAccProb2_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_WAccProb1", (DL_FUNC)_DynMultiNet_c_WAccProb1_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_missing", (DL_FUNC)_DynMultiNet_c_missing_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_postzeroprob", (DL_FUNC)_DynMultiNet_c_postzeroprob_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_c_prediction", (DL_FUNC)_DynMultiNet_c_prediction_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_baseline_t_link_cpp", (DL_FUNC)_DynMultiNet_sample_baseline_t_link_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_add_eff_it_link_cpp", (DL_FUNC)_DynMultiNet_sample_add_eff_it_link_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_add_eff_it_shared_link_cpp", (DL_FUNC)_DynMultiNet_sample_add_eff_it_shared_link_cpp_try);
@@ -1125,7 +716,7 @@ RcppExport SEXP _DynMultiNet_RcppExport_registerCCallable() {
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_link_cpp", (DL_FUNC)_DynMultiNet_sample_coord_ith_shared_link_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_link_dir_cpp", (DL_FUNC)_DynMultiNet_sample_coord_ith_link_dir_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_link_dir_cpp", (DL_FUNC)_DynMultiNet_sample_coord_ith_shared_link_dir_cpp_try);
-    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp", (DL_FUNC)_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp_try);
+    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coeff_tp_link_cpp", (DL_FUNC)_DynMultiNet_sample_coeff_tp_link_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_baseline_tk_weight_cpp", (DL_FUNC)_DynMultiNet_sample_baseline_tk_weight_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_add_eff_it_weight_cpp", (DL_FUNC)_DynMultiNet_sample_add_eff_it_weight_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_add_eff_it_shared_weight_cpp", (DL_FUNC)_DynMultiNet_sample_add_eff_it_shared_weight_cpp_try);
@@ -1133,22 +724,13 @@ RcppExport SEXP _DynMultiNet_RcppExport_registerCCallable() {
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_weight_cpp", (DL_FUNC)_DynMultiNet_sample_coord_ith_shared_weight_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_weight_dir_cpp", (DL_FUNC)_DynMultiNet_sample_coord_ith_weight_dir_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp", (DL_FUNC)_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp_try);
+    R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_coeff_tp_weight_cpp", (DL_FUNC)_DynMultiNet_sample_coeff_tp_weight_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_sample_var_weight_cpp", (DL_FUNC)_DynMultiNet_sample_var_weight_cpp_try);
     R_RegisterCCallable("DynMultiNet", "_DynMultiNet_RcppExport_validate", (DL_FUNC)_DynMultiNet_RcppExport_validate);
     return R_NilValue;
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_DynMultiNet_c_initialize1", (DL_FUNC) &_DynMultiNet_c_initialize1, 7},
-    {"_DynMultiNet_c_initialize1_grad", (DL_FUNC) &_DynMultiNet_c_initialize1_grad, 7},
-    {"_DynMultiNet_c_update2", (DL_FUNC) &_DynMultiNet_c_update2, 21},
-    {"_DynMultiNet_c_update1", (DL_FUNC) &_DynMultiNet_c_update1, 17},
-    {"_DynMultiNet_c_t2s2Parms", (DL_FUNC) &_DynMultiNet_c_t2s2Parms, 6},
-    {"_DynMultiNet_c_WAccProb2", (DL_FUNC) &_DynMultiNet_c_WAccProb2, 12},
-    {"_DynMultiNet_c_WAccProb1", (DL_FUNC) &_DynMultiNet_c_WAccProb1, 8},
-    {"_DynMultiNet_c_missing", (DL_FUNC) &_DynMultiNet_c_missing, 8},
-    {"_DynMultiNet_c_postzeroprob", (DL_FUNC) &_DynMultiNet_c_postzeroprob, 7},
-    {"_DynMultiNet_c_prediction", (DL_FUNC) &_DynMultiNet_c_prediction, 7},
     {"_DynMultiNet_sample_baseline_t_link_cpp", (DL_FUNC) &_DynMultiNet_sample_baseline_t_link_cpp, 6},
     {"_DynMultiNet_sample_add_eff_it_link_cpp", (DL_FUNC) &_DynMultiNet_sample_add_eff_it_link_cpp, 6},
     {"_DynMultiNet_sample_add_eff_it_shared_link_cpp", (DL_FUNC) &_DynMultiNet_sample_add_eff_it_shared_link_cpp, 6},
@@ -1156,7 +738,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_DynMultiNet_sample_coord_ith_shared_link_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_link_cpp, 6},
     {"_DynMultiNet_sample_coord_ith_link_dir_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_link_dir_cpp, 8},
     {"_DynMultiNet_sample_coord_ith_shared_link_dir_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_link_dir_cpp, 8},
-    {"_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp", (DL_FUNC) &_DynMultiNet_sample_beta_z_layer_DynMultiNet_bin_cpp, 7},
+    {"_DynMultiNet_sample_coeff_tp_link_cpp", (DL_FUNC) &_DynMultiNet_sample_coeff_tp_link_cpp, 7},
     {"_DynMultiNet_sample_baseline_tk_weight_cpp", (DL_FUNC) &_DynMultiNet_sample_baseline_tk_weight_cpp, 6},
     {"_DynMultiNet_sample_add_eff_it_weight_cpp", (DL_FUNC) &_DynMultiNet_sample_add_eff_it_weight_cpp, 6},
     {"_DynMultiNet_sample_add_eff_it_shared_weight_cpp", (DL_FUNC) &_DynMultiNet_sample_add_eff_it_shared_weight_cpp, 6},
@@ -1164,6 +746,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_DynMultiNet_sample_coord_ith_shared_weight_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_weight_cpp, 6},
     {"_DynMultiNet_sample_coord_ith_weight_dir_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_weight_dir_cpp, 8},
     {"_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp, 8},
+    {"_DynMultiNet_sample_coeff_tp_weight_cpp", (DL_FUNC) &_DynMultiNet_sample_coeff_tp_weight_cpp, 7},
     {"_DynMultiNet_sample_var_weight_cpp", (DL_FUNC) &_DynMultiNet_sample_var_weight_cpp, 5},
     {"_DynMultiNet_RcppExport_registerCCallable", (DL_FUNC) &_DynMultiNet_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}

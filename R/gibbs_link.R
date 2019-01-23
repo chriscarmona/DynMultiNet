@@ -358,3 +358,33 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
   return(beta_z_layer);
 }
 
+
+#' @keywords internal
+sample_coeff_tp_link <- function( beta_tp,
+                                  beta_t_cov_prior_inv,
+                                  y_ijtk, w_ijtk, gamma_ijtk,
+                                  x_ijtkp_mat,
+                                  directed=FALSE ){
+  
+  # transform arrays to list, as armadillo fields are required as input
+  K_net <- dim(y_ijtk)[4]
+  y_ijtk_list <- w_ijtk_list <- gamma_ijtk_list <- list(NULL)
+  for(k in 1:K_net) {
+    y_ijtk_list[[k]] <- y_ijtk[,,,k]
+    w_ijtk_list[[k]] <- w_ijtk[,,,k]
+    gamma_ijtk_list[[k]] <- gamma_ijtk[,,,k]
+  }
+  
+  out_aux <- sample_coeff_tp_link_cpp( beta_tp=beta_tp,
+                                       beta_t_cov_prior_inv=beta_t_cov_prior_inv,
+                                       y_ijtk=y_ijtk_list, w_ijtk=w_ijtk_list, gamma_ijtk=gamma_ijtk_list,
+                                       x_ijtkp_mat=x_ijtkp_mat,
+                                       directed=directed )
+  
+  for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
+  
+  return( list( beta_tp=out_aux$beta_tp,
+                gamma_ijtk=gamma_ijtk ) );
+  
+  return(out_aux)
+}
