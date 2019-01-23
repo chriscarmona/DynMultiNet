@@ -8,6 +8,8 @@
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' 
+#' @import ggplot2
+#' 
 #' @export
 gen_synth_net_icml <- function( directed=TRUE,
                                 weighted=TRUE,
@@ -50,8 +52,25 @@ gen_synth_net_icml <- function( directed=TRUE,
   lambda_ijtk[,1:5,,2] <- lambda_ijtk[,1:5,,2] + 0.3 # agents 1:5 are popular
   lambda_ijtk[1:5,1:5,,2] <- lambda_ijtk[1:5,1:5,,2] + 0.2 # agents 1:5 connect more between them
   # lambda_ijtk[,,1,2]
-  lambda_ijtk[] <- c(lambda_ijtk)+runif(length(c(lambda_ijtk)),-0.1,0.1)
+  lambda_ijtk[] <- c(lambda_ijtk)+runif(length(c(lambda_ijtk)),-0.05,0.05)
   lambda_ijtk[] <- pmax(0.01,c(lambda_ijtk)); lambda_ijtk[] <- pmin(0.99,c(lambda_ijtk))
+  
+  p_lambda_base <- lambda_ijtk[,,1,] %>%
+    reshape2::melt(value.name = "lambda") %>%
+    dplyr::rename( i=Var1,j=Var2,k=Var3 ) %>%
+    ggplot() +
+    geom_tile( aes( x=j,
+                    y=ordered(i,levels=V_net:1),
+                    fill=lambda), colour="white") +
+    scale_fill_gradientn(colours = c("white", "black"), values = c(0,1),limits=c(0,1), guide=FALSE) +
+    scale_y_discrete(expand=c(0,0)) + #remove y margin extra space
+    scale_x_discrete(expand=c(0,0)) + #remove x margin extra space
+    facet_grid(k~.)+
+    theme( plot.background=element_blank(),
+           axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+           axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+           strip.text = element_text(size=5,angle=0) )
+  # print(p_lambda_base)
   
   # Linear predictors #
   gamma_ijtk <- lambda_ijtk
@@ -181,7 +200,9 @@ gen_synth_net_icml <- function( directed=TRUE,
                      
                      mu_ijtk = mu_ijtk,
                      lambda_ijtk = lambda_ijtk,
-                     gamma_ijtk = gamma_ijtk )
+                     gamma_ijtk = gamma_ijtk,
+                     
+                     p_lambda_base=p_lambda_base)
   
   if(!is.null(rds_file)){
     if( substr(rds_file,nchar(rds_file)-3,nchar(rds_file))!=".rds" ) {rds_file<-paste(rds_file,".rds",sep="")}
