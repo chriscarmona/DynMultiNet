@@ -5,20 +5,14 @@
 #'    \code{dmn_sampling} Implements model from Carmona and Martinez-Jaramillo, 2018
 #'
 #' @param y_ijtk Array. Network information, should be dimension (V_net,V_net,T_net,K_net).
-#' @param pred_data Data frame. Linked predictors information.
 #' @param directed Boolean. Indicates if the provided network is directed, i.e. the adjacency matrix is assymetrical.
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
 #' @param x_ijtkp Array. Edge Specific external covariates.
-#' @param H_dim Integer. Latent space dimension.
+#' @param H_dim Integer. Latent space dimension, for global latent vectors.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
 #' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
-#' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
-#' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
-#' @param a_2 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
-#' @param procrustes_lat Boolean. Indicates if the latent coordinates should be stabilised using the procustres transformation.
-#' @param n_chains_mcmc Integer. Number of parallel MCMC chains.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
@@ -59,7 +53,6 @@
 #'                             a_1 = 1.5, a_2 = 2.5 )
 #'                             
 #' dmn_mcmc <- dmn_sampling( net_data = synth_net$edge_data,
-#'                                  pred_data = NULL,
 #'                                  directed = FALSE,
 #'                                  H_dim = 10, R_dim = 5,
 #'                                  delta=36,
@@ -76,7 +69,6 @@
 #' 
 
 dmn_sampling <- function( y_ijtk,
-                          pred_data=NULL,
                           directed=FALSE, weighted=FALSE,
                           
                           x_ijtkp=NULL,
@@ -88,12 +80,6 @@ dmn_sampling <- function( y_ijtk,
                           
                           delta=36,
                           
-                          shrink_lat_space=FALSE,
-                          a_1=2, a_2=2.5,
-                          
-                          procrustes_lat=FALSE,
-                          
-                          n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
                           keep_y_ijtk_imp = FALSE,
@@ -105,13 +91,10 @@ dmn_sampling <- function( y_ijtk,
   
   mcmc_clock <- Sys.time()
   
-  # if(!is.null(pred_data)) {
-  #   if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
-  #     stop('Layers in "pred_data" must be one of layers in "net_data"')
-  #   }
-  # }
-  if( !is.null(rds_file) & substr(rds_file,nchar(rds_file)-3,nchar(rds_file))!=".rds" ) {
-    rds_file<-paste(rds_file,".rds",sep="")
+  if( !is.null(rds_file) ) {
+    if( substr(rds_file,nchar(rds_file)-3,nchar(rds_file))!=".rds" ) {
+      rds_file<-paste(rds_file,".rds",sep="")
+    }
   }
   #### Start: Processing data ####
   ### Network data ###
@@ -137,19 +120,6 @@ dmn_sampling <- function( y_ijtk,
   if(any(is.na(time_all))){stop("dimnames(y_ijtk)[[3]] should be NULL or able to transform to a numeric value")}
   layer_all <- dimnames(y_ijtk)[[4]]
   if(is.null(layer_all)){layer_all<-1:K_net; dimnames(y_ijtk)[[4]]<-layer_all}
-  
-  ### Predictors data ###
-  pred_net <- get_z_pred( pred_data,
-                          node_all, time_all, layer_all,
-                          quiet=FALSE )
-  
-  pred_all <- pred_net$pred_all
-  
-  pred_id_layer <- pred_net$pred_id_layer
-  pred_id_edge <- pred_net$pred_id_edge
-  
-  z_tkp<-pred_net$z_tkp
-  z_ijtkp<-pred_net$z_ijtkp
   
   #### End: Processing data ####
   
@@ -187,10 +157,6 @@ dmn_sampling <- function( y_ijtk,
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
         "delta = ",delta,"\n",
-        "shrink_lat_space = ",shrink_lat_space,"\n",
-        "a_1 = ",a_1,"\n",
-        "a_2 = ",a_2,"\n",
-        "procrustes_lat = ",procrustes_lat,"\n",
         
         "----- MCMC parameters -----\n",
         "n_iter_mcmc = ",n_iter_mcmc,"\n",
@@ -222,11 +188,6 @@ dmn_sampling <- function( y_ijtk,
                               
                               delta=delta,
                               
-                              shrink_lat_space=shrink_lat_space,
-                              a_1=a_1, a_2=a_2,
-                              
-                              procrustes_lat=procrustes_lat,
-                              
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
                               rds_file=rds_file, log_file=log_file,
@@ -243,11 +204,6 @@ dmn_sampling <- function( y_ijtk,
                               add_eff_link=add_eff_link,
                               
                               delta=delta,
-                              
-                              shrink_lat_space=shrink_lat_space,
-                              a_1=a_1, a_2=a_2,
-                              
-                              procrustes_lat=procrustes_lat,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
@@ -266,11 +222,6 @@ dmn_sampling <- function( y_ijtk,
                               add_eff_weight=add_eff_weight,
                               
                               delta=delta,
-                              
-                              shrink_lat_space=shrink_lat_space,
-                              a_1=a_1, a_2=a_2,
-                              
-                              procrustes_lat=procrustes_lat,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
