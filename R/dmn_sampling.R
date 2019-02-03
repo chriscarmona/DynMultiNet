@@ -12,7 +12,8 @@
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
 #' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
-#' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
+#' @param class_dyn character. Specifies the dynamics for latent elements: "GP" for Gaussian Processes, "nGP" for Nested Gaussian Processes.
+#' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother, only valid for class_dyn="GP".
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
@@ -78,6 +79,7 @@ dmn_sampling <- function( y_ijtk,
                           add_eff_weight=FALSE,
                           add_eff_link=FALSE,
                           
+                          class_dyn=c("GP","nGP")[1],
                           delta=36,
                           
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
@@ -186,6 +188,7 @@ dmn_sampling <- function( y_ijtk,
                               
                               add_eff_link=add_eff_link,
                               
+                              class_dyn=class_dyn,
                               delta=delta,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
@@ -203,6 +206,7 @@ dmn_sampling <- function( y_ijtk,
                               
                               add_eff_link=add_eff_link,
                               
+                              class_dyn=class_dyn,
                               delta=delta,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
@@ -221,6 +225,7 @@ dmn_sampling <- function( y_ijtk,
                               add_eff_link=add_eff_link,
                               add_eff_weight=add_eff_weight,
                               
+                              class_dyn=class_dyn,
                               delta=delta,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
@@ -239,6 +244,7 @@ dmn_sampling <- function( y_ijtk,
                               add_eff_link=add_eff_link,
                               add_eff_weight=add_eff_weight,
                               
+                              class_dyn=class_dyn,
                               delta=delta,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,

@@ -27,7 +27,10 @@ sample_pg_w_ijtk_link <- function( w_ijtk,
 #' @keywords internal
 sample_baseline_tk_link <- function( eta_tk,
                                      y_ijtk, w_ijtk, gamma_ijtk,
-                                     eta_t_cov_prior_inv,
+                                     class_dyn=c("GP","nGP")[1],
+                                     eta_t_cov_prior_inv=NULL,
+                                     nGP_mat=NULL,
+                                     alpha_eta_tk=NULL,
                                      directed=FALSE ) {
   
   K_net <- dim(y_ijtk)[4]
@@ -38,18 +41,36 @@ sample_baseline_tk_link <- function( eta_tk,
   
   ### Sample eta_t from its conditional N-variate Gaussian posterior ###
   for( k in 1:K_net ) { # k<-1
-    out_aux <- sample_baseline_t_link_cpp( eta_t=eta_tk[,k,drop=F],
-                                           eta_t_cov_prior_inv=eta_t_cov_prior_inv,
-                                           y_ijt=y_ijtk[,,,k],
-                                           w_ijt=w_ijtk[,,,k],
-                                           gamma_ijt=gamma_ijtk[,,,k],
-                                           directed=directed )
+    if( class_dyn==c("GP","nGP")[1] ){
+      if(is.null(eta_t_cov_prior_inv)){stop("eta_t_cov_prior_inv not provided!")}
+      out_aux <- sample_baseline_t_link_GP_cpp( eta_t=eta_tk[,k,drop=F],
+                                                eta_t_cov_prior_inv=eta_t_cov_prior_inv,
+                                                y_ijt=y_ijtk[,,,k],
+                                                w_ijt=w_ijtk[,,,k],
+                                                gamma_ijt=gamma_ijtk[,,,k],
+                                                directed=directed )
+    } else if( class_dyn==c("GP","nGP")[2] ){
+      if(is.null(nGP_mat)){stop("nGP_mat not provided!")}
+      out_aux <- sample_baseline_t_link_nGP_cpp( eta_t=eta_tk[,k,drop=F],
+                                                 
+                                                 y_ijt=y_ijtk[,,,k],
+                                                 w_ijt=w_ijtk[,,,k],
+                                                 gamma_ijt=gamma_ijtk[,,,k],
+                                                 
+                                                 nGP_G_t = nGP_mat$G[k,,,],
+                                                 nGP_H_t = nGP_mat$H[k,,,],
+                                                 nGP_Wchol_t = nGP_mat$Wchol[k,,,],
+                                                 
+                                                 directed=directed )
+      alpha_eta_tk[,k,] <- t(out_aux$alpha_eta_t)
+    }
     eta_tk[,k] <- out_aux$eta_t
     gamma_ijtk[,,,k] <- out_aux$gamma_ijt
   }
   
   return( list( eta_tk=eta_tk,
-                gamma_ijtk=gamma_ijtk ) );
+                gamma_ijtk=gamma_ijtk,
+                alpha_eta_tk=alpha_eta_tk ) );
 }
 
 
@@ -387,4 +408,107 @@ sample_coeff_tp_link <- function( beta_tp,
                 gamma_ijtk=gamma_ijtk ) );
   
   return(out_aux)
+}
+
+#' @importFrom MCMCpack rinvgamma
+#' @keywords internal
+sample_nGP_sigma <- function( alpha_t,
+                              a,b,
+                              delta_t ) {
+  # check dimensions #
+  if(dim(alpha_t)[2]!=length(delta_t)){stop("Dimension inconsistency between alpha_t and delta_t")}
+  n <- dim(alpha_t)[2]
+  sigma_U <- MCMCpack::rinvgamma(1, a+(n+1)/2, b+0.5*sum((alpha_t[2,-1]-(alpha_t[2,-n]+alpha_t[3,-n]*delta_t[-n]))^2/delta_t[-n]) )
+  sigma_A <- MCMCpack::rinvgamma(1, a+(n+1)/2, b+0.5*sum((alpha_t[3,-1]-alpha_t[3,-n])^2/delta_t[-n]) )
+  return( c(sigma_U,sigma_A) )
+}
+
+
+#' @keywords internal
+get_nGP_sigma_net <- function( a, b,
+                               time_all,
+                               alpha_baseline_tk,
+                               alpha_coord_ith_shared,
+                               alpha_coord_ithk,
+                               alpha_add_eff_it_shared=NULL,
+                               alpha_add_eff_itk=NULL,
+                               directed=FALSE ) {
+  
+  # Network dimensions
+  T_net <- length(time_all)
+  K_net <- dim(alpha_baseline_tk)[2]
+  if( !directed ){
+    V_net <- dim(alpha_coord_ith_shared)[1]
+    H_dim <- dim(alpha_coord_ith_shared)[3]
+  } else {
+    V_net <- dim(alpha_coord_ith_shared[[1]])[1]
+    H_dim <- dim(alpha_coord_ith_shared[[1]])[3]
+  }
+  # lenght of time intervals
+  diff_time_all <- c(diff(time_all),1)
+  
+  # Output #
+  nGP_sigma_net <- list( baseline_k = array(NA,dim=c(K_net,2)),
+                         coord_i = array(NA,dim=c(V_net,2)),
+                         coord_ik = array(NA,dim=c(V_net,K_net,2)),
+                         add_eff_i = NULL,
+                         add_eff_ik = NULL,
+                         time_all=time_all,
+                         directed=directed,
+                         V_net=V_net, T_net=T_net, K_net=K_net, H_dim=H_dim)
+  
+  # Computation #
+  for(k in 1:K_net) {
+    # variance of baseline process #
+    alpha_t = t(alpha_baseline_tk[,k,]) # dim(alpha_t)=c(3,T_net)
+    nGP_sigma_net$baseline_k[k,] <- sample_nGP_sigma( alpha_t=alpha_t,
+                                                      a=a,b=b,
+                                                      delta_t=diff_time_all )
+  }
+  # variance of latent coordinates #
+  for(i in 1:V_net) {
+    # variance of global coordinates #
+    alpha_t = alpha_coord_ith_shared[i,,,] # dim(alpha_t)=c(T_net,H_dim,3)
+    alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,H_dim)
+    alpha_t = matrix(c(alpha_t),3,T_net*H_dim) # dim(alpha_t)=c(3,T_net*H_dim)
+    nGP_sigma_net$coord_i[i,] <- sample_nGP_sigma( alpha_t=alpha_t,
+                                                   a=a,b=b,
+                                                   delta_t=rep(diff_time_all,H_dim) )
+    # variance of layer-specific coordinates #
+    if(K_net>1){
+      for(k in 1:K_net) {
+        alpha_t = alpha_coord_ithk[i,,,k,] # dim(alpha_t)=c(T_net,H_dim,3)
+        alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,H_dim)
+        alpha_t = matrix(c(alpha_t),3,T_net*H_dim) # dim(alpha_t)=c(3,T_net*H_dim)
+        nGP_sigma_net$coord_ik[i,k,] <- sample_nGP_sigma( alpha_t=alpha_t,
+                                                          a=a,b=b,
+                                                          delta_t=rep(diff_time_all,H_dim) )
+      }
+    }
+  }
+  
+  # variance of additive effects #
+  if(!is.null(alpha_add_eff_it_shared)) {
+    nGP_sigma_net$add_eff_i <- array(NA,dim=c(V_net,2))
+    for(i in 1:V_net) {
+      alpha_t = t(alpha_add_eff_it_shared[i,,]) # dim(alpha_t)=c(3,T_net)
+      nGP_sigma_net$add_eff_i[i,] <- sample_nGP_sigma( alpha_t=alpha_t,
+                                                       a=a,b=b,
+                                                       delta_t=diff_time_all )
+    }
+  }
+  # variance of layer-specific additive effects #
+  if(K_net>1){
+    if(!is.null(alpha_add_eff_itk)) {
+      nGP_sigma_net$add_eff_ik <- array(NA,dim=c(V_net,K_net,2))
+      for(k in 1:K_net) {
+        alpha_t = t(alpha_add_eff_itk[i,,k,]) # dim(alpha_t)=c(3,T_net)
+        nGP_sigma_net$add_eff_ik[i,k,] <- sample_nGP_sigma( alpha_t=alpha_t,
+                                                            a=a,b=b,
+                                                            delta_t=diff_time_all )
+      }
+    }
+  }
+  
+  return(nGP_sigma_net)
 }

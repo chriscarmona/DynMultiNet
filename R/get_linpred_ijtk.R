@@ -23,8 +23,8 @@
 #' 
 
 get_linpred_ijtk <- function( baseline_tk,
-                              add_eff_it_shared=NULL, add_eff_itk=NULL,
                               coord_ith_shared, coord_ithk=NULL,
+                              add_eff_it_shared=NULL, add_eff_itk=NULL,
                               beta_edge_tp=NULL, x_ijtkp=NULL,
                               directed=FALSE ) {
   
@@ -52,40 +52,6 @@ get_linpred_ijtk <- function( baseline_tk,
   for( k in 1:K_net ){ # k<-1
     for( t in 1:T_net ){ # t<-1
       linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + baseline_tk[t,k]
-    }
-  }
-  
-  # Global additive effects
-  if(!is.null(add_eff_it_shared)) {
-    if( !directed ) {
-      for( k in 1:K_net ){
-        for( t in 1:T_net ){
-          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_it_shared[,t],V_net,V_net) + matrix(add_eff_it_shared[,t],V_net,V_net,byrow=T)
-        }
-      }
-    } else {
-      for( k in 1:K_net ){ # k<-1
-        for( t in 1:T_net ){ # t<-1
-          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_it_shared[,t,1],V_net,V_net) + matrix(add_eff_it_shared[,t,2],V_net,V_net,byrow=T)
-        }
-      }
-    }
-  }
-  
-  # Layer-specific additive effects
-  if(!is.null(add_eff_itk)) {
-    if( !directed ) {
-      for( k in 1:K_net ){
-        for( t in 1:T_net ){
-          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_itk[,t,k],V_net,V_net) + matrix(add_eff_itk[,t,k],V_net,V_net,byrow=T)
-        }
-      }
-    } else {
-      for( k in 1:K_net ){ # k<-1
-        for( t in 1:T_net ){ # t<-1
-          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_itk[,t,k,1],V_net,V_net) + matrix(add_eff_itk[,t,k,2],V_net,V_net,byrow=T)
-        }
-      }
     }
   }
   
@@ -121,6 +87,42 @@ get_linpred_ijtk <- function( baseline_tk,
     }
   }
   
+  
+  # Global additive effects
+  if(!is.null(add_eff_it_shared)) {
+    if( !directed ) {
+      for( k in 1:K_net ){
+        for( t in 1:T_net ){
+          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_it_shared[,t],V_net,V_net) + matrix(add_eff_it_shared[,t],V_net,V_net,byrow=T)
+        }
+      }
+    } else {
+      for( k in 1:K_net ){ # k<-1
+        for( t in 1:T_net ){ # t<-1
+          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_it_shared[,t,1],V_net,V_net) + matrix(add_eff_it_shared[,t,2],V_net,V_net,byrow=T)
+        }
+      }
+    }
+  }
+  
+  # Layer-specific additive effects
+  if(!is.null(add_eff_itk)) {
+    if( !directed ) {
+      for( k in 1:K_net ){
+        for( t in 1:T_net ){
+          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_itk[,t,k],V_net,V_net) + matrix(add_eff_itk[,t,k],V_net,V_net,byrow=T)
+        }
+      }
+    } else {
+      for( k in 1:K_net ){ # k<-1
+        for( t in 1:T_net ){ # t<-1
+          linpred_ijtk[,,t,k] <- linpred_ijtk[,,t,k] + matrix(add_eff_itk[,t,k,1],V_net,V_net) + matrix(add_eff_itk[,t,k,2],V_net,V_net,byrow=T)
+        }
+      }
+    }
+  }
+  
+  # External covariates
   if( !is.null(beta_edge_tp) ){
     for( l in 1:P_pred ){
       for( t in 1:T_net ){

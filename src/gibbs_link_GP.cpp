@@ -11,12 +11,12 @@
 
 
 // [[Rcpp::export]]
-Rcpp::List sample_baseline_t_link_cpp( arma::colvec eta_t,
-                                       const arma::mat eta_t_cov_prior_inv,
-                                       const arma::cube y_ijt,
-                                       const arma::cube w_ijt,
-                                       arma::cube gamma_ijt,
-                                       const bool directed=false ) {
+Rcpp::List sample_baseline_t_link_GP_cpp( arma::colvec eta_t,
+                                          const arma::mat eta_t_cov_prior_inv,
+                                          const arma::cube y_ijt,
+                                          const arma::cube w_ijt,
+                                          arma::cube gamma_ijt,
+                                          const bool directed=false ) {
   // Auxiliar objects
   unsigned int i=0;
   unsigned int t=0;

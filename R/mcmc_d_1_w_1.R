@@ -45,6 +45,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           add_eff_weight=FALSE,
                           add_eff_link=FALSE,
                           
+                          class_dyn=c("GP","nGP")[1],
                           delta=36,
                           
                           shrink_lat_space=FALSE,
@@ -349,6 +350,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                           sigma_k=sigma_k,
                                           theta_t_cov_prior_inv=cov_gp_prior_inv,
+                                          class_dyn=class_dyn,
                                           directed=TRUE )
     theta_tk <- out_aux$theta_tk
     mu_ijtk <- out_aux$mu_ijtk # This updates mu_ijtk except for the diagonal
@@ -556,6 +558,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
                                         y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
                                         eta_t_cov_prior_inv=cov_gp_prior_inv,
+                                        class_dyn=class_dyn,
                                         directed=TRUE )
     eta_tk <- out_aux$eta_tk
     gamma_ijtk <- out_aux$gamma_ijtk # This updates gamma_ijtk except for the diagonal

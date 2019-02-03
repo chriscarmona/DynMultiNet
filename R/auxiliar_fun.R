@@ -119,6 +119,7 @@ get_y_ijtk_from_edges <- function( net_data,
 }
 
 
+
 #' @keywords internal
 get_z_pred <- function( pred_data,
                         node_all, time_all, layer_all,
@@ -201,6 +202,8 @@ get_z_pred <- function( pred_data,
   
 }
 
+
+
 #' @keywords internal
 get_x_ijtkp_mat <- function( x_ijtkp,
                              directed=FALSE,
@@ -230,4 +233,187 @@ get_x_ijtkp_mat <- function( x_ijtkp,
   }
   
   return(x_ijtkp_mat)
+}
+
+
+
+#' @keywords internal
+get_GHW_t <- function( sigma_U,
+                       sigma_A,
+                       time_all,
+                       nGP_mat_approx=FALSE ) {
+  # From Zhu2013
+  # state_beta(t) = c(U(t),U'(t),A(t))
+  # state_beta(t+1) = G(t)*state_beta(t)+w(t)
+  if( !all.equal(time_all,sort(time_all,decreasing=F)) ){stop("time_all is not ordered increasingly")}
+  T_net <- length(time_all)
+  diff_time_all <- c(diff(time_all),1)
+  
+  G <- array(diag(3),dim=c(3,3,T_net))
+  G[1,2,] <- G[2,3,] <- diff_time_all
+  if(!nGP_mat_approx){
+    G[1,3,] <- (1.0/2)*diff_time_all^2
+  }
+  
+  H <- array(diag(3),dim=c(3,3,T_net))
+  if(nGP_mat_approx){
+    H <- H[,2:3,]
+  }
+  
+  if(!nGP_mat_approx){
+    W <- Wchol <- array(diag(3),dim=c(3,3,T_net))
+    # diag
+    W[1,1,] <- (1.0/3)*sigma_U^2*diff_time_all^3 + (1.0/20)*sigma_A^2*diff_time_all^5
+    W[2,2,] <- sigma_U^2*diff_time_all + (1.0/3)*sigma_A^2*diff_time_all^3
+    W[3,3,] <- sigma_A^2*diff_time_all
+    # out-diag
+    W[2,1,] <- W[1,2,] <- (1.0/2)*sigma_U^2*diff_time_all^2 + (1.0/8)*sigma_A^2*diff_time_all^4
+    W[3,1,] <- W[1,3,] <- (1.0/6)*sigma_A^2*diff_time_all^3
+    W[3,2,] <- W[2,3,] <- (1.0/2)*sigma_A^2*diff_time_all^2
+  } else {
+    W <- Wchol <- array(diag(2),dim=c(2,2,T_net))
+    W[1,1,] <- sigma_U^2*diff_time_all
+    W[2,2,] <- sigma_A^2*diff_time_all
+  }
+  for(t in 1:T_net){
+    Wchol[,,t] = chol( W[,,t] )
+  }
+  
+  
+  return( list( G=G,H=H,W=W,Wchol=Wchol,
+                nGP_mat_approx=nGP_mat_approx ) )
+}
+
+
+
+#' @keywords internal
+get_nGP_mat_net <- function( nGP_sigma_net,
+                             nGP_mat_approx=FALSE,
+                             directed=FALSE ) {
+  
+  V_net <- nGP_sigma_net$V_net
+  T_net <- nGP_sigma_net$T_net
+  K_net <- nGP_sigma_net$K_net
+  
+  time_all <- nGP_sigma_net$time_all
+  # Output #
+  nGP_mat_net <- list( baseline_k = NULL,
+                       coord_i = NULL,
+                       coord_ik = NULL,
+                       add_eff_i = NULL,
+                       add_eff_ik = NULL,
+                       time_all=time_all,
+                       nGP_mat_approx=nGP_mat_approx,
+                       directed=directed )
+  if(!nGP_mat_approx){
+    # exact
+    nGP_mat_net$baseline_k = list( G=array(NA,dim=c(K_net,3,3,T_net)),
+                                   H=array(NA,dim=c(K_net,3,3,T_net)),
+                                   Wchol=array(NA,dim=c(K_net,3,3,T_net)) )
+    nGP_mat_net$coord_i = list( G=array(NA,dim=c(V_net,3,3,T_net)),
+                                H=array(NA,dim=c(V_net,3,3,T_net)),
+                                Wchol=array(NA,dim=c(V_net,3,3,T_net)) )
+    nGP_mat_net$coord_ik = list( G=array(NA,dim=c(V_net,K_net,3,3,T_net)),
+                                 H=array(NA,dim=c(V_net,K_net,3,3,T_net)),
+                                 Wchol=array(NA,dim=c(V_net,K_net,3,3,T_net)) )
+  } else {
+    # approx
+    nGP_mat_net$baseline_k = list( G=array(NA,dim=c(K_net,3,3,T_net)),
+                                   H=array(NA,dim=c(K_net,3,2,T_net)),
+                                   Wchol=array(NA,dim=c(K_net,2,2,T_net)) )
+    nGP_mat_net$coord_i = list( G=array(NA,dim=c(V_net,3,3,T_net)),
+                                H=array(NA,dim=c(V_net,3,2,T_net)),
+                                Wchol=array(NA,dim=c(V_net,2,2,T_net)) )
+    nGP_mat_net$coord_ik = list( G=array(NA,dim=c(V_net,K_net,3,3,T_net)),
+                                 H=array(NA,dim=c(V_net,K_net,3,2,T_net)),
+                                 Wchol=array(NA,dim=c(V_net,K_net,2,2,T_net)) )
+  }
+  
+  # Computation #
+  for(k in 1:K_net) {
+    # variance of baseline process #
+    aux <- get_GHW_t( sigma_U=nGP_sigma_net$baseline_k[k,1],
+                      sigma_A=nGP_sigma_net$baseline_k[k,2],
+                      time_all=time_all,
+                      nGP_mat_approx=nGP_mat_approx )
+    nGP_mat_net$baseline_k$G[k,,,] <- aux$G
+    nGP_mat_net$baseline_k$H[k,,,] <- aux$H
+    nGP_mat_net$baseline_k$Wchol[k,,,] <- aux$Wchol
+  }
+  
+  # variance of latent coordinates #
+  for(i in 1:V_net) {
+    # variance of global coordinates #
+    aux <- get_GHW_t( sigma_U=nGP_sigma_net$coord_i[k,1],
+                      sigma_A=nGP_sigma_net$coord_i[k,2],
+                      time_all=time_all,
+                      nGP_mat_approx=nGP_mat_approx )
+    nGP_mat_net$coord_i$G[i,,,] <- aux$G
+    nGP_mat_net$coord_i$H[i,,,] <- aux$H
+    nGP_mat_net$coord_i$Wchol[i,,,] <- aux$Wchol
+    # variance of layer-specific coordinates #
+    if(K_net>1){
+      for(k in 1:K_net) {
+        aux <- get_GHW_t( sigma_U=nGP_sigma_net$coord_ik[i,k,1],
+                          sigma_A=nGP_sigma_net$coord_ik[i,k,2],
+                          time_all=time_all,
+                          nGP_mat_approx=nGP_mat_approx )
+        nGP_mat_net$coord_ik$G[i,k,,,] <- aux$G
+        nGP_mat_net$coord_ik$H[i,k,,,] <- aux$H
+        nGP_mat_net$coord_ik$Wchol[i,k,,,] <- aux$Wchol
+      }
+    }
+  }
+  # variance of additive effects #
+  if(!is.null(nGP_mat_net$add_eff_i)) {
+    if(!nGP_mat_approx){
+      # exact
+      nGP_mat_net$add_eff_i = list( G=array(NA,dim=c(V_net,3,3,T_net)),
+                                    H=array(NA,dim=c(V_net,3,3,T_net)),
+                                    Wchol=array(NA,dim=c(V_net,3,3,T_net)) )
+    } else {
+      # approx
+      nGP_mat_net$add_eff_i = list( G=array(NA,dim=c(V_net,3,3,T_net)),
+                                    H=array(NA,dim=c(V_net,3,2,T_net)),
+                                    Wchol=array(NA,dim=c(V_net,2,2,T_net)) )
+    }
+    
+    for(i in 1:V_net) {
+      aux <- get_GHW_t( sigma_U=nGP_sigma_net$add_eff_i[i,1],
+                        sigma_A=nGP_sigma_net$add_eff_i[i,2],
+                        time_all=time_all,
+                        nGP_mat_approx=nGP_mat_approx )
+      nGP_mat_net$add_eff_i$G[i,,,] <- aux$G
+      nGP_mat_net$add_eff_i$H[i,,,] <- aux$H
+      nGP_mat_net$add_eff_i$Wchol[i,,,] <- aux$Wchol
+    }
+  }
+  # variance of layer-specific additive effects #
+  if(K_net>1){
+    if(!is.null(nGP_mat_net$add_eff_ik)) {
+      if(!nGP_mat_approx){
+        # exact
+        nGP_mat_net$add_eff_ik = list( G=array(NA,dim=c(V_net,K_net,3,3,T_net)),
+                                       H=array(NA,dim=c(V_net,K_net,3,3,T_net)),
+                                       Wchol=array(NA,dim=c(V_net,K_net,3,3,T_net)) )
+      } else {
+        # approx
+        nGP_mat_net$add_eff_ik = list( G=array(NA,dim=c(V_net,K_net,3,3,T_net)),
+                                       H=array(NA,dim=c(V_net,K_net,3,2,T_net)),
+                                       Wchol=array(NA,dim=c(V_net,K_net,2,2,T_net)) )
+      }
+      
+      for(k in 1:K_net) {
+        aux <- get_GHW_t( sigma_U=nGP_sigma_net$add_eff_ik[i,k,1],
+                          sigma_A=nGP_sigma_net$add_eff_ik[i,k,2],
+                          time_all=time_all,
+                          nGP_mat_approx=nGP_mat_approx )
+        nGP_mat_net$add_eff_ik$G[i,k,,,] <- aux$G
+        nGP_mat_net$add_eff_ik$H[i,k,,,] <- aux$H
+        nGP_mat_net$add_eff_ik$Wchol[i,k,,,] <- aux$Wchol
+      }
+    }
+  }
+  
+  return(nGP_mat_net)
 }
