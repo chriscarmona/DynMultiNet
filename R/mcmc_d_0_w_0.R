@@ -310,9 +310,10 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     if( class_dyn=="nGP" ){
       alpha_eta_tk <- out_aux$alpha_eta_tk
     }
+    rm(out_aux)
     # Checking consistency of linear predictor gamma_ijtk
     # gamma_ijtk_old <- gamma_ijtk
-    # gamma_ijtk[!lowtri_y_idx] <- NA
+    # gamma_ijtk_old[!lowtri_y_idx] <- NA
     # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
     #                                 coord_ith_shared=ab_ith_shared,
     #                                 coord_ithk=ab_ithk,
@@ -322,27 +323,45 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     # gamma_ijtk[!lowtri_y_idx] <- NA
     # all.equal(gamma_ijtk,gamma_ijtk_old)
     
-    
-    
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       eta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- eta_tk
     }
     
-    
+    # browser()
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
-    out_aux <- sample_coord_ith_shared_link( ab_ith_shared=ab_ith_shared,
+    
+    # ab_ith_shared_old <- ab_ith_shared
+    # ab_ith_shared_old[1,1,1]<-0.01; ab_ith_shared_old[1,1,1]<-ab_ith_shared[1,1,1]
+    # all.equal(ab_ith_shared,ab_ith_shared_old)
+    
+    # alpha_ab_ith_shared_old <- alpha_ab_ith_shared
+    # alpha_ab_ith_shared_old[1,1,1,1]<-0.01; alpha_ab_ith_shared_old[1,1,1,1]<-ab_ith_shared[1,1,1]
+    # all.equal(alpha_ab_ith_shared,alpha_ab_ith_shared_old)
+    
+    out_aux <- sample_coord_ith_shared_link( ab_ith=ab_ith_shared,
                                              y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
                                              class_dyn=class_dyn,
                                              ab_t_sigma_prior_inv=cov_gp_prior_inv,
                                              tau_h=tau_h_shared,
+                                             alpha_ab_ith=alpha_ab_ith_shared,
                                              nGP_mat=nGP_mat$coord_i )
-    ab_ith_shared <- out_aux$ab_ith_shared
+    # all.equal(ab_ith_shared,ab_ith_shared_old)
+    # all.equal(ab_ith_shared,out_aux$ab_ith)
+    # all.equal(ab_ith_shared,out_aux$alpha_ab_ith[,,,1])
+    # i<-9;h<-2
+    # plot(out_aux$alpha_ab_ith[i,,h,2])
+    # all.equal(alpha_ab_ith_shared,alpha_ab_ith_shared_old)
+    
+    ab_ith_shared <- out_aux$ab_ith
     gamma_ijtk <- out_aux$gamma_ijtk
     if( class_dyn=="nGP" ){
-      alpha_ab_ith_shared <- out_aux$alpha_ab_ith_shared
+      alpha_ab_ith_shared <- out_aux$alpha_ab_ith
     }
+    rm(out_aux)
+    
+    
     
     # Procrustres transform
     if( procrustes_lat ){
@@ -382,12 +401,18 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     ### LAYER SPECIFIC Latent Coordinates ###
     if( K_net>1 ) {
       ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates ab_ithk ###
+      
+      # ab_ithk_old <- ab_ithk
+      # ab_ithk_old[1,1,1,1]<-0.01; ab_ithk_old[1,1,1,1]<-ab_ithk[1,1,1,1]
+      # all.equal(ab_ithk,ab_ithk_old)
       out_aux <- sample_coord_ithk_link( ab_ithk=ab_ithk,
                                          y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
                                          class_dyn=class_dyn,
                                          ab_t_sigma_prior_inv=cov_gp_prior_inv,
                                          tau_h=tau_h_k,
+                                         alpha_ab_ithk=alpha_ab_ithk,
                                          nGP_mat=nGP_mat$coord_ik )
+      # all.equal(ab_ithk,ab_ithk_old)
       ab_ithk <- out_aux$ab_ithk
       gamma_ijtk <- out_aux$gamma_ijtk
       if( class_dyn=="nGP" ){
@@ -577,11 +602,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           uv_ith_shared_mcmc = NULL,
                           uv_ithk_mcmc = NULL,
                           rho_h_shared_mcmc = NULL,
-                          rho_h_k_mcmc = NULL,
-                          
-                          pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                          beta_z_layer_mcmc=beta_z_layer_mcmc,
-                          beta_z_edge_mcmc=beta_z_edge_mcmc )
+                          rho_h_k_mcmc = NULL )
         
         dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
         saveRDS(dmn_mcmc,file=rds_file)
@@ -632,11 +653,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                     uv_ith_shared_mcmc = NULL,
                     uv_ithk_mcmc = NULL,
                     rho_h_shared_mcmc = NULL,
-                    rho_h_k_mcmc = NULL,
-                    
-                    pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                    beta_z_layer_mcmc=beta_z_layer_mcmc,
-                    beta_z_edge_mcmc=beta_z_edge_mcmc )
+                    rho_h_k_mcmc = NULL )
   
   dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
   
