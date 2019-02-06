@@ -111,7 +111,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   # Baseline parameter #
   # at time t for layer k
   eta_tk <- matrix( runif(T_net*K_net), T_net, K_net )
-  eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out), dimnames=list(time_all,layer_all,NULL) )
   if( class_dyn=="nGP" ){
     alpha_eta_tk <- array( 0, dim=c(T_net,K_net,3) )
     alpha_eta_tk[,,1] <- eta_tk
