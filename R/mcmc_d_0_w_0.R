@@ -8,6 +8,7 @@
 #' @param node_all Character vector. Id's of nodes in the network.
 #' @param time_all Numeric vector. Timestamps of all relevant epochs for the MCMC, those observed and those for forecast
 #' @param layer_all Character vector. Id's of layers in the network.
+#' @param x_ijtkp Array. Edge Specific external covariates.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
@@ -39,7 +40,8 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           add_eff_link=FALSE,
                           
                           class_dyn=c("GP","nGP")[1],
-                          delta=delta,
+                          
+                          delta=1,
                           
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
@@ -50,7 +52,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
   
-  shrink_lat_space=FALSE;
+  shrink_lat_space=FALSE
   a_1=2; a_2=2.5
   procrustes_lat=FALSE
   
@@ -62,7 +64,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
   K_net <- dim(y_ijtk)[4]
   
   # nGP matrices approximated or exact (nGP_mat_approx=F means exact)
-  nGP_mat_approx<-F
+  nGP_mat_approx = F
   
   # assume no self-edges
   diag_y_idx <- matrix(FALSE,V_net,V_net); diag(diag_y_idx)<-TRUE
@@ -178,7 +180,6 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     }
   }
   
-  
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
   gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
                                   coord_ith_shared=ab_ith_shared,
@@ -231,6 +232,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     diag(cov_gp_prior) <- diag(cov_gp_prior) + 1e-3 # numerical stability
     cov_gp_prior_inv <- solve(cov_gp_prior)
   } else if( class_dyn=="nGP" ){
+    # Hyperparameters for variance of nGPs
     a <- b <- 0.01
     nGP_sigma_net <- get_nGP_sigma_net( a=a, b=b,
                                         time_all=time_all,
@@ -328,40 +330,22 @@ mcmc_d_0_w_0 <- function( y_ijtk,
       eta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- eta_tk
     }
     
-    # browser()
     ### Step 3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
-    
-    # ab_ith_shared_old <- ab_ith_shared
-    # ab_ith_shared_old[1,1,1]<-0.01; ab_ith_shared_old[1,1,1]<-ab_ith_shared[1,1,1]
-    # all.equal(ab_ith_shared,ab_ith_shared_old)
-    
-    # alpha_ab_ith_shared_old <- alpha_ab_ith_shared
-    # alpha_ab_ith_shared_old[1,1,1,1]<-0.01; alpha_ab_ith_shared_old[1,1,1,1]<-ab_ith_shared[1,1,1]
-    # all.equal(alpha_ab_ith_shared,alpha_ab_ith_shared_old)
-    
     out_aux <- sample_coord_ith_shared_link( ab_ith=ab_ith_shared,
                                              y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
                                              class_dyn=class_dyn,
                                              ab_t_sigma_prior_inv=cov_gp_prior_inv,
                                              tau_h=tau_h_shared,
                                              alpha_ab_ith=alpha_ab_ith_shared,
-                                             nGP_mat=nGP_mat$coord_i )
-    # all.equal(ab_ith_shared,ab_ith_shared_old)
-    # all.equal(ab_ith_shared,out_aux$ab_ith)
-    # all.equal(ab_ith_shared,out_aux$alpha_ab_ith[,,,1])
-    # i<-9;h<-2
-    # plot(out_aux$alpha_ab_ith[i,,h,2])
-    # all.equal(alpha_ab_ith_shared,alpha_ab_ith_shared_old)
-    
+                                             nGP_mat=nGP_mat$coord_i,
+                                             directed=FALSE )
     ab_ith_shared <- out_aux$ab_ith
     gamma_ijtk <- out_aux$gamma_ijtk
     if( class_dyn=="nGP" ){
       alpha_ab_ith_shared <- out_aux$alpha_ab_ith
     }
     rm(out_aux)
-    
-    
     
     # Procrustres transform
     if( procrustes_lat ){
@@ -411,7 +395,8 @@ mcmc_d_0_w_0 <- function( y_ijtk,
                                          ab_t_sigma_prior_inv=cov_gp_prior_inv,
                                          tau_h=tau_h_k,
                                          alpha_ab_ithk=alpha_ab_ithk,
-                                         nGP_mat=nGP_mat$coord_ik )
+                                         nGP_mat=nGP_mat$coord_ik,
+                                         directed=FALSE )
       # all.equal(ab_ithk,ab_ithk_old)
       ab_ithk <- out_aux$ab_ithk
       gamma_ijtk <- out_aux$gamma_ijtk
@@ -495,15 +480,17 @@ mcmc_d_0_w_0 <- function( y_ijtk,
       }
     }
     
-    ### Edge probabilities ###
+    ### Step 5. Sample Dynamic coefficients for external covariates ###
+    ### TO BE IMPLEMENTED ###
+    
+    
+    ### Step 6A. Compute Edge probabilities ###
     if(is.element(iter_i,iter_out_mcmc)){
       gamma_ijtk[!lowtri_y_idx] <- NA
       pi_ijtk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- plogis(gamma_ijtk)
     }
     
-    
-    
-    ### Impute missing links ###
+    ### Step 6B. Impute missing links ###
     if( keep_y_ijtk_imp & y_ijtk_miss ) { # requires too much disk memory
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
@@ -513,8 +500,7 @@ mcmc_d_0_w_0 <- function( y_ijtk,
     }
     
     
-    
-    ### Step 5. Sample variance terms ###
+    ### Step 7. Sample variance terms ###
     if( class_dyn=="GP" ){
       if(shrink_lat_space){
         # Sample the global shrinkage hyperparameters from conditional gamma distributions #

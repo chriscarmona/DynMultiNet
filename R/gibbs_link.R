@@ -116,7 +116,6 @@ sample_coord_ith_shared_link <- function( ab_ith,
                                                         ab_t_sigma_prior_inv = ab_t_sigma_prior_inv,
                                                         tau_h_shared_send = tau_h[[1]],
                                                         tau_h_shared_receive = tau_h[[2]] )
-    
     ab_ith[[1]] <- out_aux$ab_ith_send
     ab_ith[[2]] <- out_aux$ab_ith_receive
     for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
@@ -129,8 +128,35 @@ sample_coord_ith_shared_link <- function( ab_ith,
                                                     tau_h = tau_h )
     ab_ith <- out_aux$ab_ith
     for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
-  } else if(directed & class_dyn=="GP"){
-    stop("Not implemented")
+  } else if(directed & class_dyn=="nGP"){
+    alpha_ab_ith_send_list <- alpha_ab_ith_receive_list <- nGP_G_t <- nGP_H_t <- nGP_Wchol_t <- list(NULL)
+    for(i in 1:V_net){
+      nGP_G_t[[i]] <- nGP_mat$G[i,,,]
+      nGP_H_t[[i]] <- nGP_mat$H[i,,,]
+      nGP_Wchol_t[[i]] <- nGP_mat$Wchol[i,,,]
+    }
+    for(alpha_i in 1:3) {
+      alpha_ab_ith_send_list[[alpha_i]] <- alpha_ab_ith[[1]][,,,alpha_i]
+      alpha_ab_ith_receive_list[[alpha_i]] <- alpha_ab_ith[[2]][,,,alpha_i]
+    }
+    out_aux <- sample_coord_ith_shared_link_dir_nGP_cpp( ab_ith_send = ab_ith[[1]],
+                                                         ab_ith_receive = ab_ith[[2]],
+                                                         alpha_ab_ith_send = alpha_ab_ith_send_list,
+                                                         alpha_ab_ith_receive = alpha_ab_ith_receive_list,
+                                                         y_ijtk = y_ijtk_list,
+                                                         w_ijtk = w_ijtk_list,
+                                                         gamma_ijtk = gamma_ijtk_list,
+                                                         
+                                                         nGP_G_t = nGP_G_t,
+                                                         nGP_H_t = nGP_H_t,
+                                                         nGP_Wchol_t = nGP_Wchol_t )
+    ab_ith[[1]] <- out_aux$ab_ith_send
+    ab_ith[[2]] <- out_aux$ab_ith_receive
+    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
+    for(alpha_i in 1:3) {
+      alpha_ab_ith[[1]][,,,alpha_i] <- out_aux$alpha_ab_ith_send[alpha_i,][[1]]
+      alpha_ab_ith[[2]][,,,alpha_i] <- out_aux$alpha_ab_ith_receive[alpha_i,][[1]]
+    }
   } else if(!directed & class_dyn=="nGP"){
     alpha_ab_ith_list <- nGP_G_t <- nGP_H_t <- nGP_Wchol_t <- list(NULL)
     for(i in 1:V_net){
@@ -141,11 +167,11 @@ sample_coord_ith_shared_link <- function( ab_ith,
     for(alpha_i in 1:3) { alpha_ab_ith_list[[alpha_i]] <- alpha_ab_ith[,,,alpha_i] }
     out_aux <- sample_coord_ith_shared_link_nGP_cpp( ab_ith = ab_ith,
                                                      alpha_ab_ith = alpha_ab_ith_list,
-
+                                                     
                                                      y_ijtk = y_ijtk_list,
                                                      w_ijtk = w_ijtk_list,
                                                      gamma_ijtk = gamma_ijtk_list,
-
+                                                     
                                                      nGP_G_t = nGP_G_t,
                                                      nGP_H_t = nGP_H_t,
                                                      nGP_Wchol_t = nGP_Wchol_t )
@@ -216,7 +242,41 @@ sample_coord_ithk_link <- function( ab_ithk,
     }
     
   } else if(directed & class_dyn=="nGP"){
-    stop("Not implemented...")
+    
+    for(k in 1:K_net){ # k<-1
+      alpha_ab_ith_send_list <- alpha_ab_ith_receive_list <- nGP_G_t <- nGP_H_t <- nGP_Wchol_t <- list(NULL)
+      for(i in 1:V_net){
+        nGP_G_t[[i]] <- nGP_mat$G[i,k,,,]
+        nGP_H_t[[i]] <- nGP_mat$H[i,k,,,]
+        nGP_Wchol_t[[i]] <- nGP_mat$Wchol[i,k,,,]
+      }
+      for(alpha_i in 1:3) {
+        alpha_ab_ith_send_list[[alpha_i]] <- alpha_ab_ithk[[1]][,,,k,alpha_i]
+        alpha_ab_ith_receive_list[[alpha_i]] <- alpha_ab_ithk[[2]][,,,k,alpha_i]
+      }
+      
+      out_aux <- sample_coord_ith_link_dir_nGP_cpp( ab_ith_send = ab_ithk[[1]][,,,k],
+                                                    ab_ith_receive = ab_ithk[[2]][,,,k],
+                                                    
+                                                    alpha_ab_ith_send = alpha_ab_ith_send_list,
+                                                    alpha_ab_ith_receive = alpha_ab_ith_receive_list,
+                                                    
+                                                    y_ijt = y_ijtk[,,,k],
+                                                    w_ijt = w_ijtk[,,,k],
+                                                    gamma_ijt = gamma_ijtk[,,,k],
+                                                    
+                                                    nGP_G_t = nGP_G_t,
+                                                    nGP_H_t = nGP_H_t,
+                                                    nGP_Wchol_t = nGP_Wchol_t )
+      ab_ithk[[1]][,,,k] <- out_aux$ab_ith_send
+      ab_ithk[[2]][,,,k] <- out_aux$ab_ith_receive
+      gamma_ijtk[,,,k] <- out_aux$gamma_ijt
+      for(alpha_i in 1:3) {
+        alpha_ab_ithk[[1]][,,,k,alpha_i] <- out_aux$alpha_ab_ith_send[[alpha_i]]
+        alpha_ab_ithk[[2]][,,,k,alpha_i] <- out_aux$alpha_ab_ith_receive[[alpha_i]]
+      }
+    }
+    
   } else if(!directed & class_dyn=="nGP"){
     
     for(k in 1:K_net){ # k<-1
@@ -477,6 +537,7 @@ sample_coeff_tp_link <- function( beta_tp,
 }
 
 #' @importFrom MCMCpack rinvgamma
+#' @importFrom abind abind
 #' @keywords internal
 sample_nGP_sigma <- function( alpha_t,
                               a,b,
@@ -510,6 +571,7 @@ get_nGP_sigma_net <- function( a, b,
     V_net <- dim(alpha_coord_ith_shared[[1]])[1]
     H_dim <- dim(alpha_coord_ith_shared[[1]])[3]
   }
+  
   # lenght of time intervals
   diff_time_all <- c(diff(time_all),1)
   
@@ -534,21 +596,39 @@ get_nGP_sigma_net <- function( a, b,
   # variance of latent coordinates #
   for(i in 1:V_net) {
     # variance of global coordinates #
-    alpha_t = alpha_coord_ith_shared[i,,,] # dim(alpha_t)=c(T_net,H_dim,3)
-    alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,H_dim)
-    alpha_t = matrix(c(alpha_t),3,T_net*H_dim) # dim(alpha_t)=c(3,T_net*H_dim)
+    if(!directed){
+      alpha_t = alpha_coord_ith_shared[i,,,] # dim(alpha_t)=c(T_net,H_dim,3)
+      alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,H_dim)
+      alpha_t = matrix(c(alpha_t),3,T_net*H_dim) # dim(alpha_t)=c(3,T_net*H_dim)
+      delta_t=rep(diff_time_all,H_dim) # length(delta_t)=c(T_net*H_dim)
+    } else {
+      alpha_t = abind::abind( alpha_coord_ith_shared[[1]][i,,,],
+                              alpha_coord_ith_shared[[2]][i,,,], along=2 ) # dim(alpha_t)=c(T_net,2*H_dim,3)
+      alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,2*H_dim)
+      alpha_t = matrix(c(alpha_t),3,T_net*2*H_dim) # dim(alpha_t)=c(3,T_net*2*H_dim)
+      delta_t=rep(diff_time_all,2*H_dim) # length(delta_t)=c(T_net*2*H_dim)
+    }
     nGP_sigma_net$coord_i[i,] <- sample_nGP_sigma( alpha_t=alpha_t,
                                                    a=a,b=b,
-                                                   delta_t=rep(diff_time_all,H_dim) )
+                                                   delta_t=delta_t )
     # variance of layer-specific coordinates #
     if(K_net>1){
       for(k in 1:K_net) {
-        alpha_t = alpha_coord_ithk[i,,,k,] # dim(alpha_t)=c(T_net,H_dim,3)
-        alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,H_dim)
-        alpha_t = matrix(c(alpha_t),3,T_net*H_dim) # dim(alpha_t)=c(3,T_net*H_dim)
+        if(!directed){
+          alpha_t = alpha_coord_ithk[i,,,k,] # dim(alpha_t)=c(T_net,H_dim,3)
+          alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,H_dim)
+          alpha_t = matrix(c(alpha_t),3,T_net*H_dim) # dim(alpha_t)=c(3,T_net*H_dim)
+          delta_t=rep(diff_time_all,H_dim) # dim(alpha_t)=c(3,T_net*H_dim)
+        } else {
+          alpha_t = abind::abind( alpha_coord_ithk[[1]][i,,,k,],
+                                  alpha_coord_ithk[[2]][i,,,k,], along=2 ) # dim(alpha_t)=c(T_net,2*H_dim,3)
+          alpha_t = aperm(alpha_t,perm=c(3,1,2)) # dim(alpha_t)=c(3,T_net,2*H_dim)
+          alpha_t = matrix(c(alpha_t),3,T_net*2*H_dim) # dim(alpha_t)=c(3,T_net*2*H_dim)
+          delta_t=rep(diff_time_all,2*H_dim) # length(delta_t)=c(T_net*2*H_dim)
+        }
         nGP_sigma_net$coord_ik[i,k,] <- sample_nGP_sigma( alpha_t=alpha_t,
                                                           a=a,b=b,
-                                                          delta_t=rep(diff_time_all,H_dim) )
+                                                          delta_t=delta_t )
       }
     }
   }
@@ -557,8 +637,7 @@ get_nGP_sigma_net <- function( a, b,
   if(!is.null(alpha_add_eff_it_shared)) {
     nGP_sigma_net$add_eff_i <- array(NA,dim=c(V_net,2))
     for(i in 1:V_net) {
-      alpha_t = t(alpha_add_eff_it_shared[i,,]) # dim(alpha_t)=c(3,T_net)
-      nGP_sigma_net$add_eff_i[i,] <- sample_nGP_sigma( alpha_t=alpha_t,
+      nGP_sigma_net$add_eff_i[i,] <- sample_nGP_sigma( alpha_t=t(alpha_add_eff_it_shared[i,,]),
                                                        a=a,b=b,
                                                        delta_t=diff_time_all )
     }
@@ -568,8 +647,7 @@ get_nGP_sigma_net <- function( a, b,
     if(!is.null(alpha_add_eff_itk)) {
       nGP_sigma_net$add_eff_ik <- array(NA,dim=c(V_net,K_net,2))
       for(k in 1:K_net) {
-        alpha_t = t(alpha_add_eff_itk[i,,k,]) # dim(alpha_t)=c(3,T_net)
-        nGP_sigma_net$add_eff_ik[i,k,] <- sample_nGP_sigma( alpha_t=alpha_t,
+        nGP_sigma_net$add_eff_ik[i,k,] <- sample_nGP_sigma( alpha_t=t(alpha_add_eff_itk[i,,k,]),
                                                             a=a,b=b,
                                                             delta_t=diff_time_all )
       }
