@@ -51,7 +51,7 @@ Rcpp::List sample_baseline_t_link_nGP_cpp( const arma::colvec eta_t,
   if( directed ){
     // Model matrix
     X_t = arma::zeros<arma::cube>(V_net*(V_net-1),3,T_net); 
-    X_t.col(0).ones();
+    X_t.subcube(0,0,0, V_net*(V_net-1)-1,0,T_net-1).ones();
     
     // Network data
     aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
@@ -84,13 +84,15 @@ Rcpp::List sample_baseline_t_link_nGP_cpp( const arma::colvec eta_t,
     aux_mat_1.shed_row(0);
     linpred_t = aux_mat_1;
   } else {
+    
     // Model matrix
     // Has three columns for: U, U', A, only the first one goes is 1 to have effect on Y
     X_t = arma::zeros<arma::cube>(V_net*(V_net-1)/2,3,T_net); 
-    X_t.col(0).ones();
+    X_t.subcube(0,0,0, V_net*(V_net-1)/2-1,0,T_net-1).ones();
     
     // Network data
     aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
+    
     for( i=1; i<V_net; i++ ) {
       aux_mat_2 = y_ijt.subcube(i,i-1,0, V_net-1,i-1,T_net-1);
       aux_mat_1.insert_rows( aux_mat_1.n_rows, aux_mat_2 );
@@ -255,7 +257,7 @@ Rcpp::List sample_coord_ith_link_nGP_cpp( const arma::cube ab_ith,
       // Model matrix
       // Has three columns for: U, U', A, only the first has effect on Y
       X_t = arma::zeros<arma::cube>(V_net,3,T_net);
-      X_t.col(0) = alpha_ab_ith(0).slice(h);
+      X_t.subcube(0,0,0, V_net-1,0,T_net-1) = alpha_ab_ith(0).slice(h);
       X_t.shed_row(i);
       
       // Constant term for theta in the linear predictor
@@ -406,7 +408,7 @@ Rcpp::List sample_coord_ith_shared_link_nGP_cpp( const arma::cube ab_ith,
       // Has three columns for: U, U', A, only the first has effect on Y
       X_t = arma::zeros<arma::cube>((V_net-1)*K_net,3,T_net);
       aux_mat_1 = alpha_ab_ith(0).slice(h); aux_mat_1.shed_row(i);
-      X_t.col(0) = repmat(aux_mat_1,K_net,1);
+      X_t.subcube(0,0,0, (V_net-1)*K_net-1,0,T_net-1) = repmat(aux_mat_1,K_net,1);
       
       // Constant term for theta in the linear predictor
       C_t = linpred_t; C_t.zeros();
@@ -561,9 +563,9 @@ Rcpp::List sample_coord_ith_link_dir_nGP_cpp( const arma::cube ab_ith_send,
         // Has three columns for: U, U', A, only the first has effect on Y
         X_t = arma::zeros<arma::cube>(V_net,3,T_net);
         if( dir==0 ) {
-          X_t.col(0) = alpha_ab_ith_receive(0).slice(h);
+          X_t.subcube(0,0,0, V_net-1,0,T_net-1) = alpha_ab_ith_receive(0).slice(h);
         } else if( dir==1 ) {
-          X_t.col(0) = alpha_ab_ith_send(0).slice(h);
+          X_t.subcube(0,0,0, V_net-1,0,T_net-1) = alpha_ab_ith_send(0).slice(h);
         }
         X_t.shed_row(i);
         
@@ -760,7 +762,7 @@ Rcpp::List sample_coord_ith_shared_link_dir_nGP_cpp( const arma::cube ab_ith_sen
         } else if( dir==1 ) {
           aux_mat_1 = alpha_ab_ith_send(0).slice(h); aux_mat_1.shed_row(i);
         }
-        X_t.col(0) = repmat(aux_mat_1,K_net,1);
+        X_t.subcube(0,0,0, (V_net-1)*K_net-1,0,T_net-1) = repmat(aux_mat_1,K_net,1);
         
         // Constant term for theta in the linear predictor
         C_t = linpred_t; C_t.zeros();

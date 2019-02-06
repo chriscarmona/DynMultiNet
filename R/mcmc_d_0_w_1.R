@@ -8,9 +8,12 @@
 #' @param node_all Character vector. Id's of nodes in the network.
 #' @param time_all Numeric vector. Timestamps of all relevant epochs for the MCMC, those observed and those for forecast
 #' @param layer_all Character vector. Id's of layers in the network.
+#' @param x_ijtkp Array. Edge Specific external covariates.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param add_eff Boolean. Indicates if dynamic additive effects by node should be considered.
+#' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
+#' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
+#' @param class_dyn String. Specifies prior for latent elements. "GP" for Gaussian Processes,"nGP" for nested Gaussian Processes.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -36,9 +39,14 @@
 mcmc_d_0_w_1 <- function( y_ijtk,
                           node_all, time_all, layer_all,
                           
+                          x_ijtkp=NULL,
+                          
                           H_dim=10, R_dim=10,
                           
-                          add_eff=FALSE,
+                          add_eff_link=FALSE,
+                          add_eff_weight=FALSE,
+                          
+                          class_dyn=c("GP","nGP")[1],
                           
                           delta=delta,
                           

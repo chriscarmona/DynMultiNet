@@ -11,8 +11,9 @@
 #' @param x_ijtkp Array. Edge Specific external covariates.
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
 #' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
+#' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
+#' @param class_dyn String. Specifies prior for latent elements. "GP" for Gaussian Processes,"nGP" for nested Gaussian Processes.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param shrink_lat_space Boolean. Indicates if the space should be shrinked probabilistically.
 #' @param a_1 Positive scalar. Hyperparameter controlling for number of effective dimensions in the latent space.
@@ -349,8 +350,9 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     out_aux <- sample_baseline_tk_weight( theta_tk=theta_tk,
                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                           sigma_k=sigma_k,
+                                          # class_dyn=class_dyn,
                                           theta_t_cov_prior_inv=cov_gp_prior_inv,
-                                          class_dyn=class_dyn,
+                                          # nGP_mat=nGP_mat_weight$baseline_k,
                                           directed=TRUE )
     theta_tk <- out_aux$theta_tk
     mu_ijtk <- out_aux$mu_ijtk # This updates mu_ijtk except for the diagonal
@@ -576,14 +578,14 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     ### Step L3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
-    out_aux <- sample_coord_ith_shared_link( ab_ith_shared=ab_ith_shared,
+    out_aux <- sample_coord_ith_shared_link( ab_ith=ab_ith_shared,
                                              ab_t_sigma_prior_inv=cov_gp_prior_inv,
                                              tau_h=tau_h_shared,
                                              y_ijtk=y_ijtk,
                                              w_ijtk=w_ijtk,
                                              gamma_ijtk=gamma_ijtk,
                                              directed=TRUE )
-    ab_ith_shared <- out_aux$ab_ith_shared
+    ab_ith_shared <- out_aux$ab_ith
     gamma_ijtk <- out_aux$gamma_ijtk
     # gamma_ijtk[diag_y_idx] <- NA
     

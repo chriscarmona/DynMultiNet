@@ -12,6 +12,7 @@
 #' @param H_dim Integer. Latent space dimension.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
 #' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
+#' @param class_dyn String. Specifies prior for latent elements. "GP" for Gaussian Processes,"nGP" for nested Gaussian Processes.
 #' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother.
 #' @param n_chains_mcmc Integer. Number of parallel MCMC chains.
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.

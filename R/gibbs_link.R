@@ -311,8 +311,10 @@ sample_coord_ithk_link <- function( ab_ithk,
 
 #' @keywords internal
 sample_add_eff_itk_link <- function( sp_itk,
-                                     sp_t_cov_prior_inv,
                                      y_ijtk, w_ijtk, gamma_ijtk,
+                                     class_dyn=c("GP","nGP")[1],
+                                     sp_t_cov_prior_inv=NULL,
+                                     nGP_mat=NULL,
                                      directed=FALSE ) {
   
   V_net <- dim(y_ijtk)[1]
@@ -351,8 +353,10 @@ sample_add_eff_itk_link <- function( sp_itk,
 
 #' @keywords internal
 sample_add_eff_it_shared_link <- function( sp_it_shared,
-                                           sp_t_cov_prior_inv,
                                            y_ijtk, w_ijtk, gamma_ijtk,
+                                           class_dyn=c("GP","nGP")[1],
+                                           sp_t_cov_prior_inv=NULL,
+                                           nGP_mat=NULL,
                                            directed=FALSE ) {
   
   V_net <- dim(y_ijtk)[1]
@@ -508,9 +512,11 @@ sample_beta_z_layer_DynMultiNet_bin <- function( beta_z_layer,
 
 #' @keywords internal
 sample_coeff_tp_link <- function( beta_tp,
-                                  beta_t_cov_prior_inv,
-                                  y_ijtk, w_ijtk, gamma_ijtk,
                                   x_ijtkp_mat,
+                                  y_ijtk, w_ijtk, gamma_ijtk,
+                                  class_dyn=c("GP","nGP")[1],
+                                  beta_t_cov_prior_inv,
+                                  nGP_mat=NULL,
                                   directed=FALSE ){
   
   # transform arrays to list, as armadillo fields are required as input
