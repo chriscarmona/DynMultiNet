@@ -214,17 +214,17 @@ namespace DynMultiNet {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List sample_coord_ith_link_nGP_cpp(const arma::cube ab_ith, arma::field<arma::cube> alpha_ab_ith, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const arma::field<arma::cube> nGP_G_t, const arma::field<arma::cube> nGP_H_t, const arma::field<arma::cube> nGP_Wchol_t, const bool directed = false) {
-        typedef SEXP(*Ptr_sample_coord_ith_link_nGP_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List sample_coord_ith_link_nGP_cpp(const arma::cube ab_ith, arma::field<arma::cube> alpha_ab_ith, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const arma::field<arma::cube> nGP_G_t, const arma::field<arma::cube> nGP_H_t, const arma::field<arma::cube> nGP_Wchol_t, const bool directed = false, const bool verbose = false) {
+        typedef SEXP(*Ptr_sample_coord_ith_link_nGP_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_coord_ith_link_nGP_cpp p_sample_coord_ith_link_nGP_cpp = NULL;
         if (p_sample_coord_ith_link_nGP_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_coord_ith_link_nGP_cpp)(const arma::cube,arma::field<arma::cube>,const arma::cube,const arma::cube,arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,const arma::field<arma::cube>,const bool)");
+            validateSignature("Rcpp::List(*sample_coord_ith_link_nGP_cpp)(const arma::cube,arma::field<arma::cube>,const arma::cube,const arma::cube,arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,const arma::field<arma::cube>,const bool,const bool)");
             p_sample_coord_ith_link_nGP_cpp = (Ptr_sample_coord_ith_link_nGP_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_link_nGP_cpp");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_coord_ith_link_nGP_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith)), Shield<SEXP>(Rcpp::wrap(alpha_ab_ith)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)), Shield<SEXP>(Rcpp::wrap(nGP_G_t)), Shield<SEXP>(Rcpp::wrap(nGP_H_t)), Shield<SEXP>(Rcpp::wrap(nGP_Wchol_t)), Shield<SEXP>(Rcpp::wrap(directed)));
+            rcpp_result_gen = p_sample_coord_ith_link_nGP_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith)), Shield<SEXP>(Rcpp::wrap(alpha_ab_ith)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)), Shield<SEXP>(Rcpp::wrap(nGP_G_t)), Shield<SEXP>(Rcpp::wrap(nGP_H_t)), Shield<SEXP>(Rcpp::wrap(nGP_Wchol_t)), Shield<SEXP>(Rcpp::wrap(directed)), Shield<SEXP>(Rcpp::wrap(verbose)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -487,17 +487,17 @@ namespace DynMultiNet {
         return Rcpp::as<double >(rcpp_result_gen);
     }
 
-    inline Rcpp::List kfsim(const arma::mat y, const arma::mat dd, const arma::cube ZZ, const arma::cube HHchol, const arma::mat cc, const arma::cube TT, const arma::cube RR, const arma::cube QQchol, const arma::colvec a1, const arma::mat P1chol, const unsigned int ind_output, const bool verbose = false) {
-        typedef SEXP(*Ptr_kfsim)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List kfsim(const arma::mat y, const arma::cube ZZ, const arma::cube HHchol, const arma::cube TT, const arma::cube RR, const arma::cube QQchol, const arma::colvec a1, const arma::mat P1chol, const unsigned int ind_output, const bool verbose = false) {
+        typedef SEXP(*Ptr_kfsim)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_kfsim p_kfsim = NULL;
         if (p_kfsim == NULL) {
-            validateSignature("Rcpp::List(*kfsim)(const arma::mat,const arma::mat,const arma::cube,const arma::cube,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const arma::colvec,const arma::mat,const unsigned int,const bool)");
+            validateSignature("Rcpp::List(*kfsim)(const arma::mat,const arma::cube,const arma::cube,const arma::cube,const arma::cube,const arma::cube,const arma::colvec,const arma::mat,const unsigned int,const bool)");
             p_kfsim = (Ptr_kfsim)R_GetCCallable("DynMultiNet", "_DynMultiNet_kfsim");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_kfsim(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(dd)), Shield<SEXP>(Rcpp::wrap(ZZ)), Shield<SEXP>(Rcpp::wrap(HHchol)), Shield<SEXP>(Rcpp::wrap(cc)), Shield<SEXP>(Rcpp::wrap(TT)), Shield<SEXP>(Rcpp::wrap(RR)), Shield<SEXP>(Rcpp::wrap(QQchol)), Shield<SEXP>(Rcpp::wrap(a1)), Shield<SEXP>(Rcpp::wrap(P1chol)), Shield<SEXP>(Rcpp::wrap(ind_output)), Shield<SEXP>(Rcpp::wrap(verbose)));
+            rcpp_result_gen = p_kfsim(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(ZZ)), Shield<SEXP>(Rcpp::wrap(HHchol)), Shield<SEXP>(Rcpp::wrap(TT)), Shield<SEXP>(Rcpp::wrap(RR)), Shield<SEXP>(Rcpp::wrap(QQchol)), Shield<SEXP>(Rcpp::wrap(a1)), Shield<SEXP>(Rcpp::wrap(P1chol)), Shield<SEXP>(Rcpp::wrap(ind_output)), Shield<SEXP>(Rcpp::wrap(verbose)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -508,17 +508,17 @@ namespace DynMultiNet {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline arma::mat kfsim_cpp(const arma::mat y, const arma::mat dd, const arma::cube ZZ, const arma::cube HHchol, const arma::mat cc, const arma::cube TT, const arma::cube RR, const arma::cube QQchol, const arma::colvec a1, const arma::mat P1chol) {
-        typedef SEXP(*Ptr_kfsim_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline arma::mat kfsim_cpp(const arma::mat y, const arma::cube ZZ, const arma::cube HHchol, const arma::cube TT, const arma::cube RR, const arma::cube QQchol, const arma::colvec a1, const arma::mat P1chol) {
+        typedef SEXP(*Ptr_kfsim_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_kfsim_cpp p_kfsim_cpp = NULL;
         if (p_kfsim_cpp == NULL) {
-            validateSignature("arma::mat(*kfsim_cpp)(const arma::mat,const arma::mat,const arma::cube,const arma::cube,const arma::mat,const arma::cube,const arma::cube,const arma::cube,const arma::colvec,const arma::mat)");
+            validateSignature("arma::mat(*kfsim_cpp)(const arma::mat,const arma::cube,const arma::cube,const arma::cube,const arma::cube,const arma::cube,const arma::colvec,const arma::mat)");
             p_kfsim_cpp = (Ptr_kfsim_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_kfsim_cpp");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_kfsim_cpp(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(dd)), Shield<SEXP>(Rcpp::wrap(ZZ)), Shield<SEXP>(Rcpp::wrap(HHchol)), Shield<SEXP>(Rcpp::wrap(cc)), Shield<SEXP>(Rcpp::wrap(TT)), Shield<SEXP>(Rcpp::wrap(RR)), Shield<SEXP>(Rcpp::wrap(QQchol)), Shield<SEXP>(Rcpp::wrap(a1)), Shield<SEXP>(Rcpp::wrap(P1chol)));
+            rcpp_result_gen = p_kfsim_cpp(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(ZZ)), Shield<SEXP>(Rcpp::wrap(HHchol)), Shield<SEXP>(Rcpp::wrap(TT)), Shield<SEXP>(Rcpp::wrap(RR)), Shield<SEXP>(Rcpp::wrap(QQchol)), Shield<SEXP>(Rcpp::wrap(a1)), Shield<SEXP>(Rcpp::wrap(P1chol)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

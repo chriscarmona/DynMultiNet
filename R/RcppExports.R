@@ -37,8 +37,8 @@ sample_baseline_t_link_nGP_cpp <- function(eta_t, alpha_eta_t, y_ijt, w_ijt, gam
     .Call(`_DynMultiNet_sample_baseline_t_link_nGP_cpp`, eta_t, alpha_eta_t, y_ijt, w_ijt, gamma_ijt, nGP_G_t, nGP_H_t, nGP_Wchol_t, directed)
 }
 
-sample_coord_ith_link_nGP_cpp <- function(ab_ith, alpha_ab_ith, y_ijt, w_ijt, gamma_ijt, nGP_G_t, nGP_H_t, nGP_Wchol_t, directed = FALSE) {
-    .Call(`_DynMultiNet_sample_coord_ith_link_nGP_cpp`, ab_ith, alpha_ab_ith, y_ijt, w_ijt, gamma_ijt, nGP_G_t, nGP_H_t, nGP_Wchol_t, directed)
+sample_coord_ith_link_nGP_cpp <- function(ab_ith, alpha_ab_ith, y_ijt, w_ijt, gamma_ijt, nGP_G_t, nGP_H_t, nGP_Wchol_t, directed = FALSE, verbose = FALSE) {
+    .Call(`_DynMultiNet_sample_coord_ith_link_nGP_cpp`, ab_ith, alpha_ab_ith, y_ijt, w_ijt, gamma_ijt, nGP_G_t, nGP_H_t, nGP_Wchol_t, directed, verbose)
 }
 
 sample_coord_ith_shared_link_nGP_cpp <- function(ab_ith, alpha_ab_ith, y_ijtk, w_ijtk, gamma_ijtk, nGP_G_t, nGP_H_t, nGP_Wchol_t, directed = FALSE) {
@@ -94,11 +94,9 @@ sample_var_weight_cpp <- function(sigma_k, sigma_k_prop_int, y_ijt, mu_ijt, dire
 #' 
 #' @param y matrix. Matrix with observations. dim(y)=c(nobs,T_steps).
 #' 
-#' @param dd matrix. Trend parameter of the observation equation. dim(dd)=c(nobs,T_steps).
 #' @param ZZ cube (3D array). Mapping matrix of the states into observations. dim(ZZ)=c(nobs,nstates,T_steps).
 #' @param HHchol cube. Cholesky of the covariance of the shocks for the observations. dim(HHchol)=c(nobs,nobsshocks,T_steps).
 #' 
-#' @param cc matrix. Trend parameter of the state equation. dim(cc)=c(nstates,T_steps).
 #' @param TT cube. Mapping matrix of the states. dim(TT)=c(nstates,nstates,T_steps).
 #' @param RR cube. Cholesky of the covariance of the shocks for the states. dim(RR)=c(nstates,nstatesshocks,T_steps).
 #' 
@@ -111,8 +109,8 @@ sample_var_weight_cpp <- function(sigma_k, sigma_k_prop_int, y_ijt, mu_ijt, dire
 #' @details
 #'    The model assumes a latent variable approach.
 #'    
-#'    y(t) = dd(t) + ZZ(t) * a(t) + eps(t),  eps(t) ~ N(0,HH(t))
-#'    a(t+1) = cc(t) + TT(t) * a(t) + RR(t) * eta(t), eta(t) ~ N(0,QQ(t))
+#'    y(t) = ZZ(t) * a(t) + eps(t),  eps(t) ~ N(0,HH(t))
+#'    a(t+1) = TT(t) * a(t) + RR(t) * eta(t), eta(t) ~ N(0,QQ(t))
 #'    a(1) ~ N(a1,P1)
 #'    
 #'    The simulation smoother is a version of Algorithm 2 of Durbin and Koopman (2002)
@@ -131,12 +129,13 @@ sample_var_weight_cpp <- function(sigma_k, sigma_k_prop_int, y_ijt, mu_ijt, dire
 #' }
 #' 
 #' @export
-kfsim <- function(y, dd, ZZ, HHchol, cc, TT, RR, QQchol, a1, P1chol, ind_output, verbose = FALSE) {
-    .Call(`_DynMultiNet_kfsim`, y, dd, ZZ, HHchol, cc, TT, RR, QQchol, a1, P1chol, ind_output, verbose)
+kfsim <- function(y, ZZ, HHchol, TT, RR, QQchol, a1, P1chol, ind_output, verbose = FALSE) {
+    .Call(`_DynMultiNet_kfsim`, y, ZZ, HHchol, TT, RR, QQchol, a1, P1chol, ind_output, verbose)
 }
 
-kfsim_cpp <- function(y, dd, ZZ, HHchol, cc, TT, RR, QQchol, a1, P1chol) {
-    .Call(`_DynMultiNet_kfsim_cpp`, y, dd, ZZ, HHchol, cc, TT, RR, QQchol, a1, P1chol)
+#' @export
+kfsim_cpp <- function(y, ZZ, HHchol, TT, RR, QQchol, a1, P1chol) {
+    .Call(`_DynMultiNet_kfsim_cpp`, y, ZZ, HHchol, TT, RR, QQchol, a1, P1chol)
 }
 
 # Register entry points for exported C++ functions

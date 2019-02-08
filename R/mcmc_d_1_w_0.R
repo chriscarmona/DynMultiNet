@@ -94,7 +94,7 @@ mcmc_d_1_w_0 <- function( y_ijtk,
   eta_tk <- matrix( runif(T_net*K_net), T_net, K_net )
   eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
   if( class_dyn=="nGP" ){
-    alpha_eta_tk <- array( 0, dim=c(T_net,K_net,3) )
+    alpha_eta_tk <- array( runif(T_net*K_net*3), dim=c(T_net,K_net,3) )
     alpha_eta_tk[,,1] <- eta_tk
   }
   
@@ -123,8 +123,8 @@ mcmc_d_1_w_0 <- function( y_ijtk,
     ab_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
                          receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
     if( class_dyn=="nGP" ){
-      alpha_ab_ithk <- list( send=array( 0, dim=c(V_net,T_net,R_dim,K_net,3) ),
-                             receive=array( 0, dim=c(V_net,T_net,R_dim,K_net,3) ) )
+      alpha_ab_ithk <- list( send=array( runif(V_net*T_net*R_dim*K_net*3,-0.1,0.1), dim=c(V_net,T_net,R_dim,K_net,3) ),
+                             receive=array( runif(V_net*T_net*R_dim*K_net*3,-0.1,0.1), dim=c(V_net,T_net,R_dim,K_net,3) ) )
       alpha_ab_ithk[[1]][,,,,1] <- ab_ithk[[1]]
       alpha_ab_ithk[[2]][,,,,1] <- ab_ithk[[2]]
     }
@@ -364,7 +364,6 @@ mcmc_d_1_w_0 <- function( y_ijtk,
       ab_ith_shared_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared[[2]]
     }
     
-    
     ### LAYER SPECIFIC Latent Coordinates ###
     if( K_net>1 ) {
       ### Step 3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates ab_ithk ###
@@ -388,7 +387,6 @@ mcmc_d_1_w_0 <- function( y_ijtk,
         ab_ithk_mcmc[[1]][,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk[[1]]
         ab_ithk_mcmc[[2]][,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk[[2]]
       }
-      
     }
     
     

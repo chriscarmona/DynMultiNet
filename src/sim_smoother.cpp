@@ -13,11 +13,9 @@
 //' 
 //' @param y matrix. Matrix with observations. dim(y)=c(nobs,T_steps).
 //' 
-//' @param dd matrix. Trend parameter of the observation equation. dim(dd)=c(nobs,T_steps).
 //' @param ZZ cube (3D array). Mapping matrix of the states into observations. dim(ZZ)=c(nobs,nstates,T_steps).
 //' @param HHchol cube. Cholesky of the covariance of the shocks for the observations. dim(HHchol)=c(nobs,nobsshocks,T_steps).
 //' 
-//' @param cc matrix. Trend parameter of the state equation. dim(cc)=c(nstates,T_steps).
 //' @param TT cube. Mapping matrix of the states. dim(TT)=c(nstates,nstates,T_steps).
 //' @param RR cube. Cholesky of the covariance of the shocks for the states. dim(RR)=c(nstates,nstatesshocks,T_steps).
 //' 
@@ -30,8 +28,8 @@
 //' @details
 //'    The model assumes a latent variable approach.
 //'    
-//'    y(t) = dd(t) + ZZ(t) * a(t) + eps(t),  eps(t) ~ N(0,HH(t))
-//'    a(t+1) = cc(t) + TT(t) * a(t) + RR(t) * eta(t), eta(t) ~ N(0,QQ(t))
+//'    y(t) = ZZ(t) * a(t) + eps(t),  eps(t) ~ N(0,HH(t))
+//'    a(t+1) = TT(t) * a(t) + RR(t) * eta(t), eta(t) ~ N(0,QQ(t))
 //'    a(1) ~ N(a1,P1)
 //'    
 //'    The simulation smoother is a version of Algorithm 2 of Durbin and Koopman (2002)
@@ -53,11 +51,9 @@
 // [[Rcpp::export]]
 Rcpp::List kfsim( const arma::mat y,
                   
-                  const arma::mat dd,
                   const arma::cube ZZ,
                   const arma::cube HHchol,
                   
-                  const arma::mat cc,
                   const arma::cube TT,
                   const arma::cube RR,
                   const arma::cube QQchol,
@@ -75,15 +71,13 @@ Rcpp::List kfsim( const arma::mat y,
   // 
   // - Missing data not allowed (y does not contain any NaN)
   // We assume the model is:
-  // y(t) = dd(t) + ZZ a(t) + HHchol * eps(t),  eps(t) ~ N(0,I)
-  // a(t+1) = cc(t) + TT a(t) + RR * QQchol * eta(t), eta(t) ~ N(0,I)
+  // y(t) = ZZ a(t) + HHchol * eps(t),  eps(t) ~ N(0,I)
+  // a(t+1) = TT a(t) + RR * QQchol * eta(t), eta(t) ~ N(0,I)
   // a(1) ~ a1 + P1chol * N(0,I)
   // 
   // INPUTS:
   // y - data, nobs x T (where nobs is the number of observables and T is the
   //     number of time periods)
-  // dd, ZZ, HH - parameters of the observation equation
-  // cc, TT, RR - parameters of the state equation
   // a1, P1chol - parameters of the distribution of the initial state
   // ind_output - 0: return the log likelihood [NaN,loglik]
   //              1: return the smoothed state and the log likelihood [aaa,loglik]
@@ -108,7 +102,6 @@ Rcpp::List kfsim( const arma::mat y,
   if(verbose){ Rcpp::Rcout << "Simulation smoother for state space models" << std::endl;}
   
   // Auxiliar objects
-  unsigned int i=0;
   unsigned int t=0;
   arma::cube aux_cube_1;
   arma::mat aux_mat_1;
@@ -127,10 +120,8 @@ Rcpp::List kfsim( const arma::mat y,
   
   // Checking dimensions
   if(nobs!=nobsshocks){ throw std::range_error("You are using a different number of observations and shocks, maybe a model that multiplies S(t)*eps(t)?");}
-  if((dd.n_rows!=nobs)|(dd.n_cols!=T_steps)){ throw std::range_error("Input size mismatch, check dd");}
   if((ZZ.n_rows!=nobs)|(ZZ.n_cols!=nstates)|(ZZ.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check ZZ");}
   if((HHchol.n_rows!=nobsshocks)|(HHchol.n_cols!=nobsshocks)|(HHchol.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check HHchol");}
-  if((cc.n_rows!=nstates)|(cc.n_cols!=T_steps)){ throw std::range_error("Input size mismatch, check cc");}
   if((TT.n_rows!=nstates)|(TT.n_cols!=nstates)|(TT.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check TT");}
   if((RR.n_rows!=nstates)|(RR.n_cols!=nstatesshocks)|(RR.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check RR");}
   if((QQchol.n_rows!=nstatesshocks)|(QQchol.n_cols!=nstatesshocks)|(QQchol.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check QQchol");}
@@ -139,7 +130,7 @@ Rcpp::List kfsim( const arma::mat y,
   
   arma::mat yplus = arma::zeros<arma::mat>(nobs,T_steps);
   arma::mat aplus = arma::zeros<arma::mat>(nstates,T_steps+1);
-  arma::mat yy = arma::zeros<arma::mat>(nobs,T_steps);
+  arma::mat y_star = arma::zeros<arma::mat>(nobs,T_steps);
   
   if(ind_output==3){
     // Simulate y and alpha from their unconditional distribution
@@ -147,8 +138,8 @@ Rcpp::List kfsim( const arma::mat y,
     if(verbose){ Rcpp::Rcout << "Generating y, alpha" << std::endl << " t = ";}
     for( t=0; t<T_steps; t++ ) {
       if(verbose){ Rcpp::Rcout << t+1 << ",";}
-      yplus.col(t) = dd.col(t) + ZZ.slice(t)*aplus.col(t) + HHchol.slice(t)*arma::randn(nobsshocks,1);
-      aplus.col(t+1) = cc.col(t) + TT.slice(t)*aplus.col(t) + RR.slice(t)*(QQchol.slice(t)*arma::randn(nstatesshocks,1));
+      yplus.col(t) = ZZ.slice(t)*aplus.col(t) + HHchol.slice(t)*arma::randn(nobsshocks,1);
+      aplus.col(t+1) = TT.slice(t)*aplus.col(t) + RR.slice(t)*(QQchol.slice(t)*arma::randn(nstatesshocks,1));
     }
     aplus.shed_col(aplus.n_cols-1);
     
@@ -173,10 +164,10 @@ Rcpp::List kfsim( const arma::mat y,
       aplus.col(t+1) = TT.slice(t)*aplus.col(t) + RR.slice(t)*(QQchol.slice(t)*arma::randn(nstatesshocks,1));
     }
     aplus.shed_col(aplus.n_cols-1);
-    yy = y - yplus;
+    y_star = y - yplus;
     if(verbose){ Rcpp::Rcout << std::endl << "done." << std::endl;}
   } else {
-    yy = y;
+    y_star = y;
   }
   
   // allocate space
@@ -185,7 +176,7 @@ Rcpp::List kfsim( const arma::mat y,
   arma::cube KKK = arma::zeros<arma::cube>(nstates,nobs,T_steps);
   arma::cube LLL = arma::zeros<arma::cube>(nstates,nstates,T_steps);
   
-  // Kalman filter on yy
+  // Kalman filter on y_star
   // compute frequently used matrix RQR'
   arma::cube RQR = arma::zeros<arma::cube>(nstates,nstates,T_steps);
   for( t=0; t<T_steps; t++ ) {
@@ -198,15 +189,15 @@ Rcpp::List kfsim( const arma::mat y,
   arma::mat Ftinv;
   arma::mat Kt;
   arma::mat Lt;
-  if(verbose){ Rcpp::Rcout << "Kalman filter, on yy" << std::endl << " t = ";}
+  if(verbose){ Rcpp::Rcout << "Kalman filter, on y_star" << std::endl << " t = ";}
   for( t=0; t<T_steps; t++ ) {
     if(verbose){ Rcpp::Rcout << t+1 << ",";}
-    vt = yy.col(t) - dd.col(t) - ZZ.slice(t) * at;
+    vt = y_star.col(t) - ZZ.slice(t) * at;
     Ftinv = arma::inv_sympd( ZZ.slice(t)*Pt*trans(ZZ.slice(t)) + HHchol.slice(t)*trans(HHchol.slice(t)) );
     Kt = TT.slice(t)*Pt*trans(ZZ.slice(t))*Ftinv;
     Lt = TT.slice(t) - Kt * ZZ.slice(t);
     // update at,Pt; from now on their interpretation is "a(t+1),P(t+1)"
-    at = cc.col(t) + TT.slice(t)*at + Kt*vt;
+    at = TT.slice(t)*at + Kt*vt;
     Pt = TT.slice(t)*Pt*trans(Lt) + RQR.slice(t);
     // store the quantities needed later for smoothing
     vvv.col(t) = vt;
@@ -247,7 +238,7 @@ Rcpp::List kfsim( const arma::mat y,
   if(verbose){ Rcpp::Rcout << "Kalman smoother, computing smoothed states" << std::endl << " t = ";}
   for( t=1; t<T_steps; t++ ) {
     if(verbose){ Rcpp::Rcout << t+1 << ",";}
-    aaa.col(t) = cc.col(t) + TT.slice(t)*aaa.col(t-1) + RQR.slice(t)*(rrr.col(t-1));
+    aaa.col(t) = TT.slice(t-1)*aaa.col(t-1) + RQR.slice(t-1)*(rrr.col(t-1));
   }
   if(verbose){ Rcpp::Rcout << std::endl << "done." << std::endl;}
   
@@ -262,14 +253,15 @@ Rcpp::List kfsim( const arma::mat y,
                              Rcpp::Named("loglik") = loglik );
 }
 
+
+
+//' @export
 // [[Rcpp::export]]
 arma::mat kfsim_cpp( const arma::mat y,
                      
-                     const arma::mat dd,
                      const arma::cube ZZ,
                      const arma::cube HHchol,
                      
-                     const arma::mat cc,
                      const arma::cube TT,
                      const arma::cube RR,
                      const arma::cube QQchol,
@@ -278,7 +270,6 @@ arma::mat kfsim_cpp( const arma::mat y,
                      const arma::mat P1chol ) {
   
   // Auxiliar objects
-  unsigned int i=0;
   unsigned int t=0;
   arma::cube aux_cube_1;
   arma::mat aux_mat_1;
@@ -291,15 +282,13 @@ arma::mat kfsim_cpp( const arma::mat y,
   unsigned int nstates= RR.n_rows;
   unsigned int nstatesshocks= QQchol.n_rows;
   
-  // Output objects
+  // Output //
   arma::mat aaa = arma::zeros<arma::mat>(nstates,T_steps);
   
   // Checking dimensions
   if(nobs!=nobsshocks){ throw std::range_error("You are using a different number of observations and shocks, maybe a model that multiplies S(t)*eps(t)?");}
-  if((dd.n_rows!=nobs)|(dd.n_cols!=T_steps)){ throw std::range_error("Input size mismatch, check dd");}
   if((ZZ.n_rows!=nobs)|(ZZ.n_cols!=nstates)|(ZZ.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check ZZ");}
   if((HHchol.n_rows!=nobsshocks)|(HHchol.n_cols!=nobsshocks)|(HHchol.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check HHchol");}
-  if((cc.n_rows!=nstates)|(cc.n_cols!=T_steps)){ throw std::range_error("Input size mismatch, check cc");}
   if((TT.n_rows!=nstates)|(TT.n_cols!=nstates)|(TT.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check TT");}
   if((RR.n_rows!=nstates)|(RR.n_cols!=nstatesshocks)|(RR.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check RR");}
   if((QQchol.n_rows!=nstatesshocks)|(QQchol.n_cols!=nstatesshocks)|(QQchol.n_slices!=T_steps)){ throw std::range_error("Input size mismatch, check QQchol");}
@@ -308,7 +297,8 @@ arma::mat kfsim_cpp( const arma::mat y,
   
   arma::mat yplus = arma::zeros<arma::mat>(nobs,T_steps);
   arma::mat aplus = arma::zeros<arma::mat>(nstates,T_steps+1);
-  arma::mat yy = arma::zeros<arma::mat>(nobs,T_steps);
+  
+  arma::mat y_star = arma::zeros<arma::mat>(nobs,T_steps);
   
   // Durbin, Koopman 2002, Algorithm 2.
   // Generate yplus and aplus - y and a drawn from their unconditional
@@ -317,47 +307,53 @@ arma::mat kfsim_cpp( const arma::mat y,
   // For explanation see Jarocinski (2015), A note on implementing 
   // the Durbin and Koopman simulation smoother.
   
-  aplus.col(0) = P1chol*arma::randn(nstates,1); // draw the first state with a1=0
+  // draw the first state with mean 0
+  aplus.col(0) = P1chol*arma::randn(nstates,1);
   
   for( t=0; t<T_steps; t++ ) {
     yplus.col(t) = ZZ.slice(t)*aplus.col(t) + HHchol.slice(t)*arma::randn(nobsshocks,1);
     aplus.col(t+1) = TT.slice(t)*aplus.col(t) + RR.slice(t)*(QQchol.slice(t)*arma::randn(nstatesshocks,1));
   }
   aplus.shed_col(aplus.n_cols-1);
-  yy = y - yplus;
+  y_star = y - yplus;
   
-  // allocate space
-  arma::mat vvv = arma::zeros<arma::mat>(nobs,T_steps);
-  arma::cube FFFinv = arma::zeros<arma::cube>(nobs,nobs,T_steps);
-  arma::cube KKK = arma::zeros<arma::cube>(nstates,nobs,T_steps);
-  arma::cube LLL = arma::zeros<arma::cube>(nstates,nstates,T_steps);
+  // Kalman filter on y_star //
   
-  // Kalman filter on yy
-  // compute frequently used matrix RQR'
-  arma::cube RQR = arma::zeros<arma::cube>(nstates,nstates,T_steps);
-  for( t=0; t<T_steps; t++ ) {
-    RQR.slice(t) = RR.slice(t)*QQchol.slice(t)*trans(QQchol.slice(t))*trans(RR.slice(t));
-  }
+  
   // initialize Kalman filter
   arma::mat at = a1; // at|I(t-1)
   arma::mat Pt = P1chol*trans(P1chol); // Pt|I(t-1)
+  
+  // allocate space
   arma::mat vt;
+  arma::mat vvv = arma::zeros<arma::mat>(nobs,T_steps);
   arma::mat Ftinv;
+  arma::cube FFFinv = arma::zeros<arma::cube>(nobs,nobs,T_steps);
   arma::mat Kt;
+  arma::cube KKK = arma::zeros<arma::cube>(nstates,nobs,T_steps);
   arma::mat Lt;
+  arma::cube LLL = arma::zeros<arma::cube>(nstates,nstates,T_steps);
+  arma::mat RQRt;
+  arma::cube RQR = arma::zeros<arma::cube>(nstates,nstates,T_steps);
+  
   for( t=0; t<T_steps; t++ ) {
-    vt = yy.col(t) - dd.col(t) - ZZ.slice(t) * at;
+    // compute auxiliar matrices
+    vt = y_star.col(t) - ZZ.slice(t) * at;
     Ftinv = arma::inv_sympd( ZZ.slice(t)*Pt*trans(ZZ.slice(t)) + HHchol.slice(t)*trans(HHchol.slice(t)) );
     Kt = TT.slice(t)*Pt*trans(ZZ.slice(t))*Ftinv;
     Lt = TT.slice(t) - Kt * ZZ.slice(t);
+    RQRt = RR.slice(t)*QQchol.slice(t)*trans(QQchol.slice(t))*trans(RR.slice(t));
+    
     // update at,Pt; from now on their interpretation is "a(t+1),P(t+1)"
-    at = cc.col(t) + TT.slice(t)*at + Kt*vt;
-    Pt = TT.slice(t)*Pt*trans(Lt) + RQR.slice(t);
+    at = TT.slice(t)*at + Kt*vt;
+    Pt = TT.slice(t)*Pt*trans(Lt) + RQRt;
+    
     // store the quantities needed later for smoothing
     vvv.col(t) = vt;
     FFFinv.slice(t) = Ftinv;
     KKK.slice(t) = Kt;
     LLL.slice(t) = Lt;
+    RQR.slice(t) = RQRt;
   }
   
   // Kalman smoother
@@ -374,7 +370,7 @@ arma::mat kfsim_cpp( const arma::mat y,
   aaa = arma::zeros<arma::mat>(nstates,T_steps);
   aaa.col(0) = a1 + P1chol*trans(P1chol)*r0; // initialize the forward recursion
   for( t=1; t<T_steps; t++ ) {
-    aaa.col(t) = cc.col(t) + TT.slice(t)*aaa.col(t-1) + RQR.slice(t)*(rrr.col(t-1));
+    aaa.col(t) = TT.slice(t-1)*aaa.col(t-1) + RQR.slice(t-1)*(rrr.col(t-1));
   }
   
   aaa = aaa + aplus;

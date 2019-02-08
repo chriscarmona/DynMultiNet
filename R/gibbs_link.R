@@ -87,10 +87,12 @@ sample_coord_ith_shared_link <- function( ab_ith,
   y_ijtk[y_ijtk>0] <- 1
   y_ijtk[y_ijtk<0] <- NA
   
+  V_net <- dim(y_ijtk)[1]
+  K_net <- dim(y_ijtk)[4]
+  
   ### For each unit, block-sample the set of time-varying latent coordinates ab_ith ###
   y_ijtk_list <- w_ijtk_list <- gamma_ijtk_list <- list(NULL)
   
-  K_net <- dim(y_ijtk)[4]
   if( directed ) {
     V_net <- dim(ab_ith[[1]])[1]
     T_net <- dim(ab_ith[[1]])[2]
@@ -141,11 +143,13 @@ sample_coord_ith_shared_link <- function( ab_ith,
     }
     out_aux <- sample_coord_ith_shared_link_dir_nGP_cpp( ab_ith_send = ab_ith[[1]],
                                                          ab_ith_receive = ab_ith[[2]],
-                                                         alpha_ab_ith_send = alpha_ab_ith_send_list,
-                                                         alpha_ab_ith_receive = alpha_ab_ith_receive_list,
+                                                         
+                                                         alpha_ab_ith_send = alpha_ab_ith_send_list[],
+                                                         alpha_ab_ith_receive = alpha_ab_ith_receive_list[],
+                                                         
                                                          y_ijtk = y_ijtk_list,
                                                          w_ijtk = w_ijtk_list,
-                                                         gamma_ijtk = gamma_ijtk_list,
+                                                         gamma_ijtk = gamma_ijtk_list[],
                                                          
                                                          nGP_G_t = nGP_G_t,
                                                          nGP_H_t = nGP_H_t,
@@ -166,11 +170,12 @@ sample_coord_ith_shared_link <- function( ab_ith,
     }
     for(alpha_i in 1:3) { alpha_ab_ith_list[[alpha_i]] <- alpha_ab_ith[,,,alpha_i] }
     out_aux <- sample_coord_ith_shared_link_nGP_cpp( ab_ith = ab_ith,
-                                                     alpha_ab_ith = alpha_ab_ith_list,
+                                                     
+                                                     alpha_ab_ith = alpha_ab_ith_list[],
                                                      
                                                      y_ijtk = y_ijtk_list,
                                                      w_ijtk = w_ijtk_list,
-                                                     gamma_ijtk = gamma_ijtk_list,
+                                                     gamma_ijtk = gamma_ijtk_list[],
                                                      
                                                      nGP_G_t = nGP_G_t,
                                                      nGP_H_t = nGP_H_t,
@@ -254,12 +259,11 @@ sample_coord_ithk_link <- function( ab_ithk,
         alpha_ab_ith_send_list[[alpha_i]] <- alpha_ab_ithk[[1]][,,,k,alpha_i]
         alpha_ab_ith_receive_list[[alpha_i]] <- alpha_ab_ithk[[2]][,,,k,alpha_i]
       }
-      
       out_aux <- sample_coord_ith_link_dir_nGP_cpp( ab_ith_send = ab_ithk[[1]][,,,k],
                                                     ab_ith_receive = ab_ithk[[2]][,,,k],
                                                     
-                                                    alpha_ab_ith_send = alpha_ab_ith_send_list,
-                                                    alpha_ab_ith_receive = alpha_ab_ith_receive_list,
+                                                    alpha_ab_ith_send = alpha_ab_ith_send_list[],
+                                                    alpha_ab_ith_receive = alpha_ab_ith_receive_list[],
                                                     
                                                     y_ijt = y_ijtk[,,,k],
                                                     w_ijt = w_ijtk[,,,k],
@@ -289,7 +293,7 @@ sample_coord_ithk_link <- function( ab_ithk,
       for(alpha_i in 1:3) { alpha_ab_ith_list[[alpha_i]] <- alpha_ab_ithk[,,,k,alpha_i] }
       
       out_aux <- sample_coord_ith_link_nGP_cpp( ab_ith = ab_ithk[,,,k],
-                                                alpha_ab_ith = alpha_ab_ith_list,
+                                                alpha_ab_ith = alpha_ab_ith_list[],
                                                 
                                                 y_ijt = y_ijtk[,,,k],
                                                 w_ijt = w_ijtk[,,,k],
@@ -297,7 +301,8 @@ sample_coord_ithk_link <- function( ab_ithk,
                                                 
                                                 nGP_G_t = nGP_G_t,
                                                 nGP_H_t = nGP_H_t,
-                                                nGP_Wchol_t = nGP_Wchol_t )
+                                                nGP_Wchol_t = nGP_Wchol_t,
+                                                verbose=T )
       ab_ithk[,,,k] <- out_aux$ab_ith
       gamma_ijtk[,,,k] <- out_aux$gamma_ijt
       for(alpha_i in 1:3) { alpha_ab_ithk[,,,k,alpha_i] <- out_aux$alpha_ab_ith[[alpha_i]] }

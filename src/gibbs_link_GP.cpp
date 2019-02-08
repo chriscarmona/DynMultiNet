@@ -1510,7 +1510,6 @@ Rcpp::List sample_coeff_tp_link_cpp( arma::mat beta_tp,
   unsigned int i=0;
   unsigned int t=0;
   unsigned int k=0;
-  unsigned int dir=0;
   arma::uvec aux_uvec_1;
   arma::colvec aux_vec;
   arma::mat aux_mat_1;

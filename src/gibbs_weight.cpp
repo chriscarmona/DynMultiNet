@@ -1311,7 +1311,6 @@ Rcpp::List sample_coeff_tp_weight_cpp( arma::mat beta_tp,
   
   // Auxiliar objects
   unsigned int i=0;
-  unsigned int t=0;
   unsigned int k=0;
   arma::uvec aux_uvec_1;
   arma::colvec aux_vec;

@@ -134,18 +134,14 @@ Rcpp::List sample_baseline_t_link_nGP_cpp( const arma::colvec eta_t,
   }
   
   // Sampling coefficient using State-Space model and simulation smoother
-  arma::mat dd = Z_t; dd.zeros();
-  arma::mat cc = arma::zeros<arma::mat>(3,T_net);
   arma::colvec a1 = arma::zeros<arma::colvec>(3);
   arma::mat P1chol = arma::eye<arma::mat>(3,3); P1chol.diag().fill(10);
   
   alpha_eta_t = kfsim_cpp( Z_t,
                            
-                           dd,
                            X_t,
                            Z_t_cov_chol,
                            
-                           cc,
                            nGP_G_t,
                            nGP_H_t,
                            nGP_Wchol_t,
@@ -191,7 +187,8 @@ Rcpp::List sample_coord_ith_link_nGP_cpp( const arma::cube ab_ith,
                                           const arma::field<arma::cube> nGP_G_t,
                                           const arma::field<arma::cube> nGP_H_t,
                                           const arma::field<arma::cube> nGP_Wchol_t,
-                                          const bool directed=false ) {
+                                          const bool directed=false,
+                                          const bool verbose=false ) {
   
   // Auxiliar objects
   unsigned int i=0;
@@ -222,13 +219,13 @@ Rcpp::List sample_coord_ith_link_nGP_cpp( const arma::cube ab_ith,
   
   arma::cube Z_t_cov_chol = arma::zeros<arma::cube>(V_net-1,V_net-1,T_net);
   
-  arma::mat dd = arma::zeros<arma::mat>(V_net-1,T_net);
-  arma::mat cc = arma::zeros<arma::mat>(3,T_net);
   arma::colvec a1 = arma::zeros<arma::colvec>(3);
   arma::mat P1chol = arma::eye<arma::mat>(3,3); P1chol.diag().fill(10);
   
   // Repeat simulation for each agent
   for( i=0; i<V_net; i++ ) {
+    if(verbose){ Rcpp::Rcout << "i=" << i << " ; h=" << std::endl;}
+    
     // Network data
     aux_mat_1 = y_ijt.subcube(i,0,0, i,i,T_net-1);
     aux_mat_2 = y_ijt.subcube(i,i,0, V_net-1,i,T_net-1);
@@ -252,6 +249,7 @@ Rcpp::List sample_coord_ith_link_nGP_cpp( const arma::cube ab_ith,
     
     // Repeat simulation for each agent and each dimension in its coordinates
     for( h=0; h<H_dim; h++ ) {
+      if(verbose){ Rcpp::Rcout << h << ",";}
       alpha_t = arma::zeros<arma::mat>(3,T_net);
       alpha_t.row(0) = alpha_ab_ith(0).slice(h).row(i);
       // Model matrix
@@ -275,13 +273,22 @@ Rcpp::List sample_coord_ith_link_nGP_cpp( const arma::cube ab_ith,
       }
       
       // Sampling coefficient using State-Space model and simulation smoother
+      // return Rcpp::List::create( Rcpp::Named("Z_t") = Z_t,
+      //                            
+      //                            Rcpp::Named("X_t") = X_t,
+      //                            Rcpp::Named("Z_t_cov_chol") = Z_t_cov_chol,
+      //                            
+      //                            Rcpp::Named("nGP_G_t") = nGP_G_t,
+      //                            Rcpp::Named("nGP_H_t") = nGP_H_t,
+      //                            Rcpp::Named("nGP_Wchol_t") = nGP_Wchol_t,
+      //                            
+      //                            Rcpp::Named("a1") = a1,
+      //                            Rcpp::Named("P1chol") = P1chol );
       alpha_t = kfsim_cpp( Z_t,
                            
-                           dd,
                            X_t,
                            Z_t_cov_chol,
                            
-                           cc,
                            nGP_G_t(i),
                            nGP_H_t(i),
                            nGP_Wchol_t(i),
@@ -307,6 +314,7 @@ Rcpp::List sample_coord_ith_link_nGP_cpp( const arma::cube ab_ith,
       gamma_ijt.subcube(i,0,0, i,i,T_net-1) = aux_mat_1.rows(0,i);
       gamma_ijt.subcube(i,i,0, V_net-1,i,T_net-1) = aux_mat_1.rows(i,V_net-1);
     }
+    if(verbose){ Rcpp::Rcout << std::endl;}
   }
   
   return Rcpp::List::create( Rcpp::Named("ab_ith") = alpha_ab_ith(0),
@@ -361,18 +369,16 @@ Rcpp::List sample_coord_ith_shared_link_nGP_cpp( const arma::cube ab_ith,
   
   arma::cube Z_t_cov_chol = arma::zeros<arma::cube>(V_net-1,V_net-1,T_net);
   
-  arma::mat dd = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
-  arma::mat cc = arma::zeros<arma::mat>(3,T_net);
   arma::colvec a1 = arma::zeros<arma::colvec>(3);
   arma::mat P1chol = arma::eye<arma::mat>(3,3); P1chol.diag().fill(10);
   
   // Repeat simulation for each agent
   for( i=0; i<V_net; i++ ) {
     Y_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
-    PG_t = Y_t;
-    linpred_t = Y_t;
-    C_t = Y_t;
-    Z_t = Y_t;
+    PG_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
+    linpred_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
+    C_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
+    Z_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
     
     for( k=0; k<K_net; k++ ) {
       // Network data
@@ -427,11 +433,9 @@ Rcpp::List sample_coord_ith_shared_link_nGP_cpp( const arma::cube ab_ith,
       // Sampling coefficient using State-Space model and simulation smoother
       alpha_t = kfsim_cpp( Z_t,
                            
-                           dd,
                            X_t,
                            Z_t_cov_chol,
                            
-                           cc,
                            nGP_G_t(i),
                            nGP_H_t(i),
                            nGP_Wchol_t(i),
@@ -511,8 +515,6 @@ Rcpp::List sample_coord_ith_link_dir_nGP_cpp( const arma::cube ab_ith_send,
   
   arma::cube Z_t_cov_chol = arma::zeros<arma::cube>(V_net-1,V_net-1,T_net);
   
-  arma::mat dd = arma::zeros<arma::mat>(V_net-1,T_net);
-  arma::mat cc = arma::zeros<arma::mat>(3,T_net);
   arma::colvec a1 = arma::zeros<arma::colvec>(3);
   arma::mat P1chol = arma::eye<arma::mat>(3,3); P1chol.diag().fill(10);
   
@@ -586,11 +588,9 @@ Rcpp::List sample_coord_ith_link_dir_nGP_cpp( const arma::cube ab_ith_send,
         // Sampling coefficient using State-Space model and simulation smoother
         alpha_t = kfsim_cpp( Z_t,
                              
-                             dd,
                              X_t,
                              Z_t_cov_chol,
                              
-                             cc,
                              nGP_G_t(i),
                              nGP_H_t(i),
                              nGP_Wchol_t(i),
@@ -687,8 +687,6 @@ Rcpp::List sample_coord_ith_shared_link_dir_nGP_cpp( const arma::cube ab_ith_sen
   
   arma::cube Z_t_cov_chol = arma::zeros<arma::cube>(V_net-1,V_net-1,T_net);
   
-  arma::mat dd = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
-  arma::mat cc = arma::zeros<arma::mat>(3,T_net);
   arma::colvec a1 = arma::zeros<arma::colvec>(3);
   arma::mat P1chol = arma::eye<arma::mat>(3,3); P1chol.diag().fill(10);
   
@@ -698,10 +696,10 @@ Rcpp::List sample_coord_ith_shared_link_dir_nGP_cpp( const arma::cube ab_ith_sen
     for( i=0; i<V_net; i++ ) {
       
       Y_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
-      PG_t = Y_t;
-      linpred_t = Y_t;
-      C_t = Y_t;
-      Z_t = Y_t;
+      PG_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
+      linpred_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
+      C_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
+      Z_t = arma::zeros<arma::mat>((V_net-1)*K_net,T_net);
       
       if( dir==0 ) {
         // Updating Y, PG, linpred as vectors, lower triangular adjacency
@@ -781,11 +779,9 @@ Rcpp::List sample_coord_ith_shared_link_dir_nGP_cpp( const arma::cube ab_ith_sen
         // Sampling coefficient using State-Space model and simulation smoother
         alpha_t = kfsim_cpp( Z_t,
                              
-                             dd,
                              X_t,
                              Z_t_cov_chol,
                              
-                             cc,
                              nGP_G_t(i),
                              nGP_H_t(i),
                              nGP_Wchol_t(i),
