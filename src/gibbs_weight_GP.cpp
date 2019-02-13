@@ -270,6 +270,7 @@ Rcpp::List sample_add_eff_it_weight_cpp( arma::colvec sp_it,
   }
   
   // identifies valid obs
+  Y.replace(0, arma::datum::nan); // replace 0 with NA
   valid_obs = find_finite(Y); // find valid elements
   
   // Keep only valid cases
@@ -500,6 +501,7 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
   }
   
   // identifies valid obs
+  Y.replace(0, arma::datum::nan); // replace 0 with NA
   valid_obs = find_finite(Y); // find valid elements
   
   // Keep only valid cases
@@ -1423,6 +1425,7 @@ Rcpp::List sample_coeff_tp_weight_cpp( arma::mat beta_tp,
   }
   
   // identifies valid obs
+  Y.replace(0, arma::datum::nan); // replace 0 with NA
   valid_obs = find_finite(Y); // find valid elements
   
   // Keep only valid cases

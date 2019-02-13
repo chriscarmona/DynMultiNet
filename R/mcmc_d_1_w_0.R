@@ -54,7 +54,6 @@ mcmc_d_1_w_0 <- function( y_ijtk,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
   
-  
   shrink_lat_space=FALSE
   a_1=2; a_2=2.5
   procrustes_lat=FALSE

@@ -49,9 +49,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           class_dyn=c("GP","nGP")[1],
                           delta=36,
                           
-                          shrink_lat_space=FALSE,
-                          a_1=2, a_2=2.5,
-                          
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
@@ -60,6 +57,9 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
                           parallel_mcmc=FALSE ) {
+  
+  shrink_lat_space=FALSE
+  a_1=2; a_2=2.5
   
   # This software deal with continuos (weighted) edges
   # y_ijtk[y_ijtk<0] <- 0 # Shall we restrict to being positive?
