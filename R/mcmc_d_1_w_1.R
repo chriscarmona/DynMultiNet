@@ -48,6 +48,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           
                           class_dyn=c("GP","nGP")[1],
                           delta=36,
+                          lat_mean=TRUE,
+                          sigma_lat_mean=5,
                           
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
@@ -108,7 +110,12 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                       nrow=T_net,
                       ncol=K_net )
   theta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
-  
+  # mean baseline #
+  theta_tk_bar = rep( 0, K_net )
+  theta_tk_bar_mcmc <- NULL
+  if(lat_mean){
+    theta_tk_bar_mcmc <- matrix( NA, K_net, n_iter_mcmc_out )
+  }
   
   ### Dynamic additive effects for each node ###
   sp_weight_it_shared <- array(0,dim=c(V_net,T_net,2))
@@ -352,15 +359,25 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                           sigma_k=sigma_k,
                                           # class_dyn=class_dyn,
                                           theta_t_cov_prior_inv=cov_gp_prior_inv,
+                                          theta_tk_bar=theta_tk_bar,
+                                          sigma_theta_bar=sigma_lat_mean,
                                           # nGP_mat=nGP_mat_weight$baseline_k,
+                                          lat_mean=lat_mean,
                                           directed=TRUE )
+    
     theta_tk <- out_aux$theta_tk
+    
     mu_ijtk <- out_aux$mu_ijtk # This updates mu_ijtk except for the diagonal
     mu_ijtk[diag_y_idx] <- NA
+    
+    theta_tk_bar <- out_aux$theta_tk_bar
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       theta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- theta_tk
+      if(lat_mean){
+        theta_tk_bar_mcmc[,match(iter_i,iter_out_mcmc)] <- theta_tk_bar
+      }
     }
     
     # mu_ijtk_old <- mu_ijtk
@@ -675,7 +692,12 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                           
                           H_dim=H_dim, R_dim=R_dim,
+                          
+                          class_dyn=class_dyn,
+                          
                           delta=delta,
+                          lat_mean=lat_mean,
+                          sigma_lat_mean=sigma_lat_mean,
                           
                           shrink_lat_space=shrink_lat_space,
                           a_1=a_1, a_2=a_2,
@@ -698,7 +720,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           # For link weights #
                           mu_ijtk_mcmc = mu_ijtk_mcmc,
                           sigma_k_mcmc = sigma_k_mcmc,
-                          theta_tk_mcmc = theta_tk_mcmc,
+                          theta_tk_mcmc = theta_tk_mcmc, theta_tk_bar_mcmc=theta_tk_bar_mcmc,
                           sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
                           sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                           uv_ith_shared_mcmc = uv_ith_shared_mcmc,
@@ -729,7 +751,12 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                     
                     H_dim=H_dim, R_dim=R_dim,
+                    
+                    class_dyn=class_dyn,
+                    
                     delta=delta,
+                    lat_mean=lat_mean,
+                    sigma_lat_mean=sigma_lat_mean,
                     
                     shrink_lat_space=shrink_lat_space,
                     a_1=a_1, a_2=a_2,
@@ -752,7 +779,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     # For link weights #
                     mu_ijtk_mcmc = mu_ijtk_mcmc,
                     sigma_k_mcmc = sigma_k_mcmc,
-                    theta_tk_mcmc = theta_tk_mcmc,
+                    theta_tk_mcmc = theta_tk_mcmc, theta_tk_bar_mcmc=theta_tk_bar_mcmc,
                     sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
                     sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                     uv_ith_shared_mcmc = uv_ith_shared_mcmc,

@@ -81,6 +81,8 @@ dmn_sampling <- function( y_ijtk,
                           
                           class_dyn=c("GP","nGP")[1],
                           delta=36,
+                          lat_mean=TRUE,
+                          sigma_lat_mean=5,
                           
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
@@ -246,6 +248,8 @@ dmn_sampling <- function( y_ijtk,
                               
                               class_dyn=class_dyn,
                               delta=delta,
+                              lat_mean=lat_mean,
+                              sigma_lat_mean=sigma_lat_mean,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               

@@ -298,17 +298,17 @@ namespace DynMultiNet {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List sample_baseline_tk_weight_cpp(arma::colvec theta_t, const arma::mat theta_t_cov_prior_inv, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k, const bool directed = false) {
-        typedef SEXP(*Ptr_sample_baseline_tk_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List sample_baseline_tk_weight_cpp(arma::colvec theta_t, const arma::cube y_ijt, arma::cube mu_ijt, const double sigma_k, const arma::mat theta_t_cov_prior_inv, double theta_t_bar, const double sigma_theta_bar, const bool lat_mean = true, const bool directed = false) {
+        typedef SEXP(*Ptr_sample_baseline_tk_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_baseline_tk_weight_cpp p_sample_baseline_tk_weight_cpp = NULL;
         if (p_sample_baseline_tk_weight_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_baseline_tk_weight_cpp)(arma::colvec,const arma::mat,const arma::cube,arma::cube,const double,const bool)");
+            validateSignature("Rcpp::List(*sample_baseline_tk_weight_cpp)(arma::colvec,const arma::cube,arma::cube,const double,const arma::mat,double,const double,const bool,const bool)");
             p_sample_baseline_tk_weight_cpp = (Ptr_sample_baseline_tk_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_baseline_tk_weight_cpp");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_baseline_tk_weight_cpp(Shield<SEXP>(Rcpp::wrap(theta_t)), Shield<SEXP>(Rcpp::wrap(theta_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(directed)));
+            rcpp_result_gen = p_sample_baseline_tk_weight_cpp(Shield<SEXP>(Rcpp::wrap(theta_t)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(mu_ijt)), Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(theta_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(theta_t_bar)), Shield<SEXP>(Rcpp::wrap(sigma_theta_bar)), Shield<SEXP>(Rcpp::wrap(lat_mean)), Shield<SEXP>(Rcpp::wrap(directed)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

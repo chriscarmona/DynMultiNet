@@ -89,7 +89,8 @@ plot_dmn_mcmc <- function( x,
                               "eta_tk", "ab_ith_shared", "ab_ithk",
                               "tau_h_shared","tau_h_k",
                               "mu_ijtk","sigma_k",
-                              "theta_tk","uv_ith_shared","uv_ithk",
+                              "theta_tk",
+                              "uv_ith_shared","uv_ithk",
                               "rho_h_shared","rho_h_k" ) ) ) {stop("param=",param," not supported.")}
   
   directed <- x$directed
@@ -295,6 +296,25 @@ plot_dmn_mcmc <- function( x,
                               x=x$time_all[t_valid_idx]), col="blue" ) +
       labs(x="time",y="mu_ijtk",title="Expected weight",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))
   } else if( is.element(param,"theta_tk") ){
+    
+    if(x$lat_mean){
+      qaux <- quantile( x$theta_tk_bar_mcmc[k,iter_out_mcmc],
+                        probs=cred_int_quantiles )
+      qaux2 <- diff(range(x$time_all))/20
+      p <- p +
+        geom_ribbon( aes( ymin=qaux[1],
+                          ymax=qaux[4],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey50", alpha=0.25 ) +
+        geom_ribbon( aes( ymin=qaux[2],
+                          ymax=qaux[3],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey25", alpha=0.25 ) +
+        geom_line( aes(y=mean(x$theta_tk_bar_mcmc[k,iter_out_mcmc]),x=x$time_all[1]+c(0,qaux2)),col="red") +
+        geom_line( aes(y=mean(x$theta_tk_bar_mcmc[k,iter_out_mcmc]),x=x$time_all),col="red",lty=3)
+    }
+    
+    
     p <- p + labs(x="time",y="theta_tk",title="theta_tk",subtitle=paste("layer_k=",layer_k,sep=""))
   }
   
