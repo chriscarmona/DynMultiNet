@@ -111,23 +111,10 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                       ncol=K_net )
   theta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
   # mean baseline #
-  theta_tk_bar = rep( 0, K_net )
+  theta_tk_bar <- theta_tk[1,]; theta_tk_bar[] <- 0
   theta_tk_bar_mcmc <- NULL
   if(lat_mean){
     theta_tk_bar_mcmc <- matrix( NA, K_net, n_iter_mcmc_out )
-  }
-  
-  ### Dynamic additive effects for each node ###
-  sp_weight_it_shared <- array(0,dim=c(V_net,T_net,2))
-  sp_weight_it_shared_mcmc <- NULL
-  sp_weight_itk <- NULL
-  sp_weight_itk_mcmc <- NULL
-  if(add_eff_weight){
-    sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
-    if(F&K_net>1){ # we will only consider global additive effects
-      sp_weight_itk <- array(0,dim=c(V_net,T_net,K_net,2))
-      sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-    }
   }
   
   # Latent coordinates #
@@ -140,7 +127,19 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   uv_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
                               receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
   
+  uv_ith_shared_bar <- list( send=matrix(0,V_net,H_dim),
+                             receive=matrix(0,V_net,H_dim) )
+  uv_ith_shared_bar_mcmc <- NULL
+  if(lat_mean){
+    uv_ith_shared_bar_mcmc <- list( send=array(NA,c(V_net,H_dim,n_iter_mcmc_out)),
+                                    receive=array(NA,c(V_net,H_dim,n_iter_mcmc_out)) )
+  }
+  
   # by layer: hth coordinate of actor v at time t specific to layer k
+  uv_ithk <- NULL
+  uv_ithk_mcmc <- NULL
+  uv_ithk_bar <- NULL
+  uv_ithk_bar_mcmc <- NULL
   if( K_net>1 ){
     # One latent space for each direction #
     uv_ithk <- list( send=array( data=runif(V_net*T_net*R_dim*K_net),
@@ -149,9 +148,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                     dim=c(V_net,T_net,R_dim,K_net) ) )
     uv_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
                           receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
-  } else {
-    uv_ithk <- NULL
-    uv_ithk_mcmc <- NULL
+    
+    uv_ithk_bar <- list( send=array( data=0,
+                                 dim=c(V_net,R_dim,K_net) ),
+                     receive=array( data=0,
+                                    dim=c(V_net,R_dim,K_net) ) )
+    if(lat_mean){
+      uv_ithk_bar_mcmc <- list( send=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)),
+                                receive=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)) )
+    }
   }
   
   # Weight variance for layer k
@@ -165,6 +170,32 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   diag(cov_gp_prior) <- diag(cov_gp_prior) + 1e-3 # numerical stability
   # cov_gp_prior_inv <- solve(cov_gp_prior)
   cov_gp_prior_inv <- chol2inv(chol(cov_gp_prior))
+  
+  ### Dynamic additive effects for each node ###
+  sp_weight_it_shared <- array(0,dim=c(V_net,T_net,2))
+  sp_weight_it_shared_mcmc <- NULL
+  sp_weight_it_shared_bar <- matrix(0,V_net,2)
+  sp_weight_it_shared_bar_mcmc <- NULL
+  
+  sp_weight_itk <- NULL
+  sp_weight_itk_mcmc <- NULL
+  sp_weight_itk_bar <- NULL
+  sp_weight_itk_bar_mcmc <- NULL
+  
+  if(add_eff_weight){
+    sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
+    if(lat_mean){
+      sp_weight_it_shared_bar_mcmc <- array(NA,dim=c(V_net,2,n_iter_mcmc_out))
+    }
+    if(F&K_net>1){ # we will only consider global additive effects
+      sp_weight_itk <- array(0,dim=c(V_net,T_net,K_net,2))
+      sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
+      sp_weight_itk_bar <- array(0,dim=c(V_net,K_net,2))
+      if(lat_mean){
+        sp_weight_itk_bar_mcmc <- array(NA,dim=c(V_net,K_net,2,n_iter_mcmc_out))
+      }
+    }
+  }
   
   # Mean of the weight between actors i and j at time t in layer k
   mu_ijtk <- get_linpred_ijtk( baseline_tk=theta_tk,
@@ -188,24 +219,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   # Baseline parameter for link #
   # at time t for layer k
-  eta_tk <- matrix( #data=0,
-    data=runif(T_net*K_net),
-    nrow=T_net,
-    ncol=K_net )
+  eta_tk <- matrix( data=runif(T_net*K_net),
+                    nrow=T_net,
+                    ncol=K_net )
   eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
-  
-  
-  ### Dynamic additive effects for each node ###
-  sp_link_it_shared <- array(0,dim=c(V_net,T_net,2))
-  sp_link_it_shared_mcmc <- NULL
-  sp_link_itk <- NULL
-  sp_link_itk_mcmc <- NULL
-  if(add_eff_link){
-    sp_link_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
-    if(F&K_net>1){ # we will only consider global additive effects
-      sp_link_itk <- array(0,dim=c(V_net,T_net,K_net,2))
-      sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-    }
+  # mean baseline #
+  eta_tk_bar <- eta_tk[1,]; eta_tk_bar[] <- 0
+  eta_tk_bar_mcmc <- NULL
+  if(lat_mean){
+    eta_tk_bar_mcmc <- matrix( NA, K_net, n_iter_mcmc_out )
   }
   
   # Latent coordinates #
@@ -218,7 +240,19 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   ab_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
                               receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
   
+  ab_ith_shared_bar <- list( send=matrix(0,V_net,H_dim),
+                             receive=matrix(0,V_net,H_dim) )
+  ab_ith_shared_bar_mcmc <- NULL
+  if(lat_mean){
+    ab_ith_shared_bar_mcmc <- list( send=array(NA,c(V_net,H_dim,n_iter_mcmc_out)),
+                                    receive=array(NA,c(V_net,H_dim,n_iter_mcmc_out)) )
+  }
+  
   # by layer: hth coordinate of actor v at time t specific to layer k
+  ab_ithk <- NULL
+  ab_ithk_mcmc <- NULL
+  ab_ithk_bar <- NULL
+  ab_ithk_bar_mcmc <- NULL
   if( K_net>1 ){
     # One latent space for each direction #
     ab_ithk <- list( send=array( data=runif(V_net*T_net*R_dim*K_net),
@@ -227,9 +261,43 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                     dim=c(V_net,T_net,R_dim,K_net) ) )
     ab_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
                           receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
-  } else {
-    ab_ithk <- NULL
-    ab_ithk_mcmc <- NULL
+    
+    ab_ithk_bar <- list( send=array( data=0,
+                                     dim=c(V_net,R_dim,K_net) ),
+                         receive=array( data=0,
+                                        dim=c(V_net,R_dim,K_net) ) )
+    if(lat_mean){
+      ab_ithk_bar_mcmc <- list( send=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)),
+                                receive=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)) )
+    }
+  }
+  
+  ### Dynamic additive effects for each node ###
+  sp_link_it_shared <- array(0,dim=c(V_net,T_net,2))
+  sp_link_it_shared_mcmc <- NULL
+  sp_link_it_shared_bar <- matrix(0,V_net,2)
+  sp_link_it_shared_bar_mcmc <- NULL
+  
+  sp_link_itk <- NULL
+  sp_link_itk_mcmc <- NULL
+  sp_link_itk_bar <- NULL
+  sp_link_itk_bar_mcmc <- NULL
+  
+  if(add_eff_link){
+    sp_link_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
+    if(lat_mean){
+      sp_link_it_shared_bar_mcmc <- array(NA,dim=c(V_net,2,n_iter_mcmc_out))
+    }
+    if(F&K_net>1){ # we will only consider global additive effects
+      sp_link_itk <- array(0,dim=c(V_net,T_net,K_net,2))
+      sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
+      
+      sp_link_itk_bar <- array(0,dim=c(V_net,K_net,2))
+      if(lat_mean){
+        sp_link_itk_bar_mcmc <- array(NA,dim=c(V_net,K_net,2,n_iter_mcmc_out))
+      }
+      
+    }
   }
   
   # Linear predictor for the probability of an edge between actors i and j at time t in layer k
@@ -359,10 +427,10 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                           sigma_k=sigma_k,
                                           # class_dyn=class_dyn,
                                           theta_t_cov_prior_inv=cov_gp_prior_inv,
+                                          lat_mean=lat_mean,
                                           theta_tk_bar=theta_tk_bar,
                                           sigma_theta_bar=sigma_lat_mean,
                                           # nGP_mat=nGP_mat_weight$baseline_k,
-                                          lat_mean=lat_mean,
                                           directed=TRUE )
     
     theta_tk <- out_aux$theta_tk
@@ -393,8 +461,78 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     # all.equal(mu_ijtk,mu_ijtk_old)
     
     
+    ### Step W2. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
+    ### SHARED Latent Coordinates ###
+    out_aux <- sample_coord_ith_shared_weight( uv_ith_shared=uv_ith_shared,
+                                               
+                                               y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
+                                               sigma_k=sigma_k,
+                                               
+                                               # class_dyn=class_dyn,
+                                               
+                                               uv_t_sigma_prior_inv=cov_gp_prior_inv,
+                                               lat_mean=lat_mean,
+                                               uv_ith_shared_bar=uv_ith_shared_bar,
+                                               sigma_uv_bar=sigma_lat_mean,
+                                               tau_h=tau_h_shared_weight,
+                                               
+                                               directed=TRUE )
+    uv_ith_shared <- out_aux$uv_ith_shared
+    mu_ijtk <- out_aux$mu_ijtk
+    mu_ijtk[diag_y_idx] <- NA
+    
+    uv_ith_shared_bar <- out_aux$uv_ith_shared_bar
+    
+    # MCMC chain #
+    if(is.element(iter_i,iter_out_mcmc)){
+      uv_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared[[1]]
+      uv_ith_shared_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared[[2]]
+      if(lat_mean){
+        uv_ith_shared_bar_mcmc[[1]][,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared_bar[[1]]
+        uv_ith_shared_bar_mcmc[[2]][,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared_bar[[2]]
+      }
+    }
+    
+    
+    ### LAYER SPECIFIC Latent Coordinates ###
+    if( K_net>1 ) {
+      ### Step W3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates uv_ithk ###
+      out_aux <- sample_coord_ithk_weight( uv_ithk=uv_ithk,
+                                           
+                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
+                                           sigma_k=sigma_k,
+                                           
+                                           # class_dyn=class_dyn,
+                                           
+                                           uv_t_sigma_prior_inv=cov_gp_prior_inv,
+                                           lat_mean=lat_mean,
+                                           uv_ithk_bar=uv_ithk_bar,
+                                           sigma_uv_bar=sigma_lat_mean,
+                                           tau_h=rho_h_k,
+                                           
+                                           directed=TRUE )
+      uv_ithk <- out_aux$uv_ithk
+      mu_ijtk <- out_aux$mu_ijtk
+      # mu_ijtk[diag_y_idx] <- NA
+      uv_ithk_bar <- out_aux$uv_ithk_bar
+      
+      # MCMC chain for uv_ithk #
+      if(is.element(iter_i,iter_out_mcmc)){
+        uv_ithk_mcmc[[1]][,,,,match(iter_i,iter_out_mcmc)] <- uv_ithk[[1]]
+        uv_ithk_mcmc[[2]][,,,,match(iter_i,iter_out_mcmc)] <- uv_ithk[[2]]
+        if(lat_mean){
+          uv_ithk_bar_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- uv_ithk_bar[[1]]
+          uv_ithk_bar_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- uv_ithk_bar[[2]]
+        }
+      }
+      
+    }
+    
+    
+    ### Additive effects for weights ###
     if(add_eff_weight){
-      ### Step W0_add_eff_shared. Sample global additive effects ###
+      
+      ### Sample global additive effects ###
       out_aux <- sample_add_eff_it_shared_weight( sp_it_shared=sp_weight_it_shared,
                                                   sp_t_cov_prior_inv=cov_gp_prior_inv,
                                                   y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
@@ -423,7 +561,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       # all.equal(mu_ijtk,mu_ijtk_old)
       
       ### Step W0_add_eff_itk. Sample layer-specific additive effects ###
-      if(!is.null(sp_weight_itk)){
+      if(F&!is.null(sp_weight_itk)){
         out_aux <- sample_add_eff_itk_weight( sp_itk=sp_weight_itk,
                                               sp_t_cov_prior_inv=cov_gp_prior_inv,
                                               y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
@@ -440,47 +578,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       }
     }
     
-    
-    ### Step W2. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
-    ### SHARED Latent Coordinates ###
-    out_aux <- sample_coord_ith_shared_weight( uv_ith_shared=uv_ith_shared,
-                                               uv_t_sigma_prior_inv=cov_gp_prior_inv,
-                                               tau_h=tau_h_shared_weight,
-                                               y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
-                                               sigma_k=sigma_k,
-                                               directed=TRUE )
-    uv_ith_shared <- out_aux$uv_ith_shared
-    mu_ijtk <- out_aux$mu_ijtk
-    mu_ijtk[diag_y_idx] <- NA
-    
-    # MCMC chain #
-    if(is.element(iter_i,iter_out_mcmc)){
-      uv_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared[[1]]
-      uv_ith_shared_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared[[2]]
-    }
-    
-    
-    
-    ### LAYER SPECIFIC Latent Coordinates ###
-    if( K_net>1 ) {
-      ### Step W3A. For each unit, block-sample the EDGE SPECIFIC set of time-varying latent coordinates uv_ithk ###
-      out_aux <- sample_coord_ithk_weight( uv_ithk=uv_ithk,
-                                           uv_t_sigma_prior_inv=cov_gp_prior_inv,
-                                           tau_h=rho_h_k,
-                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
-                                           sigma_k=sigma_k,
-                                           directed=TRUE )
-      uv_ithk <- out_aux$uv_ithk
-      mu_ijtk <- out_aux$mu_ijtk
-      # mu_ijtk[diag_y_idx] <- NA
-      
-      # MCMC chain for uv_ithk #
-      if(is.element(iter_i,iter_out_mcmc)){
-        uv_ithk_mcmc[[1]][,,,,match(iter_i,iter_out_mcmc)] <- uv_ithk[[1]]
-        uv_ithk_mcmc[[2]][,,,,match(iter_i,iter_out_mcmc)] <- uv_ithk[[2]]
-      }
-      
-    }
     
     ### Step W3. Sample coefficients ###
     if( !is.null(beta_mu_tp) ) {
@@ -723,8 +820,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           theta_tk_mcmc = theta_tk_mcmc, theta_tk_bar_mcmc=theta_tk_bar_mcmc,
                           sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
                           sp_weight_itk_mcmc=sp_weight_itk_mcmc,
-                          uv_ith_shared_mcmc = uv_ith_shared_mcmc,
-                          uv_ithk_mcmc = uv_ithk_mcmc,
+                          uv_ith_shared_mcmc = uv_ith_shared_mcmc, uv_ith_shared_bar_mcmc=uv_ith_shared_bar_mcmc,
+                          uv_ithk_mcmc = uv_ithk_mcmc, uv_ithk_bar_mcmc=uv_ithk_bar_mcmc,
                           beta_lambda_tp_mcmc=beta_lambda_tp_mcmc )
         
         dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )
@@ -782,8 +879,8 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     theta_tk_mcmc = theta_tk_mcmc, theta_tk_bar_mcmc=theta_tk_bar_mcmc,
                     sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
                     sp_weight_itk_mcmc=sp_weight_itk_mcmc,
-                    uv_ith_shared_mcmc = uv_ith_shared_mcmc,
-                    uv_ithk_mcmc = uv_ithk_mcmc,
+                    uv_ith_shared_mcmc = uv_ith_shared_mcmc, uv_ith_shared_bar_mcmc=uv_ith_shared_bar_mcmc,
+                    uv_ithk_mcmc = uv_ithk_mcmc, uv_ithk_bar_mcmc=uv_ithk_bar_mcmc,
                     beta_lambda_tp_mcmc=beta_lambda_tp_mcmc )
   
   dmn_mcmc <- structure( dmn_mcmc, class="dmn_mcmc" )

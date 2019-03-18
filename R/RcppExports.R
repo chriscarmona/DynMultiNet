@@ -53,16 +53,8 @@ sample_coord_ith_shared_link_dir_nGP_cpp <- function(ab_ith_send, ab_ith_receive
     .Call(`_DynMultiNet_sample_coord_ith_shared_link_dir_nGP_cpp`, ab_ith_send, ab_ith_receive, alpha_ab_ith_send, alpha_ab_ith_receive, y_ijtk, w_ijtk, gamma_ijtk, nGP_G_t, nGP_H_t, nGP_Wchol_t)
 }
 
-sample_baseline_tk_weight_cpp <- function(theta_t, y_ijt, mu_ijt, sigma_k, theta_t_cov_prior_inv, theta_t_bar, sigma_theta_bar, lat_mean = TRUE, directed = FALSE) {
-    .Call(`_DynMultiNet_sample_baseline_tk_weight_cpp`, theta_t, y_ijt, mu_ijt, sigma_k, theta_t_cov_prior_inv, theta_t_bar, sigma_theta_bar, lat_mean, directed)
-}
-
-sample_add_eff_it_weight_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijt, mu_ijt, sigma_k, directed = FALSE) {
-    .Call(`_DynMultiNet_sample_add_eff_it_weight_cpp`, sp_it, sp_t_cov_prior_inv, y_ijt, mu_ijt, sigma_k, directed)
-}
-
-sample_add_eff_it_shared_weight_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, directed = FALSE) {
-    .Call(`_DynMultiNet_sample_add_eff_it_shared_weight_cpp`, sp_it, sp_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, directed)
+sample_baseline_tk_weight_cpp <- function(theta_t, y_ijt, mu_ijt, sigma_k, theta_t_cov_prior_inv, lat_mean, theta_t_bar, sigma_theta_bar, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_baseline_tk_weight_cpp`, theta_t, y_ijt, mu_ijt, sigma_k, theta_t_cov_prior_inv, lat_mean, theta_t_bar, sigma_theta_bar, directed)
 }
 
 sample_coord_ith_weight_cpp <- function(uv_ith, uv_t_sigma_prior_inv, tau_h, y_ijt, mu_ijt, sigma_k) {
@@ -73,12 +65,20 @@ sample_coord_ith_shared_weight_cpp <- function(uv_ith_shared, uv_t_sigma_prior_i
     .Call(`_DynMultiNet_sample_coord_ith_shared_weight_cpp`, uv_ith_shared, uv_t_sigma_prior_inv, tau_h, y_ijtk, mu_ijtk, sigma_k)
 }
 
-sample_coord_ith_weight_dir_cpp <- function(u_ith, v_ith, uv_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijt, mu_ijt, sigma_k) {
-    .Call(`_DynMultiNet_sample_coord_ith_weight_dir_cpp`, u_ith, v_ith, uv_t_sigma_prior_inv, tau_h_send, tau_h_receive, y_ijt, mu_ijt, sigma_k)
+sample_coord_ith_weight_dir_cpp <- function(u_ith, v_ith, y_ijt, mu_ijt, sigma_k, uv_t_sigma_prior_inv, lat_mean, u_ith_bar, v_ith_bar, sigma_uv_bar, tau_h_send, tau_h_receive) {
+    .Call(`_DynMultiNet_sample_coord_ith_weight_dir_cpp`, u_ith, v_ith, y_ijt, mu_ijt, sigma_k, uv_t_sigma_prior_inv, lat_mean, u_ith_bar, v_ith_bar, sigma_uv_bar, tau_h_send, tau_h_receive)
 }
 
-sample_coord_ith_shared_weight_dir_cpp <- function(u_ith_shared, v_ith_shared, uv_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, mu_ijtk, sigma_k) {
-    .Call(`_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp`, u_ith_shared, v_ith_shared, uv_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive, y_ijtk, mu_ijtk, sigma_k)
+sample_coord_ith_shared_weight_dir_cpp <- function(u_ith_shared, v_ith_shared, y_ijtk, mu_ijtk, sigma_k, uv_t_sigma_prior_inv, lat_mean, u_ith_shared_bar, v_ith_shared_bar, sigma_uv_bar, tau_h_shared_send, tau_h_shared_receive) {
+    .Call(`_DynMultiNet_sample_coord_ith_shared_weight_dir_cpp`, u_ith_shared, v_ith_shared, y_ijtk, mu_ijtk, sigma_k, uv_t_sigma_prior_inv, lat_mean, u_ith_shared_bar, v_ith_shared_bar, sigma_uv_bar, tau_h_shared_send, tau_h_shared_receive)
+}
+
+sample_add_eff_it_weight_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijt, mu_ijt, sigma_k, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_add_eff_it_weight_cpp`, sp_it, sp_t_cov_prior_inv, y_ijt, mu_ijt, sigma_k, directed)
+}
+
+sample_add_eff_it_shared_weight_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_add_eff_it_shared_weight_cpp`, sp_it, sp_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, directed)
 }
 
 sample_coeff_tp_weight_cpp <- function(beta_tp, beta_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, x_ijtkp_mat, directed = FALSE) {

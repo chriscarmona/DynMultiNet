@@ -253,6 +253,8 @@ dmn_sampling <- function( y_ijtk,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
+                              keep_y_ijtk_imp=keep_y_ijtk_imp,
+                              
                               rds_file=rds_file, log_file=log_file,
                               quiet_mcmc=quiet_mcmc,
                               parallel_mcmc=parallel_mcmc )
