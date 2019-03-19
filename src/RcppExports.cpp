@@ -10,25 +10,28 @@
 using namespace Rcpp;
 
 // sample_baseline_t_link_GP_cpp
-Rcpp::List sample_baseline_t_link_GP_cpp(arma::colvec eta_t, const arma::mat eta_t_cov_prior_inv, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const bool directed);
-static SEXP _DynMultiNet_sample_baseline_t_link_GP_cpp_try(SEXP eta_tSEXP, SEXP eta_t_cov_prior_invSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP gamma_ijtSEXP, SEXP directedSEXP) {
+Rcpp::List sample_baseline_t_link_GP_cpp(arma::colvec eta_t, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const arma::mat eta_t_cov_prior_inv, const bool lat_mean, double eta_t_bar, const double sigma_eta_bar, const bool directed);
+static SEXP _DynMultiNet_sample_baseline_t_link_GP_cpp_try(SEXP eta_tSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP gamma_ijtSEXP, SEXP eta_t_cov_prior_invSEXP, SEXP lat_meanSEXP, SEXP eta_t_barSEXP, SEXP sigma_eta_barSEXP, SEXP directedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< arma::colvec >::type eta_t(eta_tSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type eta_t_cov_prior_inv(eta_t_cov_prior_invSEXP);
     Rcpp::traits::input_parameter< const arma::cube >::type y_ijt(y_ijtSEXP);
     Rcpp::traits::input_parameter< const arma::cube >::type w_ijt(w_ijtSEXP);
     Rcpp::traits::input_parameter< arma::cube >::type gamma_ijt(gamma_ijtSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type eta_t_cov_prior_inv(eta_t_cov_prior_invSEXP);
+    Rcpp::traits::input_parameter< const bool >::type lat_mean(lat_meanSEXP);
+    Rcpp::traits::input_parameter< double >::type eta_t_bar(eta_t_barSEXP);
+    Rcpp::traits::input_parameter< const double >::type sigma_eta_bar(sigma_eta_barSEXP);
     Rcpp::traits::input_parameter< const bool >::type directed(directedSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_baseline_t_link_GP_cpp(eta_t, eta_t_cov_prior_inv, y_ijt, w_ijt, gamma_ijt, directed));
+    rcpp_result_gen = Rcpp::wrap(sample_baseline_t_link_GP_cpp(eta_t, y_ijt, w_ijt, gamma_ijt, eta_t_cov_prior_inv, lat_mean, eta_t_bar, sigma_eta_bar, directed));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _DynMultiNet_sample_baseline_t_link_GP_cpp(SEXP eta_tSEXP, SEXP eta_t_cov_prior_invSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP gamma_ijtSEXP, SEXP directedSEXP) {
+RcppExport SEXP _DynMultiNet_sample_baseline_t_link_GP_cpp(SEXP eta_tSEXP, SEXP y_ijtSEXP, SEXP w_ijtSEXP, SEXP gamma_ijtSEXP, SEXP eta_t_cov_prior_invSEXP, SEXP lat_meanSEXP, SEXP eta_t_barSEXP, SEXP sigma_eta_barSEXP, SEXP directedSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_sample_baseline_t_link_GP_cpp_try(eta_tSEXP, eta_t_cov_prior_invSEXP, y_ijtSEXP, w_ijtSEXP, gamma_ijtSEXP, directedSEXP));
+        rcpp_result_gen = PROTECT(_DynMultiNet_sample_baseline_t_link_GP_cpp_try(eta_tSEXP, y_ijtSEXP, w_ijtSEXP, gamma_ijtSEXP, eta_t_cov_prior_invSEXP, lat_meanSEXP, eta_t_barSEXP, sigma_eta_barSEXP, directedSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -1206,7 +1209,7 @@ RcppExport SEXP _DynMultiNet_kfsim_cpp(SEXP ySEXP, SEXP ZZSEXP, SEXP HHcholSEXP,
 static int _DynMultiNet_RcppExport_validate(const char* sig) { 
     static std::set<std::string> signatures;
     if (signatures.empty()) {
-        signatures.insert("Rcpp::List(*sample_baseline_t_link_GP_cpp)(arma::colvec,const arma::mat,const arma::cube,const arma::cube,arma::cube,const bool)");
+        signatures.insert("Rcpp::List(*sample_baseline_t_link_GP_cpp)(arma::colvec,const arma::cube,const arma::cube,arma::cube,const arma::mat,const bool,double,const double,const bool)");
         signatures.insert("Rcpp::List(*sample_coord_ith_link_GP_cpp)(arma::cube,const arma::cube,const arma::cube,arma::cube,const arma::mat,const arma::colvec)");
         signatures.insert("Rcpp::List(*sample_coord_ith_shared_link_GP_cpp)(arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::mat,const arma::colvec)");
         signatures.insert("Rcpp::List(*sample_coord_ith_link_dir_GP_cpp)(arma::cube,arma::cube,const arma::cube,const arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec)");
@@ -1275,7 +1278,7 @@ RcppExport SEXP _DynMultiNet_RcppExport_registerCCallable() {
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_DynMultiNet_sample_baseline_t_link_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_baseline_t_link_GP_cpp, 6},
+    {"_DynMultiNet_sample_baseline_t_link_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_baseline_t_link_GP_cpp, 9},
     {"_DynMultiNet_sample_coord_ith_link_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_link_GP_cpp, 6},
     {"_DynMultiNet_sample_coord_ith_shared_link_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_link_GP_cpp, 6},
     {"_DynMultiNet_sample_coord_ith_link_dir_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_link_dir_GP_cpp, 8},

@@ -12,16 +12,24 @@
 
 // [[Rcpp::export]]
 Rcpp::List sample_baseline_t_link_GP_cpp( arma::colvec eta_t,
-                                          const arma::mat eta_t_cov_prior_inv,
+                                          
                                           const arma::cube y_ijt,
                                           const arma::cube w_ijt,
                                           arma::cube gamma_ijt,
+                                          
+                                          const arma::mat eta_t_cov_prior_inv,
+                                          
+                                          const bool lat_mean,
+                                          double eta_t_bar,
+                                          const double sigma_eta_bar,
+                                          
                                           const bool directed=false ) {
   // Auxiliar objects
   unsigned int i=0;
   unsigned int t=0;
   arma::uvec aux_uvec_1;
   arma::colvec aux_vec;
+  arma::colvec aux_colvec;
   arma::mat aux_mat_1;
   arma::mat aux_mat_2;
   arma::cube aux_cube_1;
@@ -55,7 +63,18 @@ Rcpp::List sample_baseline_t_link_GP_cpp( arma::colvec eta_t,
   // Marginal posterior covariance matrix for eta_t
   arma::mat eta_t_cov_inv;
   arma::mat eta_t_cov;
+  
+  // GP prior mean at zero
+  if(!lat_mean){
+    eta_t_bar=0;
+  }
+  // prior mean vector for theta_t
+  arma::colvec eta_t_mean_prior = arma::zeros<arma::colvec>(T_net);
+  // Marginal posterior mean vector for theta_t
   arma::colvec eta_t_mean = arma::zeros<arma::colvec>(T_net);
+  
+  double eta_t_bar_mean;
+  double eta_t_bar_var;
   
   if( directed ){
     aux_mat_1 = arma::zeros<arma::mat>(1,T_net);
@@ -150,11 +169,13 @@ Rcpp::List sample_baseline_t_link_GP_cpp( arma::colvec eta_t,
   }
   aux_vec = aux_vec.rows(valid_obs);
   for( t=0; t<T_net; t++ ) { eta_t_cov_inv(t,t) = sum( W.elem( find(aux_vec==t)  ) ); }
-  eta_t_cov_inv = eta_t_cov_inv + eta_t_cov_prior_inv;
+  eta_t_cov_inv += eta_t_cov_prior_inv;
   eta_t_cov = arma::inv_sympd(eta_t_cov_inv);
   
   // marginal posterior mean
-  eta_t_mean = eta_t_cov*(X_sp_valid.t() * (W % Z));
+  aux_colvec = arma::zeros<arma::colvec>(T_net);
+  eta_t_mean_prior = eta_t_bar * aux_colvec;
+  eta_t_mean = eta_t_cov*(X_sp_valid.t() * (W % Z) + eta_t_cov_prior_inv * eta_t_mean_prior);
   
   // Sampling eta_t
   eta_t = arma::mvnrnd( eta_t_mean , eta_t_cov );
@@ -181,8 +202,23 @@ Rcpp::List sample_baseline_t_link_GP_cpp( arma::colvec eta_t,
     }
   }
   
+  // Sample GP prior mean
+  if(lat_mean){
+    aux_colvec = arma::randn(1);
+    eta_t_bar = aux_colvec(0);
+    
+    eta_t_bar_var = 1/( accu(eta_t_cov_prior_inv)+pow(sigma_eta_bar,-2) );
+    
+    aux_mat_1 = arma::ones<arma::mat>(1,T_net);
+    aux_colvec = eta_t_bar_var * (aux_mat_1*eta_t_cov_prior_inv*eta_t);
+    eta_t_bar_mean = aux_colvec(0);
+    
+    eta_t_bar = eta_t_bar_mean + eta_t_bar * sqrt(eta_t_bar_var);
+  }
+  
   return Rcpp::List::create( Rcpp::Named("eta_t") = eta_t,
-                             Rcpp::Named("gamma_ijt") = gamma_ijt );
+                             Rcpp::Named("gamma_ijt") = gamma_ijt,
+                             Rcpp::Named("eta_t_bar") = eta_t_bar );
 }
 
 

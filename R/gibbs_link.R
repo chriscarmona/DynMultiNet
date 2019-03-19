@@ -26,11 +26,19 @@ sample_pg_w_ijtk_link <- function( w_ijtk,
 
 #' @keywords internal
 sample_baseline_tk_link <- function( eta_tk,
+                                     
                                      y_ijtk, w_ijtk, gamma_ijtk,
+                                     
                                      class_dyn=c("GP","nGP")[1],
+                                     
                                      eta_t_cov_prior_inv=NULL,
+                                     lat_mean=TRUE,
+                                     eta_tk_bar=NULL,
+                                     sigma_eta_bar=5,
+                                     
                                      nGP_mat=NULL,
                                      alpha_eta_tk=NULL,
+                                     
                                      directed=FALSE ) {
   
   K_net <- dim(y_ijtk)[4]
@@ -44,11 +52,19 @@ sample_baseline_tk_link <- function( eta_tk,
     if( class_dyn==c("GP","nGP")[1] ){
       if(is.null(eta_t_cov_prior_inv)){stop("eta_t_cov_prior_inv not provided!")}
       out_aux <- sample_baseline_t_link_GP_cpp( eta_t=eta_tk[,k,drop=F],
-                                                eta_t_cov_prior_inv=eta_t_cov_prior_inv,
+                                                
                                                 y_ijt=y_ijtk[,,,k],
                                                 w_ijt=w_ijtk[,,,k],
                                                 gamma_ijt=gamma_ijtk[,,,k],
+                                                
+                                                eta_t_cov_prior_inv=eta_t_cov_prior_inv,
+                                                
+                                                lat_mean=lat_mean,
+                                                eta_t_bar=eta_tk_bar[k],
+                                                sigma_eta_bar=sigma_eta_bar,
+                                                
                                                 directed=directed )
+      eta_tk_bar[k] <- out_aux$eta_t_bar
     } else if( class_dyn==c("GP","nGP")[2] ){
       if(is.null(nGP_mat)){stop("nGP_mat not provided!")}
       out_aux <- sample_baseline_t_link_nGP_cpp( eta_t=eta_tk[,k,drop=F],
@@ -71,6 +87,7 @@ sample_baseline_tk_link <- function( eta_tk,
   
   return( list( eta_tk=eta_tk,
                 gamma_ijtk=gamma_ijtk,
+                eta_tk_bar=eta_tk_bar,
                 alpha_eta_tk=alpha_eta_tk ) );
 }
 

@@ -430,14 +430,18 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     ### Step W1. Sample baseline theta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_weight( theta_tk=theta_tk,
+                                          
                                           y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                           sigma_k=sigma_k,
                                           # class_dyn=class_dyn,
+                                          
                                           theta_t_cov_prior_inv=cov_gp_prior_inv,
                                           lat_mean=lat_mean,
                                           theta_tk_bar=theta_tk_bar,
                                           sigma_theta_bar=sigma_lat_mean,
+                                          
                                           # nGP_mat=nGP_mat_weight$baseline_k,
+                                          
                                           directed=TRUE )
     
     theta_tk <- out_aux$theta_tk
@@ -689,18 +693,28 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     ### Step L2_baseline. Sample eta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
+                                        
                                         y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                        
+                                        # class_dyn=class_dyn,
+                                        
                                         eta_t_cov_prior_inv=cov_gp_prior_inv,
-                                        class_dyn=class_dyn,
+                                        lat_mean=lat_mean,
+                                        eta_tk_bar=eta_tk_bar,
+                                        sigma_eta_bar=sigma_lat_mean,
+                                        
                                         directed=TRUE )
     eta_tk <- out_aux$eta_tk
     gamma_ijtk <- out_aux$gamma_ijtk # This updates gamma_ijtk except for the diagonal
     gamma_ijtk[diag_y_idx] <- NA
-    
+    eta_tk_bar <- out_aux$eta_tk_bar
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       eta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- eta_tk
+      if(lat_mean){
+        eta_tk_bar_mcmc[,match(iter_i,iter_out_mcmc)] <- eta_tk_bar
+      }
     }
     
     
@@ -820,7 +834,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           
                           # For link probabilities #
                           pi_ijtk_mcmc=pi_ijtk_mcmc,
-                          eta_tk_mcmc=eta_tk_mcmc,
+                          eta_tk_mcmc=eta_tk_mcmc, eta_tk_bar_mcmc=eta_tk_bar_mcmc,
                           sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
                           sp_link_itk_mcmc=sp_link_itk_mcmc,
                           ab_ith_shared_mcmc=ab_ith_shared_mcmc,
@@ -879,7 +893,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     
                     # For link probabilities #
                     pi_ijtk_mcmc=pi_ijtk_mcmc,
-                    eta_tk_mcmc=eta_tk_mcmc,
+                    eta_tk_mcmc=eta_tk_mcmc, eta_tk_bar_mcmc=eta_tk_bar_mcmc,
                     sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
                     sp_link_itk_mcmc=sp_link_itk_mcmc,
                     ab_ith_shared_mcmc=ab_ith_shared_mcmc,

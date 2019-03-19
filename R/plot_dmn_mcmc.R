@@ -346,16 +346,39 @@ plot_dmn_mcmc <- function( x,
                               x=x$time_all[t_valid_idx] ), col="blue" ) +
       labs(x="time",y="Probability",title="Link probability",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))+
       coord_cartesian(ylim=c(0,1))
+    
   } else if( is.element(param,"eta_tk") ){
     p <- p + labs(x="time",y="eta_tk",title="eta_tk",subtitle=paste("layer_k=",layer_k,sep=""))
+    if(x$lat_mean){
+      qaux <- c( mean(x$eta_tk_bar_mcmc[k,iter_out_mcmc]),
+                 quantile( x$eta_tk_bar_mcmc[k,iter_out_mcmc],
+                           probs=cred_int_quantiles ) )
+      qaux2 <- diff(range(x$time_all))/20
+      names(qaux) <- c("mean",paste("qmcmc_",100*cred_int_quantiles,sep=""))
+      p <- p +
+        geom_ribbon( aes( ymin=qaux[paste("qmcmc_",100*cred_int_probs[1]/2,sep="")],
+                          ymax=qaux[paste("qmcmc_",100*(1-cred_int_probs[1]/2),sep="")],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey50", alpha=0.25 ) +
+        geom_ribbon( aes( ymin=qaux[paste("qmcmc_",100*cred_int_probs[2]/2,sep="")],
+                          ymax=qaux[paste("qmcmc_",100*(1-cred_int_probs[2]/2),sep="")],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey25", alpha=0.25 ) +
+        geom_line( aes(y=qaux["mean"],x=x$time_all[1]+c(0,qaux2)),col="red") +
+        geom_line( aes(y=qaux["mean"],x=x$time_all),col="red",lty=3)
+    }
+    
   } else if( is.element(param,"ab_ith_shared") ) {
     p <- p + labs(x="time",y="ab_ith_shared",title="ab_ith_shared",subtitle=paste("node_i=",node_i,", h=",h,sep=""))
+    
   } else if( is.element(param,"ab_ithk") ) {
     p <- p + labs(x="time",y="ab_ithk",title="ab_ithk",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
+    
   } else if( is.element(param,"mu_ijtk") ){
     p <- p + geom_point( aes( y=x$y_ijtk[i,j,t_valid_idx,k],
                               x=x$time_all[t_valid_idx]), col="blue" ) +
       labs(x="time",y="mu_ijtk",title="Expected weight",subtitle=paste(node_i,"->",node_j,", layer_k=",layer_k,sep=""))
+    
   } else if( is.element(param,"theta_tk") ){
     p <- p + labs(x="time",y="theta_tk",title="theta_tk",subtitle=paste("layer_k=",layer_k,sep=""))
     if(x$lat_mean){
@@ -387,7 +410,6 @@ plot_dmn_mcmc <- function( x,
     } else {
       p <- p + labs(x="time",y="uv_ith_shared",title="uv_ith_shared",subtitle=paste("node_i=",node_i,", h=",h,sep=""))
     }
-    
     
     if(x$lat_mean){
       if(directed){
@@ -449,6 +471,7 @@ plot_dmn_mcmc <- function( x,
         geom_line( aes(y=qaux["mean"],x=x$time_all[1]+c(0,qaux2)),col="red") +
         geom_line( aes(y=qaux["mean"],x=x$time_all),col="red",lty=3)
     }
+    
   } else if( is.element(param,"sp_weight_it_shared") ) {
     if(directed){
       if(dir==1) {
@@ -459,7 +482,6 @@ plot_dmn_mcmc <- function( x,
     } else {
       p <- p + labs(x="time",y="sp_weight_it_shared",title="sp_weight_it_shared",subtitle=paste("node_i=",node_i,sep=""))
     }
-    
     
     if(x$lat_mean){
       if(directed){

@@ -36,9 +36,6 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
   arma::mat aux_mat_2;
   arma::cube aux_cube_1;
   
-  double theta_t_bar_mean;
-  double theta_t_bar_var;
-  
   // column matrix for the continuous response
   arma::colvec Y = arma::zeros<arma::colvec>(1);
   
@@ -66,11 +63,17 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
   arma::sp_mat X_sp_valid = X_sp;
   arma::colvec C_valid = C;
   
+  // GP prior mean at zero
+  if(!lat_mean){
+    theta_t_bar=0;
+  }
   // prior mean vector for theta_t
   arma::colvec theta_t_mean_prior = arma::zeros<arma::colvec>(T_net);
-  
   // Marginal posterior mean vector for theta_t
   arma::colvec theta_t_mean = arma::zeros<arma::colvec>(T_net);
+  
+  double theta_t_bar_mean;
+  double theta_t_bar_var;
   
   // Marginal posterior covariance matrix for theta_t
   arma::mat theta_t_cov = arma::zeros<arma::mat>(T_net,T_net);
@@ -126,17 +129,14 @@ Rcpp::List sample_baseline_tk_weight_cpp( arma::colvec theta_t,
   X_sp_valid = arma::sp_mat(X.rows(valid_obs));
   C_valid = C.rows(valid_obs);
   
-  // GP prior mean
-  if(!lat_mean){
-    theta_t_bar=0;
-  }
-  theta_t_mean_prior.fill(theta_t_bar);
   
   // Marginal Posterior
   // Covariance
   theta_t_cov_inv = (1/pow(sigma_k,2)) * X_sp_valid.t() * X_sp_valid + theta_t_cov_prior_inv ;
   theta_t_cov = arma::inv_sympd(theta_t_cov_inv);
   // Mean
+  aux_colvec = arma::zeros<arma::colvec>(T_net);
+  theta_t_mean_prior = theta_t_bar * aux_colvec;
   theta_t_mean = theta_t_cov * ( (1/pow(sigma_k,2)) * X_sp_valid.t() * (Y_valid-C_valid) + theta_t_cov_prior_inv * theta_t_mean_prior );
   
   // sampling theta_t

@@ -2,6 +2,7 @@
 #' @import foreach
 #' @keywords internal
 sample_baseline_tk_weight <- function( theta_tk,
+                                       
                                        y_ijtk, mu_ijtk,
                                        sigma_k,
                                        
@@ -35,8 +36,8 @@ sample_baseline_tk_weight <- function( theta_tk,
                                               
                                               directed=directed )
     theta_tk[,k] <- out_aux$theta_t
-    theta_tk_bar[k] <- out_aux$theta_t_bar
     mu_ijtk[,,,k] <- out_aux$mu_ijt
+    theta_tk_bar[k] <- out_aux$theta_t_bar
   }
   
   return( list( theta_tk=theta_tk,
