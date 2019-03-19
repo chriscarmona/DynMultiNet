@@ -212,9 +212,15 @@ sample_add_eff_itk_weight <- function( sp_itk,
 
 #' @keywords internal
 sample_add_eff_it_shared_weight <- function( sp_it_shared,
-                                             sp_t_cov_prior_inv,
+                                             
                                              y_ijtk, mu_ijtk,
                                              sigma_k,
+                                             
+                                             sp_t_cov_prior_inv,
+                                             lat_mean=TRUE,
+                                             sp_it_shared_bar=NULL,
+                                             sigma_sp_bar=5,
+                                             
                                              directed=FALSE ) {
   V_net <- dim(y_ijtk)[1]
   T_net <- dim(y_ijtk)[3]
@@ -231,21 +237,30 @@ sample_add_eff_it_shared_weight <- function( sp_it_shared,
   }
   
   ### Sample sp_it_shared ###
-  out_aux <- sample_add_eff_it_shared_weight_cpp( sp_it=c(sp_it_shared), # transformed to vector
-                                                  sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+  out_aux <- sample_add_eff_it_shared_weight_cpp( sp_it=c(sp_it_shared), # transformed to vector length(sp_it)==V_net*T_net*2
+                                                  
                                                   y_ijt=y_ijtk_list,
                                                   mu_ijt=mu_ijtk_list,
                                                   sigma_k=sigma_k,
+                                                  
+                                                  sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+                                                  lat_mean=lat_mean,
+                                                  sp_it_bar=sp_it_shared_bar,
+                                                  sigma_sp_bar=sigma_sp_bar,
+                                                  
                                                   directed=directed )
   if(!directed) {
-    sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net))
+    sp_it_shared <- matrix(out_aux$sp_it,V_net,T_net)
+    sp_it_shared_bar <- matrix(out_aux$sp_it_bar,V_net,1)
   } else {
     sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net,2))
+    sp_it_shared_bar <- matrix(out_aux$sp_it_bar,V_net,2)
   }
   for(k in 1:K_net) {mu_ijtk[,,,k] <- out_aux$mu_ijtk[k,1][[1]]}
   
   return( list( sp_it_shared=sp_it_shared,
-                mu_ijtk=mu_ijtk ) );
+                mu_ijtk=mu_ijtk,
+                sp_it_shared_bar=sp_it_shared_bar ) );
 }
 
 

@@ -534,17 +534,28 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       
       ### Sample global additive effects ###
       out_aux <- sample_add_eff_it_shared_weight( sp_it_shared=sp_weight_it_shared,
-                                                  sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                                  
                                                   y_ijtk=y_ijtk, mu_ijtk=mu_ijtk,
                                                   sigma_k=sigma_k,
+                                                  
+                                                  sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                                  # lat_mean=lat_mean,
+                                                  lat_mean=F,
+                                                  sp_it_shared_bar=sp_weight_it_shared_bar,
+                                                  sigma_sp_bar=sigma_lat_mean,
+                                                  
                                                   directed=TRUE )
       sp_weight_it_shared <- out_aux$sp_it_shared
       mu_ijtk <- out_aux$mu_ijtk
       mu_ijtk[diag_y_idx] <- NA
+      sp_weight_it_shared_bar <- out_aux$sp_it_shared_bar
       
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
         sp_weight_it_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- sp_weight_it_shared
+        if(lat_mean){
+          sp_weight_it_shared_bar_mcmc[,,match(iter_i,iter_out_mcmc)] <- sp_weight_it_shared_bar
+        }
       }
       
       # # Checking consistency of linear predictor mu_ijtk
@@ -818,7 +829,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           mu_ijtk_mcmc = mu_ijtk_mcmc,
                           sigma_k_mcmc = sigma_k_mcmc,
                           theta_tk_mcmc = theta_tk_mcmc, theta_tk_bar_mcmc=theta_tk_bar_mcmc,
-                          sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
+                          sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc, sp_weight_it_shared_bar_mcmc=sp_weight_it_shared_bar_mcmc,
                           sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                           uv_ith_shared_mcmc = uv_ith_shared_mcmc, uv_ith_shared_bar_mcmc=uv_ith_shared_bar_mcmc,
                           uv_ithk_mcmc = uv_ithk_mcmc, uv_ithk_bar_mcmc=uv_ithk_bar_mcmc,
@@ -877,7 +888,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     mu_ijtk_mcmc = mu_ijtk_mcmc,
                     sigma_k_mcmc = sigma_k_mcmc,
                     theta_tk_mcmc = theta_tk_mcmc, theta_tk_bar_mcmc=theta_tk_bar_mcmc,
-                    sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc,
+                    sp_weight_it_shared_mcmc=sp_weight_it_shared_mcmc, sp_weight_it_shared_bar_mcmc=sp_weight_it_shared_bar_mcmc,
                     sp_weight_itk_mcmc=sp_weight_itk_mcmc,
                     uv_ith_shared_mcmc = uv_ith_shared_mcmc, uv_ith_shared_bar_mcmc=uv_ith_shared_bar_mcmc,
                     uv_ithk_mcmc = uv_ithk_mcmc, uv_ithk_bar_mcmc=uv_ithk_bar_mcmc,

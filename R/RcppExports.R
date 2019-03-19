@@ -77,8 +77,8 @@ sample_add_eff_it_weight_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijt, mu_ij
     .Call(`_DynMultiNet_sample_add_eff_it_weight_cpp`, sp_it, sp_t_cov_prior_inv, y_ijt, mu_ijt, sigma_k, directed)
 }
 
-sample_add_eff_it_shared_weight_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, directed = FALSE) {
-    .Call(`_DynMultiNet_sample_add_eff_it_shared_weight_cpp`, sp_it, sp_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, directed)
+sample_add_eff_it_shared_weight_cpp <- function(sp_it, y_ijtk, mu_ijtk, sigma_k, sp_t_cov_prior_inv, lat_mean, sp_it_bar, sigma_sp_bar, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_add_eff_it_shared_weight_cpp`, sp_it, y_ijtk, mu_ijtk, sigma_k, sp_t_cov_prior_inv, lat_mean, sp_it_bar, sigma_sp_bar, directed)
 }
 
 sample_coeff_tp_weight_cpp <- function(beta_tp, beta_t_cov_prior_inv, y_ijtk, mu_ijtk, sigma_k, x_ijtkp_mat, directed = FALSE) {

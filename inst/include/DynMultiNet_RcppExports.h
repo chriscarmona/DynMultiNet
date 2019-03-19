@@ -424,17 +424,17 @@ namespace DynMultiNet {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List sample_add_eff_it_shared_weight_cpp(arma::colvec sp_it, const arma::mat sp_t_cov_prior_inv, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> mu_ijtk, const arma::colvec sigma_k, const bool directed = false) {
-        typedef SEXP(*Ptr_sample_add_eff_it_shared_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List sample_add_eff_it_shared_weight_cpp(arma::colvec sp_it, const arma::field<arma::cube> y_ijtk, arma::field<arma::cube> mu_ijtk, const arma::colvec sigma_k, const arma::mat sp_t_cov_prior_inv, const bool lat_mean, arma::colvec sp_it_bar, const double sigma_sp_bar, const bool directed = false) {
+        typedef SEXP(*Ptr_sample_add_eff_it_shared_weight_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_add_eff_it_shared_weight_cpp p_sample_add_eff_it_shared_weight_cpp = NULL;
         if (p_sample_add_eff_it_shared_weight_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_add_eff_it_shared_weight_cpp)(arma::colvec,const arma::mat,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec,const bool)");
+            validateSignature("Rcpp::List(*sample_add_eff_it_shared_weight_cpp)(arma::colvec,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::colvec,const arma::mat,const bool,arma::colvec,const double,const bool)");
             p_sample_add_eff_it_shared_weight_cpp = (Ptr_sample_add_eff_it_shared_weight_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_add_eff_it_shared_weight_cpp");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_add_eff_it_shared_weight_cpp(Shield<SEXP>(Rcpp::wrap(sp_it)), Shield<SEXP>(Rcpp::wrap(sp_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(mu_ijtk)), Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(directed)));
+            rcpp_result_gen = p_sample_add_eff_it_shared_weight_cpp(Shield<SEXP>(Rcpp::wrap(sp_it)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(mu_ijtk)), Shield<SEXP>(Rcpp::wrap(sigma_k)), Shield<SEXP>(Rcpp::wrap(sp_t_cov_prior_inv)), Shield<SEXP>(Rcpp::wrap(lat_mean)), Shield<SEXP>(Rcpp::wrap(sp_it_bar)), Shield<SEXP>(Rcpp::wrap(sigma_sp_bar)), Shield<SEXP>(Rcpp::wrap(directed)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
