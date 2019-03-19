@@ -245,7 +245,7 @@ sample_add_eff_it_shared_weight <- function( sp_it_shared,
                                                   
                                                   sp_t_cov_prior_inv=sp_t_cov_prior_inv,
                                                   lat_mean=lat_mean,
-                                                  sp_it_bar=sp_it_shared_bar,
+                                                  sp_it_bar=c(sp_it_shared_bar), # transformed to vector length(sp_it_shared_bar)==V_net*2
                                                   sigma_sp_bar=sigma_sp_bar,
                                                   
                                                   directed=directed )

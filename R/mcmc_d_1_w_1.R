@@ -184,8 +184,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   
   if(add_eff_weight){
     sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
+    dimnames(sp_weight_it_shared_mcmc) = list( node_all,
+                                               time_all,
+                                               c("send","receive"),
+                                               NULL )
     if(lat_mean){
       sp_weight_it_shared_bar_mcmc <- array(NA,dim=c(V_net,2,n_iter_mcmc_out))
+      dimnames(sp_weight_it_shared_bar_mcmc) = list( node_all,
+                                                     c("send","receive"),
+                                                     NULL )
     }
     if(F&K_net>1){ # we will only consider global additive effects
       sp_weight_itk <- array(0,dim=c(V_net,T_net,K_net,2))
@@ -539,8 +546,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                                   sigma_k=sigma_k,
                                                   
                                                   sp_t_cov_prior_inv=cov_gp_prior_inv,
-                                                  # lat_mean=lat_mean,
-                                                  lat_mean=F,
+                                                  lat_mean=lat_mean,
                                                   sp_it_shared_bar=sp_weight_it_shared_bar,
                                                   sigma_sp_bar=sigma_lat_mean,
                                                   

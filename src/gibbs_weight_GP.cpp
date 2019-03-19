@@ -1401,7 +1401,7 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
         // Marginal Posterior Mean
         C = linpred - (X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1));
         C_valid = C.rows(valid_obs);
-        sp_it_mean_prior = kron( sp_it_bar.rows(V_net,2*V_net-1), aux_colvec );
+        sp_it_mean_prior = kron( aux_colvec, sp_it_bar.rows(V_net,2*V_net-1) );
         sp_it_mean = sp_it_cov * ( X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C_valid)) + sp_it_cov_prior_inv * sp_it_mean_prior );
         
         // Sampling sp_it
@@ -1419,7 +1419,7 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
         // Marginal Posterior Mean
         C = linpred - (X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1));
         C_valid = C.rows(valid_obs);
-        sp_it_mean_prior = kron( sp_it_bar.rows(0,V_net-1), aux_colvec );
+        sp_it_mean_prior = kron( aux_colvec, sp_it_bar.rows(0,V_net-1) );
         sp_it_mean = sp_it_cov * ( X_sp_valid.cols(0,T_net*V_net-1).t() * (sigma_Y_inv_valid % (Y-C_valid)) + sp_it_cov_prior_inv * sp_it_mean_prior );
         
         // Sampling sp_it
@@ -1459,6 +1459,16 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
   }
   
   // Sample GP prior mean 
+  arma::mat s_it = arma::zeros<arma::mat>(T_net*V_net,1);
+  arma::mat p_it = arma::zeros<arma::mat>(T_net*V_net,1);
+  
+  s_it.col(0) = sp_it.rows(0,T_net*V_net-1);
+  s_it.reshape(V_net,T_net);
+  if(directed){
+    p_it.col(0) = sp_it.rows(T_net*V_net,2*T_net*V_net-1);
+    p_it.reshape(V_net,T_net);
+  }
+  
   if(lat_mean){
     sp_it_bar.randn();
     
@@ -1470,12 +1480,12 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
       // Rcpp::Rcout << " i=" << i << std::endl;
       
       // S
-      sp_it_bar_mean = sp_it_bar_var * (aux_mat_1*sp_it.rows( T_net*i, T_net*(i+1)-1 ));
+      sp_it_bar_mean = sp_it_bar_var * (aux_mat_1*s_it.row(i).t());
       sp_it_bar(i) = sp_it_bar_mean(0) + sp_it_bar(i) * sqrt(sp_it_bar_var);
       
       if(directed){
         // P
-        sp_it_bar_mean = sp_it_bar_var * (aux_mat_1*sp_it.rows(T_net*V_net+T_net*i,T_net*V_net+T_net*(i+1)-1));
+        sp_it_bar_mean = sp_it_bar_var * (aux_mat_1*p_it.row(i).t());
         sp_it_bar(V_net+i) = sp_it_bar_mean(0) + sp_it_bar(V_net+i) * sqrt(sp_it_bar_var);
       }
     }

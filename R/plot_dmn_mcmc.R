@@ -324,7 +324,8 @@ plot_dmn_mcmc <- function( x,
                         ymax=get(paste("qmcmc_",100*(1-cred_int_probs[2]/2),sep="")),
                         x=time ),
                    fill="grey50", data=summary_mcmc, alpha=0.50 ) +
-      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc )
+      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc ) +
+      theme_bw()
     
   } else if( is.element(cred_int_type,"norm") ){
     p <- ggplot() +
@@ -336,7 +337,8 @@ plot_dmn_mcmc <- function( x,
                         ymax=get(paste("qnorm_",100*(1-cred_int_probs[2]/2),sep="")),
                         x=time ),
                    fill="grey50", data=summary_mcmc, alpha=0.50 ) +
-      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc )
+      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc ) +
+      theme_bw()
   }
   
   if( is.element(param,"pi_ijtk") ){
