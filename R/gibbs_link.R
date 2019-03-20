@@ -95,10 +95,20 @@ sample_baseline_tk_link <- function( eta_tk,
 #' @keywords internal
 #' @importFrom abind abind
 sample_coord_ithk_link <- function( ab_ithk,
+                                    
                                     y_ijtk, w_ijtk, gamma_ijtk,
+                                    
                                     class_dyn=c("GP","nGP")[1],
-                                    ab_t_sigma_prior_inv=NULL, tau_h=NULL,
-                                    nGP_mat=NULL, alpha_ab_ithk=NULL,
+                                    
+                                    ab_t_sigma_prior_inv=NULL,
+                                    lat_mean=TRUE,
+                                    ab_ithk_bar=NULL,
+                                    sigma_ab_bar=5,
+                                    tau_h=NULL,
+                                    
+                                    nGP_mat=NULL,
+                                    alpha_ab_ithk=NULL,
+                                    
                                     directed=FALSE ) {
   
   # This function only deals with binary edges (non-weighted)
@@ -121,17 +131,26 @@ sample_coord_ithk_link <- function( ab_ithk,
   if(directed & class_dyn=="GP"){
     
     for(k in 1:K_net){ # k<-1
-      out_aux <- sample_coord_ith_link_dir_GP_cpp( ab_ith_send = ab_ithk[[1]][,,,k],
-                                                   ab_ith_receive = ab_ithk[[2]][,,,k],
+      out_aux <- sample_coord_ith_link_dir_GP_cpp( a_ith = ab_ithk[[1]][,,,k],
+                                                   b_ith = ab_ithk[[2]][,,,k],
+                                                   
                                                    y_ijt = y_ijtk[,,,k],
                                                    w_ijt = w_ijtk[,,,k],
                                                    gamma_ijt = gamma_ijtk[,,,k],
+                                                   
                                                    ab_t_sigma_prior_inv = ab_t_sigma_prior_inv,
+                                                   lat_mean = lat_mean,
+                                                   a_ith_bar = ab_ithk_bar[[1]][,,k],
+                                                   b_ith_bar = ab_ithk_bar[[2]][,,k],
+                                                   sigma_ab_bar = sigma_ab_bar,
+                                                   
                                                    tau_h_send = tau_h[[1]][,k],
                                                    tau_h_receive = tau_h[[2]][,k] )
-      ab_ithk[[1]][,,,k] <- out_aux$ab_ith_send
-      ab_ithk[[2]][,,,k] <- out_aux$ab_ith_receive
+      ab_ithk[[1]][,,,k] <- out_aux$a_ith
+      ab_ithk[[2]][,,,k] <- out_aux$b_ith
       gamma_ijtk[,,,k] <- out_aux$gamma_ijt
+      ab_ithk_bar[[1]][,,k] <- out_aux$a_ith_bar
+      ab_ithk_bar[[2]][,,k] <- out_aux$b_ith_bar
     }
     
   } else if( !directed & class_dyn=="GP"){
@@ -211,7 +230,8 @@ sample_coord_ithk_link <- function( ab_ithk,
   }
   return( list( ab_ithk=ab_ithk,
                 gamma_ijtk=gamma_ijtk,
-                alpha_ab_ithk=alpha_ab_ithk) )
+                alpha_ab_ithk=alpha_ab_ithk,
+                ab_ithk_bar=ab_ithk_bar ) )
 }
 
 

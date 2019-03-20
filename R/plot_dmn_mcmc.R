@@ -405,7 +405,40 @@ plot_dmn_mcmc <- function( x,
     }
     
   } else if( is.element(param,"ab_ithk") ) {
-    p <- p + labs(x="time",y="ab_ithk",title="ab_ithk",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
+    if(directed){
+      if(dir==1) {
+        p <- p + labs(x="time",y="a_ithk",title="a_ithk (sender space)",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
+      } else if(dir==2) {
+        p <- p + labs(x="time",y="b_ithk",title="b_ithk (receiver space)",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
+      }
+    } else {
+      p <- p + labs(x="time",y="ab_ithk",title="ab_ithk",subtitle=paste("node_i=",node_i,", h=",h,", layer_k=",layer_k,sep=""))
+    }
+    
+    if(x$lat_mean){
+      if(directed){
+        qaux <- c( mean(x$ab_ithk_bar_mcmc[[dir]][i,h,k,iter_out_mcmc]) ,
+                   quantile( x$ab_ithk_bar_mcmc[[dir]][i,h,k,iter_out_mcmc],
+                             probs=cred_int_quantiles ) )
+      } else {
+        qaux <- c( mean(x$ab_ithk_bar_mcmc[i,h,k,iter_out_mcmc]) ,
+                   quantile( x$ab_ithk_bar_mcmc[i,h,k,iter_out_mcmc],
+                             probs=cred_int_quantiles ) )
+      }
+      names(qaux) <- c("mean",paste("qmcmc_",100*cred_int_quantiles,sep=""))
+      qaux2 <- diff(range(x$time_all))/20
+      p <- p +
+        geom_ribbon( aes( ymin=qaux[paste("qmcmc_",100*cred_int_probs[1]/2,sep="")],
+                          ymax=qaux[paste("qmcmc_",100*(1-cred_int_probs[1]/2),sep="")],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey50", alpha=0.25 ) +
+        geom_ribbon( aes( ymin=qaux[paste("qmcmc_",100*cred_int_probs[2]/2,sep="")],
+                          ymax=qaux[paste("qmcmc_",100*(1-cred_int_probs[2]/2),sep="")],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey25", alpha=0.25 ) +
+        geom_line( aes(y=qaux["mean"],x=x$time_all[1]+c(0,qaux2)),col="red") +
+        geom_line( aes(y=qaux["mean"],x=x$time_all),col="red",lty=3)
+    }
     
   } else if( is.element(param,"mu_ijtk") ){
     p <- p + geom_point( aes( y=x$y_ijtk[i,j,t_valid_idx,k],

@@ -88,17 +88,17 @@ namespace DynMultiNet {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List sample_coord_ith_link_dir_GP_cpp(arma::cube ab_ith_send, arma::cube ab_ith_receive, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const arma::mat ab_t_sigma_prior_inv, const arma::colvec tau_h_send, const arma::colvec tau_h_receive) {
-        typedef SEXP(*Ptr_sample_coord_ith_link_dir_GP_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List sample_coord_ith_link_dir_GP_cpp(arma::cube a_ith, arma::cube b_ith, const arma::cube y_ijt, const arma::cube w_ijt, arma::cube gamma_ijt, const arma::mat ab_t_sigma_prior_inv, const bool lat_mean, arma::mat a_ith_bar, arma::mat b_ith_bar, const double sigma_ab_bar, const arma::colvec tau_h_send, const arma::colvec tau_h_receive) {
+        typedef SEXP(*Ptr_sample_coord_ith_link_dir_GP_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_coord_ith_link_dir_GP_cpp p_sample_coord_ith_link_dir_GP_cpp = NULL;
         if (p_sample_coord_ith_link_dir_GP_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_coord_ith_link_dir_GP_cpp)(arma::cube,arma::cube,const arma::cube,const arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec)");
+            validateSignature("Rcpp::List(*sample_coord_ith_link_dir_GP_cpp)(arma::cube,arma::cube,const arma::cube,const arma::cube,arma::cube,const arma::mat,const bool,arma::mat,arma::mat,const double,const arma::colvec,const arma::colvec)");
             p_sample_coord_ith_link_dir_GP_cpp = (Ptr_sample_coord_ith_link_dir_GP_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_link_dir_GP_cpp");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_coord_ith_link_dir_GP_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith_send)), Shield<SEXP>(Rcpp::wrap(ab_ith_receive)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_send)), Shield<SEXP>(Rcpp::wrap(tau_h_receive)));
+            rcpp_result_gen = p_sample_coord_ith_link_dir_GP_cpp(Shield<SEXP>(Rcpp::wrap(a_ith)), Shield<SEXP>(Rcpp::wrap(b_ith)), Shield<SEXP>(Rcpp::wrap(y_ijt)), Shield<SEXP>(Rcpp::wrap(w_ijt)), Shield<SEXP>(Rcpp::wrap(gamma_ijt)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(lat_mean)), Shield<SEXP>(Rcpp::wrap(a_ith_bar)), Shield<SEXP>(Rcpp::wrap(b_ith_bar)), Shield<SEXP>(Rcpp::wrap(sigma_ab_bar)), Shield<SEXP>(Rcpp::wrap(tau_h_send)), Shield<SEXP>(Rcpp::wrap(tau_h_receive)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

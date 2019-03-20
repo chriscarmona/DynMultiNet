@@ -480,21 +480,19 @@ Rcpp::List sample_coord_ith_weight_dir_cpp( arma::cube u_ith,
                                             const arma::colvec tau_h_send,
                                             const arma::colvec tau_h_receive ) {
   
-  // Auxiliar objects
-  unsigned int i=0;
-  unsigned int t=0;
-  unsigned int h=0;
-  
-  unsigned int dir=0;
-  
-  arma::colvec aux_colvec;
-  arma::mat aux_mat_1;
-  arma::mat aux_mat_2;
-  
   // Network and latent space dimensions
   unsigned int V_net = y_ijt.n_rows;
   unsigned int T_net = y_ijt.n_slices;
   unsigned int H_dim = u_ith.n_slices;
+  
+  // Auxiliar objects
+  unsigned int i=0;
+  unsigned int t=0;
+  unsigned int h=0;
+  unsigned int dir=0;
+  arma::colvec aux_colvec = arma::ones<arma::colvec>(T_net);;
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
   
   u_ith = reshape(u_ith,V_net,T_net*H_dim,1);
   arma::mat u_ith_mat = u_ith.slice(0);
@@ -541,11 +539,10 @@ Rcpp::List sample_coord_ith_weight_dir_cpp( arma::cube u_ith,
     u_ith_bar.fill(0);
     v_ith_bar.fill(0);
   }
-  arma::vec u_ith_mean = arma::zeros<arma::vec>(1);
-  arma::vec v_ith_mean = arma::zeros<arma::vec>(1);
-  double uv_ith_var=1;
+  arma::vec u_ith_bar_mean = arma::zeros<arma::vec>(1);
+  arma::vec v_ith_bar_mean = arma::zeros<arma::vec>(1);
+  double uv_ith_bar_var=1;
   
-  aux_colvec = arma::ones<arma::colvec>(T_net);
   
   for( dir=0; dir<2; dir++ ) {
     
@@ -680,7 +677,7 @@ Rcpp::List sample_coord_ith_weight_dir_cpp( arma::cube u_ith,
     
     v_ith_bar.randn();
     
-    uv_ith_var = 1/( accu(uv_t_sigma_prior_inv)+pow(sigma_uv_bar,-2) );
+    uv_ith_bar_var = 1/( accu(uv_t_sigma_prior_inv)+pow(sigma_uv_bar,-2) );
     
     aux_mat_1 = arma::ones<arma::mat>(1,T_net);
     aux_mat_1 = aux_mat_1*uv_t_sigma_prior_inv;
@@ -691,13 +688,13 @@ Rcpp::List sample_coord_ith_weight_dir_cpp( arma::cube u_ith,
         
         // Sender
         aux_mat_2 = u_ith.subcube(i,0,h, i,T_net-1,h);
-        u_ith_mean = uv_ith_var * (aux_mat_1*aux_mat_2.t());
-        u_ith_bar(i,h) = u_ith_mean(0) + u_ith_bar(i,h) * sqrt(uv_ith_var);
+        u_ith_bar_mean = uv_ith_bar_var * (aux_mat_1*aux_mat_2.t());
+        u_ith_bar(i,h) = u_ith_bar_mean(0) + u_ith_bar(i,h) * sqrt(uv_ith_bar_var);
         
         // Receiver
         aux_mat_2 = v_ith.subcube(i,0,h, i,T_net-1,h);
-        v_ith_mean = uv_ith_var * (aux_mat_1*aux_mat_2.t());
-        v_ith_bar(i,h) = v_ith_mean(0) + v_ith_bar(i,h) * sqrt(uv_ith_var);
+        v_ith_bar_mean = uv_ith_bar_var * (aux_mat_1*aux_mat_2.t());
+        v_ith_bar(i,h) = v_ith_bar_mean(0) + v_ith_bar(i,h) * sqrt(uv_ith_bar_var);
       }
     }
     

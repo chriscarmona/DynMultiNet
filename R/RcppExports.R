@@ -13,8 +13,8 @@ sample_coord_ith_shared_link_GP_cpp <- function(ab_ith, y_ijtk, w_ijtk, gamma_ij
     .Call(`_DynMultiNet_sample_coord_ith_shared_link_GP_cpp`, ab_ith, y_ijtk, w_ijtk, gamma_ijtk, ab_t_sigma_prior_inv, tau_h)
 }
 
-sample_coord_ith_link_dir_GP_cpp <- function(ab_ith_send, ab_ith_receive, y_ijt, w_ijt, gamma_ijt, ab_t_sigma_prior_inv, tau_h_send, tau_h_receive) {
-    .Call(`_DynMultiNet_sample_coord_ith_link_dir_GP_cpp`, ab_ith_send, ab_ith_receive, y_ijt, w_ijt, gamma_ijt, ab_t_sigma_prior_inv, tau_h_send, tau_h_receive)
+sample_coord_ith_link_dir_GP_cpp <- function(a_ith, b_ith, y_ijt, w_ijt, gamma_ijt, ab_t_sigma_prior_inv, lat_mean, a_ith_bar, b_ith_bar, sigma_ab_bar, tau_h_send, tau_h_receive) {
+    .Call(`_DynMultiNet_sample_coord_ith_link_dir_GP_cpp`, a_ith, b_ith, y_ijt, w_ijt, gamma_ijt, ab_t_sigma_prior_inv, lat_mean, a_ith_bar, b_ith_bar, sigma_ab_bar, tau_h_send, tau_h_receive)
 }
 
 sample_coord_ith_shared_link_dir_GP_cpp <- function(a_ith_shared, b_ith_shared, y_ijtk, w_ijtk, gamma_ijtk, ab_t_sigma_prior_inv, lat_mean, a_ith_shared_bar, b_ith_shared_bar, sigma_ab_bar, tau_h_shared_send, tau_h_shared_receive) {
