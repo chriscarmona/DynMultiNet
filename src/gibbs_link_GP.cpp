@@ -736,25 +736,23 @@ Rcpp::List sample_coord_ith_link_dir_GP_cpp( arma::cube ab_ith_send,
 
 
 // [[Rcpp::export]]
-Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
+Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube a_ith_shared,
+                                                    arma::cube b_ith_shared,
+                                                    
                                                     const arma::field<arma::cube> y_ijtk,
                                                     const arma::field<arma::cube> w_ijtk,
                                                     arma::field<arma::cube> gamma_ijtk,
-                                                    arma::cube ab_ith_receive,
+                                                    
                                                     const arma::mat ab_t_sigma_prior_inv,
+                                                    const bool lat_mean,
+                                                    arma::mat a_ith_shared_bar,
+                                                    arma::mat b_ith_shared_bar,
+                                                    const double sigma_ab_bar,
+                                                    
                                                     const arma::colvec tau_h_shared_send,
                                                     const arma::colvec tau_h_shared_receive ) {
   
-  // Auxiliar objects
-  unsigned int i=0;
-  unsigned int k=0;
-  unsigned int t=0;
-  
-  unsigned int dir=0;
-  
-  arma::mat aux_mat_1;
-  arma::mat aux_mat_2;
-  
+  // Single layer objects
   arma::cube y_ijt = y_ijtk(0);
   arma::cube w_ijt = w_ijtk(0);
   arma::cube gamma_ijt = gamma_ijtk(0);
@@ -762,14 +760,24 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
   // Network and latent space dimensions
   unsigned int V_net = y_ijt.n_rows;
   unsigned int T_net = y_ijt.n_slices;
-  unsigned int H_dim = ab_ith_send.n_slices;
+  unsigned int H_dim = a_ith_shared.n_slices;
   unsigned int K_net = y_ijtk.n_rows;
   
-  ab_ith_send = reshape(ab_ith_send,V_net,T_net*H_dim,1);
-  arma::mat ab_ith_send_mat = ab_ith_send.slice(0);
+  // Auxiliar objects
+  unsigned int i=0;
+  unsigned int k=0;
+  unsigned int t=0;
+  unsigned int h=0;
+  unsigned int dir=0;
+  arma::colvec aux_colvec = arma::ones<arma::colvec>(T_net);
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
   
-  ab_ith_receive = reshape(ab_ith_receive,V_net,T_net*H_dim,1);
-  arma::mat ab_ith_receive_mat = ab_ith_receive.slice(0);
+  a_ith_shared = reshape(a_ith_shared,V_net,T_net*H_dim,1);
+  arma::mat a_ith_shared_mat = a_ith_shared.slice(0);
+  
+  b_ith_shared = reshape(b_ith_shared,V_net,T_net*H_dim,1);
+  arma::mat b_ith_shared_mat = b_ith_shared.slice(0);
   
   arma::colvec Y = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
   arma::colvec W = arma::zeros<arma::colvec>((V_net-1)*T_net*K_net);
@@ -784,6 +792,11 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
   arma::mat x_i_cov_prior = kron( tau_h_diag, ab_t_sigma_prior_inv );
   arma::mat x_i_cov_inv = arma::zeros<arma::mat>( T_net*H_dim, T_net*H_dim );
   arma::mat x_i_cov = arma::zeros<arma::mat>( T_net*H_dim, T_net*H_dim );
+  
+  // prior mean vector for ab
+  arma::colvec x_i_mean_prior = arma::zeros<arma::colvec>(T_net*H_dim);
+  
+  // Posterior mean vector for ab
   arma::colvec x_i_mean = arma::zeros<arma::colvec>(T_net*H_dim);
   
   arma::uvec aux_uvec_1 = T_net * arma::regspace<arma::uvec>( 0, V_net-1 );
@@ -801,6 +814,15 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
   // vector that identifies valid observation for the model
   // in this case, where Y!=0 and is not NA
   arma::uvec valid_obs;
+  
+  // GP prior mean equal to zero
+  if(!lat_mean){
+    a_ith_shared_bar.fill(0);
+    b_ith_shared_bar.fill(0);
+  }
+  arma::vec a_ith_shared_bar_mean = arma::zeros<arma::vec>(1);
+  arma::vec b_ith_shared_bar_mean = arma::zeros<arma::vec>(1);
+  double ab_ith_shared_bar_var=1;
   
   for( dir=0; dir<2; dir++ ) {
     // Rcpp::Rcout << "dir=" << dir << std::endl;
@@ -845,7 +867,7 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
           // as it does not change with the newly sampled values
           X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
           for( t=0; t<T_net; t++ ) {
-            X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = ab_ith_receive_mat.submat( aux_uvec_3, aux_uvec_2+t );
+            X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = b_ith_shared_mat.submat( aux_uvec_3, aux_uvec_2+t );
           }
           tau_h_diag.diag() = tau_h_shared_send;
         }
@@ -855,7 +877,7 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
         X_sp = arma::sp_mat(X);
         
         // Constant term in linear predictor
-        C = linpred - X_sp * trans(ab_ith_send_mat.row(i));
+        C = linpred - X_sp * trans(a_ith_shared_mat.row(i));
         
       } else if( dir==1 ) {
         // Updating Y, W, linpred as vectors, upper triangular adjacency
@@ -887,7 +909,7 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
           // as it does not change with the newly sampled values
           X_all = arma::zeros<arma::mat>(V_net*T_net,T_net*H_dim);
           for( t=0; t<T_net; t++ ) {
-            X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = ab_ith_send_mat.submat( aux_uvec_3, aux_uvec_2+t );
+            X_all.submat( aux_uvec_1+t , aux_uvec_2+t ) = a_ith_shared_mat.submat( aux_uvec_3, aux_uvec_2+t );
           }
           tau_h_diag.diag() = tau_h_shared_receive;
         }
@@ -897,7 +919,7 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
         X_sp = arma::sp_mat(X);
         
         // Constant term in linear predictor
-        C = linpred - X_sp * trans(ab_ith_receive_mat.row(i));
+        C = linpred - X_sp * trans(b_ith_shared_mat.row(i));
         
       } else {
         throw std::range_error("direction not supported");
@@ -921,17 +943,20 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
       x_i_cov_inv = x_i_cov_inv + x_i_cov_prior ;
       x_i_cov = arma::inv_sympd(x_i_cov_inv);
       
-      // Marginal posterior mean
+      // Z for Polson pposterior mean
       Z = (Y-0.5)/W - C;
-      x_i_mean = x_i_cov * (X_sp_valid.t() * (W % Z));
       
       if( dir==0 ) {
         
-        // Sampling ab_ith_send_mat
-        ab_ith_send_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
+        // Marginal posterior mean
+        x_i_mean_prior = kron( a_ith_shared_bar.row(i).t(), aux_colvec );
+        x_i_mean = x_i_cov * (X_sp_valid.t() * (W % Z) + x_i_cov_prior * x_i_mean_prior);
         
-        // Recalculate linpred with the new values of ab_ith_send_mat
-        linpred = X_sp * trans(ab_ith_send_mat.row(i)) + C_all;
+        // Sampling a_ith_shared_mat
+        a_ith_shared_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
+        
+        // Recalculate linpred with the new values of a_ith_shared_mat
+        linpred = X_sp * trans(a_ith_shared_mat.row(i)) + C_all;
         // Redefine gamma_ijt with the new values of linpred
         for( k=0; k<K_net; k++ ) {
           aux_mat_1 = linpred.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
@@ -946,11 +971,15 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
         
       } else if( dir==1 ) {
         
-        // Sampling ab_ith_receive_mat
-        ab_ith_receive_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
+        // Marginal posterior mean
+        x_i_mean_prior = kron( b_ith_shared_bar.row(i).t(), aux_colvec );
+        x_i_mean = x_i_cov * (X_sp_valid.t() * (W % Z) + x_i_cov_prior * x_i_mean_prior);
         
-        // Recalculate linpred with the new values of ab_ith_receive_mat
-        linpred = X_sp * trans(ab_ith_receive_mat.row(i)) + C_all;
+        // Sampling b_ith_shared_mat
+        b_ith_shared_mat.row(i) = trans(arma::mvnrnd( x_i_mean , x_i_cov ));
+        
+        // Recalculate linpred with the new values of b_ith_shared_mat
+        linpred = X_sp * trans(b_ith_shared_mat.row(i)) + C_all;
         // Redefine gamma_ijt with the new values of linpred
         for( k=0; k<K_net; k++ ) {
           aux_mat_1 = linpred.rows((V_net-1)*T_net*k, (V_net-1)*T_net*(k+1)-1);
@@ -969,15 +998,46 @@ Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp( arma::cube ab_ith_send,
   }
   
   // get ab_ith from ab_ith_mat
-  ab_ith_send.slice(0)=ab_ith_send_mat;
-  ab_ith_send = reshape(ab_ith_send,V_net,T_net,H_dim);
+  a_ith_shared.slice(0)=a_ith_shared_mat;
+  a_ith_shared = reshape(a_ith_shared,V_net,T_net,H_dim);
   
-  ab_ith_receive.slice(0)=ab_ith_receive_mat;
-  ab_ith_receive = reshape(ab_ith_receive,V_net,T_net,H_dim);
+  b_ith_shared.slice(0)=b_ith_shared_mat;
+  b_ith_shared = reshape(b_ith_shared,V_net,T_net,H_dim);
   
-  return Rcpp::List::create( Rcpp::Named("ab_ith_send") = ab_ith_send,
-                             Rcpp::Named("ab_ith_receive") = ab_ith_receive,
-                             Rcpp::Named("gamma_ijtk") = gamma_ijtk );
+  // Sample GP prior mean 
+  if(lat_mean){
+    a_ith_shared_bar.randn();
+    
+    b_ith_shared_bar.randn();
+    
+    ab_ith_shared_bar_var = 1/( accu(ab_t_sigma_prior_inv)+pow(sigma_ab_bar,-2) );
+    
+    aux_mat_1 = arma::ones<arma::mat>(1,T_net);
+    aux_mat_1 = aux_mat_1*ab_t_sigma_prior_inv;
+    for( i=0; i<V_net; i++ ) {
+      // Rcpp::Rcout << " i=" << i << std::endl;
+      for( h=0; h<H_dim; h++ ) {
+        // Rcpp::Rcout << " h=" << h << std::endl;
+        
+        // Sender
+        aux_mat_2 = a_ith_shared.subcube(i,0,h, i,T_net-1,h);
+        a_ith_shared_bar_mean = ab_ith_shared_bar_var * (aux_mat_1*aux_mat_2.t());
+        a_ith_shared_bar(i,h) = a_ith_shared_bar_mean(0) + a_ith_shared_bar(i,h) * sqrt(ab_ith_shared_bar_var);
+        
+        // Receiver
+        aux_mat_2 = b_ith_shared.subcube(i,0,h, i,T_net-1,h);
+        b_ith_shared_bar_mean = ab_ith_shared_bar_var * (aux_mat_1*aux_mat_2.t());
+        b_ith_shared_bar(i,h) = b_ith_shared_bar_mean(0) + b_ith_shared_bar(i,h) * sqrt(ab_ith_shared_bar_var);
+      }
+    }
+    
+  }
+  
+  return Rcpp::List::create( Rcpp::Named("a_ith_shared") = a_ith_shared,
+                             Rcpp::Named("b_ith_shared") = b_ith_shared,
+                             Rcpp::Named("gamma_ijtk") = gamma_ijtk,
+                             Rcpp::Named("a_ith_shared_bar") = a_ith_shared_bar,
+                             Rcpp::Named("b_ith_shared_bar") = b_ith_shared_bar );
 }
 
 

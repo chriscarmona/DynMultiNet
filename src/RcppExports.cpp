@@ -171,27 +171,31 @@ RcppExport SEXP _DynMultiNet_sample_coord_ith_link_dir_GP_cpp(SEXP ab_ith_sendSE
     return rcpp_result_gen;
 }
 // sample_coord_ith_shared_link_dir_GP_cpp
-Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp(arma::cube ab_ith_send, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> gamma_ijtk, arma::cube ab_ith_receive, const arma::mat ab_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive);
-static SEXP _DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp_try(SEXP ab_ith_sendSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP gamma_ijtkSEXP, SEXP ab_ith_receiveSEXP, SEXP ab_t_sigma_prior_invSEXP, SEXP tau_h_shared_sendSEXP, SEXP tau_h_shared_receiveSEXP) {
+Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp(arma::cube a_ith_shared, arma::cube b_ith_shared, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> gamma_ijtk, const arma::mat ab_t_sigma_prior_inv, const bool lat_mean, arma::mat a_ith_shared_bar, arma::mat b_ith_shared_bar, const double sigma_ab_bar, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive);
+static SEXP _DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp_try(SEXP a_ith_sharedSEXP, SEXP b_ith_sharedSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP gamma_ijtkSEXP, SEXP ab_t_sigma_prior_invSEXP, SEXP lat_meanSEXP, SEXP a_ith_shared_barSEXP, SEXP b_ith_shared_barSEXP, SEXP sigma_ab_barSEXP, SEXP tau_h_shared_sendSEXP, SEXP tau_h_shared_receiveSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< arma::cube >::type ab_ith_send(ab_ith_sendSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type a_ith_shared(a_ith_sharedSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type b_ith_shared(b_ith_sharedSEXP);
     Rcpp::traits::input_parameter< const arma::field<arma::cube> >::type y_ijtk(y_ijtkSEXP);
     Rcpp::traits::input_parameter< const arma::field<arma::cube> >::type w_ijtk(w_ijtkSEXP);
     Rcpp::traits::input_parameter< arma::field<arma::cube> >::type gamma_ijtk(gamma_ijtkSEXP);
-    Rcpp::traits::input_parameter< arma::cube >::type ab_ith_receive(ab_ith_receiveSEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type ab_t_sigma_prior_inv(ab_t_sigma_prior_invSEXP);
+    Rcpp::traits::input_parameter< const bool >::type lat_mean(lat_meanSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type a_ith_shared_bar(a_ith_shared_barSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type b_ith_shared_bar(b_ith_shared_barSEXP);
+    Rcpp::traits::input_parameter< const double >::type sigma_ab_bar(sigma_ab_barSEXP);
     Rcpp::traits::input_parameter< const arma::colvec >::type tau_h_shared_send(tau_h_shared_sendSEXP);
     Rcpp::traits::input_parameter< const arma::colvec >::type tau_h_shared_receive(tau_h_shared_receiveSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_coord_ith_shared_link_dir_GP_cpp(ab_ith_send, y_ijtk, w_ijtk, gamma_ijtk, ab_ith_receive, ab_t_sigma_prior_inv, tau_h_shared_send, tau_h_shared_receive));
+    rcpp_result_gen = Rcpp::wrap(sample_coord_ith_shared_link_dir_GP_cpp(a_ith_shared, b_ith_shared, y_ijtk, w_ijtk, gamma_ijtk, ab_t_sigma_prior_inv, lat_mean, a_ith_shared_bar, b_ith_shared_bar, sigma_ab_bar, tau_h_shared_send, tau_h_shared_receive));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp(SEXP ab_ith_sendSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP gamma_ijtkSEXP, SEXP ab_ith_receiveSEXP, SEXP ab_t_sigma_prior_invSEXP, SEXP tau_h_shared_sendSEXP, SEXP tau_h_shared_receiveSEXP) {
+RcppExport SEXP _DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp(SEXP a_ith_sharedSEXP, SEXP b_ith_sharedSEXP, SEXP y_ijtkSEXP, SEXP w_ijtkSEXP, SEXP gamma_ijtkSEXP, SEXP ab_t_sigma_prior_invSEXP, SEXP lat_meanSEXP, SEXP a_ith_shared_barSEXP, SEXP b_ith_shared_barSEXP, SEXP sigma_ab_barSEXP, SEXP tau_h_shared_sendSEXP, SEXP tau_h_shared_receiveSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp_try(ab_ith_sendSEXP, y_ijtkSEXP, w_ijtkSEXP, gamma_ijtkSEXP, ab_ith_receiveSEXP, ab_t_sigma_prior_invSEXP, tau_h_shared_sendSEXP, tau_h_shared_receiveSEXP));
+        rcpp_result_gen = PROTECT(_DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp_try(a_ith_sharedSEXP, b_ith_sharedSEXP, y_ijtkSEXP, w_ijtkSEXP, gamma_ijtkSEXP, ab_t_sigma_prior_invSEXP, lat_meanSEXP, a_ith_shared_barSEXP, b_ith_shared_barSEXP, sigma_ab_barSEXP, tau_h_shared_sendSEXP, tau_h_shared_receiveSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -1213,7 +1217,7 @@ static int _DynMultiNet_RcppExport_validate(const char* sig) {
         signatures.insert("Rcpp::List(*sample_coord_ith_link_GP_cpp)(arma::cube,const arma::cube,const arma::cube,arma::cube,const arma::mat,const arma::colvec)");
         signatures.insert("Rcpp::List(*sample_coord_ith_shared_link_GP_cpp)(arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::mat,const arma::colvec)");
         signatures.insert("Rcpp::List(*sample_coord_ith_link_dir_GP_cpp)(arma::cube,arma::cube,const arma::cube,const arma::cube,arma::cube,const arma::mat,const arma::colvec,const arma::colvec)");
-        signatures.insert("Rcpp::List(*sample_coord_ith_shared_link_dir_GP_cpp)(arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>,arma::cube,const arma::mat,const arma::colvec,const arma::colvec)");
+        signatures.insert("Rcpp::List(*sample_coord_ith_shared_link_dir_GP_cpp)(arma::cube,arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::mat,const bool,arma::mat,arma::mat,const double,const arma::colvec,const arma::colvec)");
         signatures.insert("Rcpp::List(*sample_add_eff_it_link_cpp)(arma::colvec,const arma::mat,const arma::cube,arma::cube,arma::cube,const bool)");
         signatures.insert("Rcpp::List(*sample_add_eff_it_shared_link_cpp)(arma::colvec,const arma::mat,const arma::field<arma::cube>,arma::field<arma::cube>,arma::field<arma::cube>,const bool)");
         signatures.insert("Rcpp::List(*sample_coeff_tp_link_cpp)(arma::mat,const arma::mat,const arma::field<arma::cube>,arma::field<arma::cube>,arma::field<arma::cube>,const arma::mat,const bool)");
@@ -1282,7 +1286,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_DynMultiNet_sample_coord_ith_link_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_link_GP_cpp, 6},
     {"_DynMultiNet_sample_coord_ith_shared_link_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_link_GP_cpp, 6},
     {"_DynMultiNet_sample_coord_ith_link_dir_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_link_dir_GP_cpp, 8},
-    {"_DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp, 8},
+    {"_DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp", (DL_FUNC) &_DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp, 12},
     {"_DynMultiNet_sample_add_eff_it_link_cpp", (DL_FUNC) &_DynMultiNet_sample_add_eff_it_link_cpp, 6},
     {"_DynMultiNet_sample_add_eff_it_shared_link_cpp", (DL_FUNC) &_DynMultiNet_sample_add_eff_it_shared_link_cpp, 6},
     {"_DynMultiNet_sample_coeff_tp_link_cpp", (DL_FUNC) &_DynMultiNet_sample_coeff_tp_link_cpp, 7},

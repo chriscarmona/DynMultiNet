@@ -724,20 +724,33 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     ### Step L3. For each unit, block-sample the set of time-varying latent coordinates x_ith ###
     ### SHARED Latent Coordinates ###
     out_aux <- sample_coord_ith_shared_link( ab_ith=ab_ith_shared,
-                                             ab_t_sigma_prior_inv=cov_gp_prior_inv,
-                                             tau_h=tau_h_shared,
+                                             
                                              y_ijtk=y_ijtk,
                                              w_ijtk=w_ijtk,
                                              gamma_ijtk=gamma_ijtk,
+                                             
+                                             # class_dyn=class_dyn,
+                                             
+                                             ab_t_sigma_prior_inv=cov_gp_prior_inv,
+                                             lat_mean=lat_mean,
+                                             ab_ith_bar=ab_ith_shared_bar,
+                                             sigma_ab_bar=sigma_lat_mean,
+                                             tau_h=tau_h_shared,
+                                             
                                              directed=TRUE )
     ab_ith_shared <- out_aux$ab_ith
     gamma_ijtk <- out_aux$gamma_ijtk
     # gamma_ijtk[diag_y_idx] <- NA
+    ab_ith_shared_bar <- out_aux$ab_ith_bar
     
     # MCMC chain #
     if(is.element(iter_i,iter_out_mcmc)){
       ab_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared[[1]]
       ab_ith_shared_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared[[2]]
+      if(lat_mean){
+        ab_ith_shared_bar_mcmc[[1]][,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared_bar[[1]]
+        ab_ith_shared_bar_mcmc[[2]][,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared_bar[[2]]
+      }
     }
     
     ### LAYER SPECIFIC Latent Coordinates ###
@@ -837,7 +850,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           eta_tk_mcmc=eta_tk_mcmc, eta_tk_bar_mcmc=eta_tk_bar_mcmc,
                           sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
                           sp_link_itk_mcmc=sp_link_itk_mcmc,
-                          ab_ith_shared_mcmc=ab_ith_shared_mcmc,
+                          ab_ith_shared_mcmc=ab_ith_shared_mcmc, ab_ith_shared_bar_mcmc=ab_ith_shared_bar_mcmc,
                           ab_ithk_mcmc=ab_ithk_mcmc,
                           beta_mu_tp_mcmc=beta_mu_tp_mcmc,
                           
@@ -896,7 +909,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     eta_tk_mcmc=eta_tk_mcmc, eta_tk_bar_mcmc=eta_tk_bar_mcmc,
                     sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
                     sp_link_itk_mcmc=sp_link_itk_mcmc,
-                    ab_ith_shared_mcmc=ab_ith_shared_mcmc,
+                    ab_ith_shared_mcmc=ab_ith_shared_mcmc, ab_ith_shared_bar_mcmc=ab_ith_shared_bar_mcmc,
                     ab_ithk_mcmc=ab_ithk_mcmc,
                     beta_mu_tp_mcmc=beta_mu_tp_mcmc,
                     

@@ -109,17 +109,17 @@ namespace DynMultiNet {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp(arma::cube ab_ith_send, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> gamma_ijtk, arma::cube ab_ith_receive, const arma::mat ab_t_sigma_prior_inv, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive) {
-        typedef SEXP(*Ptr_sample_coord_ith_shared_link_dir_GP_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List sample_coord_ith_shared_link_dir_GP_cpp(arma::cube a_ith_shared, arma::cube b_ith_shared, const arma::field<arma::cube> y_ijtk, const arma::field<arma::cube> w_ijtk, arma::field<arma::cube> gamma_ijtk, const arma::mat ab_t_sigma_prior_inv, const bool lat_mean, arma::mat a_ith_shared_bar, arma::mat b_ith_shared_bar, const double sigma_ab_bar, const arma::colvec tau_h_shared_send, const arma::colvec tau_h_shared_receive) {
+        typedef SEXP(*Ptr_sample_coord_ith_shared_link_dir_GP_cpp)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_sample_coord_ith_shared_link_dir_GP_cpp p_sample_coord_ith_shared_link_dir_GP_cpp = NULL;
         if (p_sample_coord_ith_shared_link_dir_GP_cpp == NULL) {
-            validateSignature("Rcpp::List(*sample_coord_ith_shared_link_dir_GP_cpp)(arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>,arma::cube,const arma::mat,const arma::colvec,const arma::colvec)");
+            validateSignature("Rcpp::List(*sample_coord_ith_shared_link_dir_GP_cpp)(arma::cube,arma::cube,const arma::field<arma::cube>,const arma::field<arma::cube>,arma::field<arma::cube>,const arma::mat,const bool,arma::mat,arma::mat,const double,const arma::colvec,const arma::colvec)");
             p_sample_coord_ith_shared_link_dir_GP_cpp = (Ptr_sample_coord_ith_shared_link_dir_GP_cpp)R_GetCCallable("DynMultiNet", "_DynMultiNet_sample_coord_ith_shared_link_dir_GP_cpp");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_sample_coord_ith_shared_link_dir_GP_cpp(Shield<SEXP>(Rcpp::wrap(ab_ith_send)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(w_ijtk)), Shield<SEXP>(Rcpp::wrap(gamma_ijtk)), Shield<SEXP>(Rcpp::wrap(ab_ith_receive)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_send)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_receive)));
+            rcpp_result_gen = p_sample_coord_ith_shared_link_dir_GP_cpp(Shield<SEXP>(Rcpp::wrap(a_ith_shared)), Shield<SEXP>(Rcpp::wrap(b_ith_shared)), Shield<SEXP>(Rcpp::wrap(y_ijtk)), Shield<SEXP>(Rcpp::wrap(w_ijtk)), Shield<SEXP>(Rcpp::wrap(gamma_ijtk)), Shield<SEXP>(Rcpp::wrap(ab_t_sigma_prior_inv)), Shield<SEXP>(Rcpp::wrap(lat_mean)), Shield<SEXP>(Rcpp::wrap(a_ith_shared_bar)), Shield<SEXP>(Rcpp::wrap(b_ith_shared_bar)), Shield<SEXP>(Rcpp::wrap(sigma_ab_bar)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_send)), Shield<SEXP>(Rcpp::wrap(tau_h_shared_receive)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

@@ -728,18 +728,7 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
                                                    const arma::colvec tau_h_shared_send,
                                                    const arma::colvec tau_h_shared_receive ) {
   
-  // Auxiliar objects
-  unsigned int i=0;
-  unsigned int k=0;
-  unsigned int t=0;
-  unsigned int h=0;
-  
-  unsigned int dir=0;
-  
-  arma::colvec aux_colvec;
-  arma::mat aux_mat_1;
-  arma::mat aux_mat_2;
-  
+  // Single layer objects
   arma::cube y_ijt = y_ijtk(0);
   arma::cube mu_ijt = mu_ijtk(0);
   
@@ -748,6 +737,16 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
   unsigned int T_net = y_ijt.n_slices;
   unsigned int H_dim = u_ith_shared.n_slices;
   unsigned int K_net = y_ijtk.n_rows;
+  
+  // Auxiliar objects
+  unsigned int i=0;
+  unsigned int k=0;
+  unsigned int t=0;
+  unsigned int h=0;
+  unsigned int dir=0;
+  arma::colvec aux_colvec = arma::ones<arma::colvec>(T_net);
+  arma::mat aux_mat_1;
+  arma::mat aux_mat_2;
   
   u_ith_shared = reshape(u_ith_shared,V_net,T_net*H_dim,1);
   arma::mat u_ith_shared_mat = u_ith_shared.slice(0);
@@ -806,7 +805,6 @@ Rcpp::List sample_coord_ith_shared_weight_dir_cpp( arma::cube u_ith_shared,
   arma::vec v_ith_shared_bar_mean = arma::zeros<arma::vec>(1);
   double uv_ith_shared_bar_var=1;
   
-  aux_colvec = arma::ones<arma::colvec>(T_net);
   
   for( dir=0; dir<2; dir++ ) {
     // Rcpp::Rcout << "dir=" << dir << std::endl;

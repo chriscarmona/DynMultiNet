@@ -116,7 +116,7 @@ sample_coord_ith_shared_weight <- function( uv_ith_shared,
                                             lat_mean=TRUE,
                                             uv_ith_shared_bar=NULL,
                                             sigma_uv_bar=5,
-                                            tau_h,
+                                            tau_h=NULL,
                                             
                                             directed=FALSE ) {
   

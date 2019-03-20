@@ -93,122 +93,6 @@ sample_baseline_tk_link <- function( eta_tk,
 
 
 #' @keywords internal
-sample_coord_ith_shared_link <- function( ab_ith,
-                                          y_ijtk, w_ijtk, gamma_ijtk,
-                                          class_dyn=c("GP","nGP")[1],
-                                          ab_t_sigma_prior_inv=NULL, tau_h=NULL,
-                                          nGP_mat=NULL, alpha_ab_ith=NULL,
-                                          directed=FALSE ) {
-  
-  # This function only deals with binary edges (non-weighted)
-  y_ijtk[y_ijtk>0] <- 1
-  y_ijtk[y_ijtk<0] <- NA
-  
-  V_net <- dim(y_ijtk)[1]
-  K_net <- dim(y_ijtk)[4]
-  
-  ### For each unit, block-sample the set of time-varying latent coordinates ab_ith ###
-  y_ijtk_list <- w_ijtk_list <- gamma_ijtk_list <- list(NULL)
-  
-  if( directed ) {
-    V_net <- dim(ab_ith[[1]])[1]
-    T_net <- dim(ab_ith[[1]])[2]
-    H_dim <- dim(ab_ith[[1]])[3]
-  } else {
-    V_net <- dim(ab_ith)[1]
-    T_net <- dim(ab_ith)[2]
-    H_dim <- dim(ab_ith)[3]
-  }
-  
-  for(k in 1:K_net) {
-    y_ijtk_list[[k]] <- y_ijtk[,,,k]
-    w_ijtk_list[[k]] <- w_ijtk[,,,k]
-    gamma_ijtk_list[[k]] <- gamma_ijtk[,,,k]
-  }
-  
-  if( directed & class_dyn=="GP" ){
-    out_aux <- sample_coord_ith_shared_link_dir_GP_cpp( ab_ith_send = ab_ith[[1]],
-                                                        ab_ith_receive = ab_ith[[2]],
-                                                        y_ijtk = y_ijtk_list,
-                                                        w_ijtk = w_ijtk_list,
-                                                        gamma_ijtk = gamma_ijtk_list,
-                                                        ab_t_sigma_prior_inv = ab_t_sigma_prior_inv,
-                                                        tau_h_shared_send = tau_h[[1]],
-                                                        tau_h_shared_receive = tau_h[[2]] )
-    ab_ith[[1]] <- out_aux$ab_ith_send
-    ab_ith[[2]] <- out_aux$ab_ith_receive
-    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
-  } else if(!directed & class_dyn=="GP"){
-    out_aux <- sample_coord_ith_shared_link_GP_cpp( ab_ith = ab_ith,
-                                                    y_ijtk = y_ijtk_list,
-                                                    w_ijtk = w_ijtk_list,
-                                                    gamma_ijtk = gamma_ijtk_list,
-                                                    ab_t_sigma_prior_inv = ab_t_sigma_prior_inv,
-                                                    tau_h = tau_h )
-    ab_ith <- out_aux$ab_ith
-    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
-  } else if(directed & class_dyn=="nGP"){
-    alpha_ab_ith_send_list <- alpha_ab_ith_receive_list <- nGP_G_t <- nGP_H_t <- nGP_Wchol_t <- list(NULL)
-    for(i in 1:V_net){
-      nGP_G_t[[i]] <- nGP_mat$G[i,,,]
-      nGP_H_t[[i]] <- nGP_mat$H[i,,,]
-      nGP_Wchol_t[[i]] <- nGP_mat$Wchol[i,,,]
-    }
-    for(alpha_i in 1:3) {
-      alpha_ab_ith_send_list[[alpha_i]] <- alpha_ab_ith[[1]][,,,alpha_i]
-      alpha_ab_ith_receive_list[[alpha_i]] <- alpha_ab_ith[[2]][,,,alpha_i]
-    }
-    out_aux <- sample_coord_ith_shared_link_dir_nGP_cpp( ab_ith_send = ab_ith[[1]],
-                                                         ab_ith_receive = ab_ith[[2]],
-                                                         
-                                                         alpha_ab_ith_send = alpha_ab_ith_send_list[],
-                                                         alpha_ab_ith_receive = alpha_ab_ith_receive_list[],
-                                                         
-                                                         y_ijtk = y_ijtk_list,
-                                                         w_ijtk = w_ijtk_list,
-                                                         gamma_ijtk = gamma_ijtk_list[],
-                                                         
-                                                         nGP_G_t = nGP_G_t,
-                                                         nGP_H_t = nGP_H_t,
-                                                         nGP_Wchol_t = nGP_Wchol_t )
-    ab_ith[[1]] <- out_aux$ab_ith_send
-    ab_ith[[2]] <- out_aux$ab_ith_receive
-    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
-    for(alpha_i in 1:3) {
-      alpha_ab_ith[[1]][,,,alpha_i] <- out_aux$alpha_ab_ith_send[alpha_i,][[1]]
-      alpha_ab_ith[[2]][,,,alpha_i] <- out_aux$alpha_ab_ith_receive[alpha_i,][[1]]
-    }
-  } else if(!directed & class_dyn=="nGP"){
-    alpha_ab_ith_list <- nGP_G_t <- nGP_H_t <- nGP_Wchol_t <- list(NULL)
-    for(i in 1:V_net){
-      nGP_G_t[[i]] <- nGP_mat$G[i,,,]
-      nGP_H_t[[i]] <- nGP_mat$H[i,,,]
-      nGP_Wchol_t[[i]] <- nGP_mat$Wchol[i,,,]
-    }
-    for(alpha_i in 1:3) { alpha_ab_ith_list[[alpha_i]] <- alpha_ab_ith[,,,alpha_i] }
-    out_aux <- sample_coord_ith_shared_link_nGP_cpp( ab_ith = ab_ith,
-                                                     
-                                                     alpha_ab_ith = alpha_ab_ith_list[],
-                                                     
-                                                     y_ijtk = y_ijtk_list,
-                                                     w_ijtk = w_ijtk_list,
-                                                     gamma_ijtk = gamma_ijtk_list[],
-                                                     
-                                                     nGP_G_t = nGP_G_t,
-                                                     nGP_H_t = nGP_H_t,
-                                                     nGP_Wchol_t = nGP_Wchol_t )
-    ab_ith <- out_aux$ab_ith
-    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
-    for(alpha_i in 1:3) { alpha_ab_ith[,,,alpha_i] <- out_aux$alpha_ab_ith[[alpha_i]] }
-  }
-  
-  return( list( ab_ith=ab_ith,
-                gamma_ijtk=gamma_ijtk,
-                alpha_ab_ith=alpha_ab_ith ) )
-}
-
-
-#' @keywords internal
 #' @importFrom abind abind
 sample_coord_ithk_link <- function( ab_ithk,
                                     y_ijtk, w_ijtk, gamma_ijtk,
@@ -328,6 +212,143 @@ sample_coord_ithk_link <- function( ab_ithk,
   return( list( ab_ithk=ab_ithk,
                 gamma_ijtk=gamma_ijtk,
                 alpha_ab_ithk=alpha_ab_ithk) )
+}
+
+
+#' @keywords internal
+sample_coord_ith_shared_link <- function( ab_ith,
+                                          
+                                          y_ijtk, w_ijtk, gamma_ijtk,
+                                          
+                                          class_dyn=c("GP","nGP")[1],
+                                          
+                                          ab_t_sigma_prior_inv=NULL,
+                                          lat_mean=TRUE,
+                                          ab_ith_bar=NULL,
+                                          sigma_ab_bar=5,
+                                          tau_h=NULL,
+                                          
+                                          nGP_mat=NULL,
+                                          alpha_ab_ith=NULL,
+                                          
+                                          directed=FALSE ) {
+  
+  # This function only deals with binary edges (non-weighted)
+  y_ijtk[y_ijtk>0] <- 1
+  y_ijtk[y_ijtk<0] <- NA
+  
+  V_net <- dim(y_ijtk)[1]
+  K_net <- dim(y_ijtk)[4]
+  
+  ### For each unit, block-sample the set of time-varying latent coordinates ab_ith ###
+  y_ijtk_list <- w_ijtk_list <- gamma_ijtk_list <- list(NULL)
+  
+  if( directed ) {
+    V_net <- dim(ab_ith[[1]])[1]
+    T_net <- dim(ab_ith[[1]])[2]
+    H_dim <- dim(ab_ith[[1]])[3]
+  } else {
+    V_net <- dim(ab_ith)[1]
+    T_net <- dim(ab_ith)[2]
+    H_dim <- dim(ab_ith)[3]
+  }
+  
+  for(k in 1:K_net) {
+    y_ijtk_list[[k]] <- y_ijtk[,,,k]
+    w_ijtk_list[[k]] <- w_ijtk[,,,k]
+    gamma_ijtk_list[[k]] <- gamma_ijtk[,,,k]
+  }
+  
+  if( directed & class_dyn=="GP" ){
+    out_aux <- sample_coord_ith_shared_link_dir_GP_cpp( a_ith_shared = ab_ith[[1]],
+                                                        b_ith_shared = ab_ith[[2]],
+                                                        
+                                                        y_ijtk = y_ijtk_list,
+                                                        w_ijtk = w_ijtk_list,
+                                                        gamma_ijtk = gamma_ijtk_list,
+                                                        
+                                                        ab_t_sigma_prior_inv = ab_t_sigma_prior_inv,
+                                                        lat_mean=lat_mean,
+                                                        a_ith_shared_bar=ab_ith_bar[[1]],
+                                                        b_ith_shared_bar=ab_ith_bar[[2]],
+                                                        sigma_ab_bar=sigma_ab_bar,
+                                                        
+                                                        tau_h_shared_send = tau_h[[1]],
+                                                        tau_h_shared_receive = tau_h[[2]] )
+    ab_ith[[1]] <- out_aux$a_ith_shared
+    ab_ith[[2]] <- out_aux$b_ith_shared
+    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
+    ab_ith_bar[[1]] <- out_aux$a_ith_shared_bar
+    ab_ith_bar[[2]] <- out_aux$b_ith_shared_bar
+    
+  } else if(!directed & class_dyn=="GP"){
+    out_aux <- sample_coord_ith_shared_link_GP_cpp( ab_ith = ab_ith,
+                                                    y_ijtk = y_ijtk_list,
+                                                    w_ijtk = w_ijtk_list,
+                                                    gamma_ijtk = gamma_ijtk_list,
+                                                    ab_t_sigma_prior_inv = ab_t_sigma_prior_inv,
+                                                    tau_h = tau_h )
+    ab_ith <- out_aux$ab_ith
+    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
+  } else if(directed & class_dyn=="nGP"){
+    alpha_ab_ith_send_list <- alpha_ab_ith_receive_list <- nGP_G_t <- nGP_H_t <- nGP_Wchol_t <- list(NULL)
+    for(i in 1:V_net){
+      nGP_G_t[[i]] <- nGP_mat$G[i,,,]
+      nGP_H_t[[i]] <- nGP_mat$H[i,,,]
+      nGP_Wchol_t[[i]] <- nGP_mat$Wchol[i,,,]
+    }
+    for(alpha_i in 1:3) {
+      alpha_ab_ith_send_list[[alpha_i]] <- alpha_ab_ith[[1]][,,,alpha_i]
+      alpha_ab_ith_receive_list[[alpha_i]] <- alpha_ab_ith[[2]][,,,alpha_i]
+    }
+    out_aux <- sample_coord_ith_shared_link_dir_nGP_cpp( ab_ith_send = ab_ith[[1]],
+                                                         ab_ith_receive = ab_ith[[2]],
+                                                         
+                                                         alpha_ab_ith_send = alpha_ab_ith_send_list[],
+                                                         alpha_ab_ith_receive = alpha_ab_ith_receive_list[],
+                                                         
+                                                         y_ijtk = y_ijtk_list,
+                                                         w_ijtk = w_ijtk_list,
+                                                         gamma_ijtk = gamma_ijtk_list[],
+                                                         
+                                                         nGP_G_t = nGP_G_t,
+                                                         nGP_H_t = nGP_H_t,
+                                                         nGP_Wchol_t = nGP_Wchol_t )
+    ab_ith[[1]] <- out_aux$ab_ith_send
+    ab_ith[[2]] <- out_aux$ab_ith_receive
+    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
+    for(alpha_i in 1:3) {
+      alpha_ab_ith[[1]][,,,alpha_i] <- out_aux$alpha_ab_ith_send[alpha_i,][[1]]
+      alpha_ab_ith[[2]][,,,alpha_i] <- out_aux$alpha_ab_ith_receive[alpha_i,][[1]]
+    }
+  } else if(!directed & class_dyn=="nGP"){
+    alpha_ab_ith_list <- nGP_G_t <- nGP_H_t <- nGP_Wchol_t <- list(NULL)
+    for(i in 1:V_net){
+      nGP_G_t[[i]] <- nGP_mat$G[i,,,]
+      nGP_H_t[[i]] <- nGP_mat$H[i,,,]
+      nGP_Wchol_t[[i]] <- nGP_mat$Wchol[i,,,]
+    }
+    for(alpha_i in 1:3) { alpha_ab_ith_list[[alpha_i]] <- alpha_ab_ith[,,,alpha_i] }
+    out_aux <- sample_coord_ith_shared_link_nGP_cpp( ab_ith = ab_ith,
+                                                     
+                                                     alpha_ab_ith = alpha_ab_ith_list[],
+                                                     
+                                                     y_ijtk = y_ijtk_list,
+                                                     w_ijtk = w_ijtk_list,
+                                                     gamma_ijtk = gamma_ijtk_list[],
+                                                     
+                                                     nGP_G_t = nGP_G_t,
+                                                     nGP_H_t = nGP_H_t,
+                                                     nGP_Wchol_t = nGP_Wchol_t )
+    ab_ith <- out_aux$ab_ith
+    for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
+    for(alpha_i in 1:3) { alpha_ab_ith[,,,alpha_i] <- out_aux$alpha_ab_ith[[alpha_i]] }
+  }
+  
+  return( list( ab_ith=ab_ith,
+                gamma_ijtk=gamma_ijtk,
+                alpha_ab_ith=alpha_ab_ith,
+                ab_ith_bar=ab_ith_bar ) )
 }
 
 
