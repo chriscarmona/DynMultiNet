@@ -70,13 +70,13 @@
 plot_dmn_mcmc <- function( x,
                            param = c( "pi_ijtk",
                                       "eta_tk",
-                                      "sp_link_it_shared","sp_link_itk",
+                                      "sp_link_it_shared",
                                       "ab_ith_shared", "ab_ithk",
                                       "tau_h_shared","tau_h_k",
                                       
                                       "mu_ijtk","sigma_k",
                                       "theta_tk",
-                                      "sp_weight_it_shared","sp_weight_link_itk",
+                                      "sp_weight_it_shared",
                                       "uv_ith_shared","uv_ithk",
                                       "rho_h_shared","rho_h_k" )[1],
                            node_i=NULL, node_j=NULL, layer_k=NULL, h=NULL, pred_p=NULL,
@@ -90,6 +90,7 @@ plot_dmn_mcmc <- function( x,
                               "eta_tk",
                               "ab_ith_shared", "ab_ithk",
                               "tau_h_shared","tau_h_k",
+                              "sp_link_it_shared",
                               
                               "mu_ijtk","sigma_k",
                               "theta_tk",
@@ -214,6 +215,21 @@ plot_dmn_mcmc <- function( x,
     p <- bayesplot::mcmc_trace(param_mcmc_chain,pars=colnames(param_mcmc_chain))
     p <- p + labs(title="sigma_k",subtitle="MCMC trace")
     return(p)
+    
+  } else if( is.element(param,"sp_link_it_shared") ) {
+    
+    if(is.null(node_i)){ node_i=x$node_all[2]; warning("Plotting node_i=",node_i," as node_i was not specified") }
+    if(!is.element(node_i,x$node_all)) {stop("node_i=",node_i," is not a valid node")}
+    i <- match(node_i,x$node_all)
+    
+    if(directed){
+      if(is.null(lat_space)){ lat_space="send"; warning("Plotting lat_space=",lat_space," as lat_space was not specified") }
+      if(!is.element(lat_space,c("send","receive"))) {stop("lat_space=",lat_space,' must be "send" or "receive".')}
+      dir <- match(lat_space,c("send","receive"))
+      param_mcmc_chain <- coda::mcmc( t(x$sp_link_it_shared_mcmc[i,,dir,iter_out_mcmc]) )
+    } else {
+      param_mcmc_chain <- coda::mcmc( t(x$sp_link_it_shared_mcmc[i,,iter_out_mcmc]) )
+    }
     
   } else if( is.element(param,"theta_tk") ){
     
@@ -423,6 +439,42 @@ plot_dmn_mcmc <- function( x,
       } else {
         qaux <- c( mean(x$ab_ithk_bar_mcmc[i,h,k,iter_out_mcmc]) ,
                    quantile( x$ab_ithk_bar_mcmc[i,h,k,iter_out_mcmc],
+                             probs=cred_int_quantiles ) )
+      }
+      names(qaux) <- c("mean",paste("qmcmc_",100*cred_int_quantiles,sep=""))
+      qaux2 <- diff(range(x$time_all))/20
+      p <- p +
+        geom_ribbon( aes( ymin=qaux[paste("qmcmc_",100*cred_int_probs[1]/2,sep="")],
+                          ymax=qaux[paste("qmcmc_",100*(1-cred_int_probs[1]/2),sep="")],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey50", alpha=0.25 ) +
+        geom_ribbon( aes( ymin=qaux[paste("qmcmc_",100*cred_int_probs[2]/2,sep="")],
+                          ymax=qaux[paste("qmcmc_",100*(1-cred_int_probs[2]/2),sep="")],
+                          x=x$time_all[1]+c(0,qaux2) ),
+                     fill="grey25", alpha=0.25 ) +
+        geom_line( aes(y=qaux["mean"],x=x$time_all[1]+c(0,qaux2)),col="red") +
+        geom_line( aes(y=qaux["mean"],x=x$time_all),col="red",lty=3)
+    }
+    
+  } else if( is.element(param,"sp_link_it_shared") ) {
+    if(directed){
+      if(dir==1) {
+        p <- p + labs(x="time",y="s_link_it_shared",title="s_link_it_shared (sender)",subtitle=paste("node_i=",node_i,sep=""))
+      } else if(dir==2) {
+        p <- p + labs(x="time",y="p_link_it_shared",title="p_link_it_shared (receiver)",subtitle=paste("node_i=",node_i,sep=""))
+      }
+    } else {
+      p <- p + labs(x="time",y="sp_link_it_shared",title="sp_link_it_shared",subtitle=paste("node_i=",node_i,sep=""))
+    }
+    
+    if(x$lat_mean){
+      if(directed){
+        qaux <- c( mean(x$sp_link_it_shared_bar_mcmc[i,dir,iter_out_mcmc]) ,
+                   quantile( x$sp_link_it_shared_bar_mcmc[i,dir,iter_out_mcmc],
+                             probs=cred_int_quantiles ) )
+      } else {
+        qaux <- c( mean(x$sp_link_it_shared_bar_mcmc[i,iter_out_mcmc]) ,
+                   quantile( x$sp_link_it_shared_bar_mcmc[i,iter_out_mcmc],
                              probs=cred_int_quantiles ) )
       }
       names(qaux) <- c("mean",paste("qmcmc_",100*cred_int_quantiles,sep=""))

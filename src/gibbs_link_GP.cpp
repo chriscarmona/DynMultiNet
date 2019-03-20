@@ -1353,10 +1353,16 @@ Rcpp::List sample_add_eff_it_link_cpp( arma::colvec sp_it,
 
 // [[Rcpp::export]]
 Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
-                                              const arma::mat sp_t_cov_prior_inv,
+                                              
                                               const arma::field<arma::cube> y_ijtk,
                                               arma::field<arma::cube> w_ijtk,
                                               arma::field<arma::cube> gamma_ijtk,
+                                              
+                                              const arma::mat sp_t_cov_prior_inv,
+                                              const bool lat_mean,
+                                              arma::colvec sp_it_bar,
+                                              const double sigma_sp_bar,
+                                              
                                               const bool directed=false ) {
   
   arma::cube y_ijt = y_ijtk(0);
@@ -1375,6 +1381,7 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
   unsigned int dir=0;
   arma::uvec aux_uvec_1;
   arma::colvec aux_vec;
+  arma::colvec aux_colvec = arma::ones<arma::colvec>(T_net);
   arma::mat aux_mat_1;
   arma::mat aux_mat_2;
   arma::mat aux_mat_3;
@@ -1453,8 +1460,19 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
   // Marginal posterior covariance matrix for sp_it
   arma::mat sp_it_cov_inv=arma::zeros<arma::mat>(T_net*V_net,T_net*V_net);
   arma::mat sp_it_cov;
-  arma::colvec sp_it_mean = arma::zeros<arma::colvec>(2*V_net*T_net);
   
+  // prior mean vector for sp_it
+  arma::colvec sp_it_mean_prior = arma::zeros<arma::colvec>(V_net*T_net*2);
+  
+  // Posterior mean vector for sp_it
+  arma::colvec sp_it_mean = arma::zeros<arma::colvec>(V_net*T_net*2);
+  
+  // GP prior mean centered at zero
+  if(!lat_mean){
+    sp_it_bar.fill(0);
+  }
+  arma::colvec sp_it_bar_mean;
+  double sp_it_bar_var;
   
   // Create vectors Y, W and linpred tht serve as response and  //
   if( !directed ){
@@ -1588,7 +1606,8 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
         C = linpred - (X_sp.cols(T_net*V_net,2*T_net*V_net-1) * sp_it.rows(T_net*V_net,2*T_net*V_net-1));
         C_valid = C.rows(valid_obs);
         Z = (Y-0.5)/W - C_valid;
-        sp_it_mean = sp_it_cov * (X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (W % Z));
+        sp_it_mean_prior = kron( aux_colvec, sp_it_bar.rows(V_net,2*V_net-1) );
+        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(T_net*V_net,2*T_net*V_net-1).t() * (W % Z) + sp_it_cov_prior_inv * sp_it_mean_prior );
         
         // Sampling sp_it
         sp_it.rows(T_net*V_net,2*T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
@@ -1600,7 +1619,8 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
         C = linpred - (X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1));
         C_valid = C.rows(valid_obs);
         Z = (Y-0.5)/W - C_valid;
-        sp_it_mean = sp_it_cov * (X_sp_valid.cols(0,T_net*V_net-1).t() * (W % Z));
+        sp_it_mean_prior = kron( aux_colvec, sp_it_bar.rows(0,V_net-1) );
+        sp_it_mean = sp_it_cov * ( X_sp_valid.cols(0,T_net*V_net-1).t() * (W % Z) + sp_it_cov_prior_inv * sp_it_mean_prior );
         
         // Sampling sp_it
         sp_it.rows(0,T_net*V_net-1) = arma::mvnrnd( sp_it_mean , sp_it_cov );
@@ -1636,8 +1656,40 @@ Rcpp::List sample_add_eff_it_shared_link_cpp( arma::colvec sp_it,
     gamma_ijtk(k) = gamma_ijt;
   }
   
+  // Sample GP prior mean 
+  arma::mat s_it = arma::zeros<arma::mat>(T_net*V_net,1);
+  arma::mat p_it = arma::zeros<arma::mat>(T_net*V_net,1);
+  s_it.col(0) = sp_it.rows(0,T_net*V_net-1);
+  s_it.reshape(V_net,T_net);
+  if(directed){
+    p_it.col(0) = sp_it.rows(T_net*V_net,2*T_net*V_net-1);
+    p_it.reshape(V_net,T_net);
+  }
+  if(lat_mean){
+    sp_it_bar.randn();
+    
+    sp_it_bar_var = 1/( accu(sp_t_cov_prior_inv)+pow(sigma_sp_bar,-2) );
+    
+    aux_mat_1 = arma::ones<arma::mat>(1,T_net);
+    aux_mat_1 = aux_mat_1*sp_t_cov_prior_inv;
+    for( i=0; i<V_net; i++ ) {
+      // Rcpp::Rcout << " i=" << i << std::endl;
+      
+      // S
+      sp_it_bar_mean = sp_it_bar_var * (aux_mat_1*s_it.row(i).t());
+      sp_it_bar(i) = sp_it_bar_mean(0) + sp_it_bar(i) * sqrt(sp_it_bar_var);
+      
+      if(directed){
+        // P
+        sp_it_bar_mean = sp_it_bar_var * (aux_mat_1*p_it.row(i).t());
+        sp_it_bar(V_net+i) = sp_it_bar_mean(0) + sp_it_bar(V_net+i) * sqrt(sp_it_bar_var);
+      }
+    }
+  }
+  
   return Rcpp::List::create( Rcpp::Named("sp_it") = sp_it,
-                             Rcpp::Named("gamma_ijtk") = gamma_ijtk );
+                             Rcpp::Named("gamma_ijtk") = gamma_ijtk,
+                             Rcpp::Named("sp_it_bar") = sp_it_bar );
 }
 
 

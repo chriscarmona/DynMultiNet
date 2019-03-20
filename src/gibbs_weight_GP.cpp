@@ -1209,11 +1209,6 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
   arma::cube y_ijt = y_ijtk(0);
   arma::cube mu_ijt = mu_ijtk(0);
   
-  // GP prior mean centered at zero
-  if(!lat_mean){
-    sp_it_bar.fill(0);
-  }
-  
   // Network and latent space dimensions
   unsigned int V_net = y_ijt.n_rows;
   unsigned int T_net = y_ijt.n_slices;
@@ -1307,6 +1302,10 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
   // Posterior mean vector for sp_it
   arma::colvec sp_it_mean = arma::zeros<arma::colvec>(V_net*T_net*2);
   
+  // GP prior mean centered at zero
+  if(!lat_mean){
+    sp_it_bar.fill(0);
+  }
   arma::colvec sp_it_bar_mean;
   double sp_it_bar_var;
   
@@ -1411,6 +1410,7 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
         sp_it_cov_inv = X_sp_valid.cols(0,T_net*V_net-1).t() * (sigma_Y_inv_valid_mat * X_sp_valid.cols(0,T_net*V_net-1));
         sp_it_cov_inv += sp_it_cov_prior_inv;
         sp_it_cov = arma::inv_sympd(sp_it_cov_inv);
+        
         // Marginal Posterior Mean
         C = linpred - (X_sp.cols(0,T_net*V_net-1) * sp_it.rows(0,T_net*V_net-1));
         C_valid = C.rows(valid_obs);
@@ -1456,14 +1456,12 @@ Rcpp::List sample_add_eff_it_shared_weight_cpp( arma::colvec sp_it,
   // Sample GP prior mean 
   arma::mat s_it = arma::zeros<arma::mat>(T_net*V_net,1);
   arma::mat p_it = arma::zeros<arma::mat>(T_net*V_net,1);
-  
   s_it.col(0) = sp_it.rows(0,T_net*V_net-1);
   s_it.reshape(V_net,T_net);
   if(directed){
     p_it.col(0) = sp_it.rows(T_net*V_net,2*T_net*V_net-1);
     p_it.reshape(V_net,T_net);
   }
-  
   if(lat_mean){
     sp_it_bar.randn();
     

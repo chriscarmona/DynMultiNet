@@ -25,8 +25,8 @@ sample_add_eff_it_link_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijt, w_ijt, 
     .Call(`_DynMultiNet_sample_add_eff_it_link_cpp`, sp_it, sp_t_cov_prior_inv, y_ijt, w_ijt, gamma_ijt, directed)
 }
 
-sample_add_eff_it_shared_link_cpp <- function(sp_it, sp_t_cov_prior_inv, y_ijtk, w_ijtk, gamma_ijtk, directed = FALSE) {
-    .Call(`_DynMultiNet_sample_add_eff_it_shared_link_cpp`, sp_it, sp_t_cov_prior_inv, y_ijtk, w_ijtk, gamma_ijtk, directed)
+sample_add_eff_it_shared_link_cpp <- function(sp_it, y_ijtk, w_ijtk, gamma_ijtk, sp_t_cov_prior_inv, lat_mean, sp_it_bar, sigma_sp_bar, directed = FALSE) {
+    .Call(`_DynMultiNet_sample_add_eff_it_shared_link_cpp`, sp_it, y_ijtk, w_ijtk, gamma_ijtk, sp_t_cov_prior_inv, lat_mean, sp_it_bar, sigma_sp_bar, directed)
 }
 
 sample_coeff_tp_link_cpp <- function(beta_tp, beta_t_cov_prior_inv, y_ijtk, w_ijtk, gamma_ijtk, x_ijtkp_mat, directed = FALSE) {

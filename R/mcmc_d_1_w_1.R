@@ -648,49 +648,6 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                      directed=TRUE )
     
     
-    ### Step L2_add_eff_shared. Sample global additive effects ###
-    if(add_eff_link){
-      out_aux <- sample_add_eff_it_shared_link( sp_it_shared=sp_link_it_shared,
-                                                sp_t_cov_prior_inv=cov_gp_prior_inv,
-                                                y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
-                                                directed=TRUE )
-      sp_link_it_shared <- out_aux$sp_it_shared
-      gamma_ijtk <- out_aux$gamma_ijtk
-      
-      # MCMC chain #
-      if(is.element(iter_i,iter_out_mcmc)){
-        sp_link_it_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- sp_link_it_shared
-      }
-      
-      # Checking consistency of linear predictor gamma_ijtk
-      # gamma_ijtk_old <- gamma_ijtk
-      # gamma_ijtk_old[diag_y_idx] <- NA
-      # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
-      #                                 add_eff_it_shared=sp_link_it_shared,
-      #                                 add_eff_itk=sp_link_itk,
-      #                                 coord_ith_shared=ab_ith_shared,
-      #                                 coord_ithk=ab_ithk,
-      #                                 beta_edge_tp=beta_lambda_tp, x_ijtkp=x_ijtkp,
-      #                                 directed=TRUE )
-      # gamma_ijtk[diag_y_idx] <- NA
-      # all.equal(gamma_ijtk,gamma_ijtk_old)
-      
-      ### Step L2_add_eff_itk. Sample layer-specific additive effects ###
-      if(!is.null(sp_link_itk)){
-        out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
-                                            sp_t_cov_prior_inv=cov_gp_prior_inv,
-                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
-                                            directed=TRUE )
-        sp_link_itk <- out_aux$sp_itk
-        gamma_ijtk <- out_aux$gamma_ijtk
-        
-        # MCMC chain #
-        if(is.element(iter_i,iter_out_mcmc)){
-          sp_link_itk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- sp_link_itk
-        }
-      }
-    }
-    
     ### Step L2_baseline. Sample eta_tk from its conditional N-variate Gaussian posterior ###
     out_aux <- sample_baseline_tk_link( eta_tk=eta_tk,
                                         
@@ -785,6 +742,63 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       }
     }
     
+    
+    ### Additive effects ###
+    if(add_eff_link){
+      
+      ### Global additive effects ###
+      out_aux <- sample_add_eff_it_shared_link( sp_it_shared=sp_link_it_shared,
+                                                
+                                                y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                                
+                                                sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                                lat_mean=lat_mean,
+                                                sp_it_shared_bar=sp_link_it_shared_bar,
+                                                sigma_sp_bar=sigma_lat_mean,
+                                                
+                                                directed=TRUE )
+      sp_link_it_shared <- out_aux$sp_it_shared
+      gamma_ijtk <- out_aux$gamma_ijtk
+      sp_link_it_shared_bar <- out_aux$sp_it_shared_bar
+      
+      # MCMC chain #
+      if(is.element(iter_i,iter_out_mcmc)){
+        sp_link_it_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- sp_link_it_shared
+        if(lat_mean){
+          sp_link_it_shared_bar_mcmc[,,match(iter_i,iter_out_mcmc)] <- sp_link_it_shared_bar
+        }
+      }
+      
+      # Checking consistency of linear predictor gamma_ijtk
+      # gamma_ijtk_old <- gamma_ijtk
+      # gamma_ijtk_old[diag_y_idx] <- NA
+      # gamma_ijtk <- get_linpred_ijtk( baseline_tk=eta_tk,
+      #                                 add_eff_it_shared=sp_link_it_shared,
+      #                                 add_eff_itk=sp_link_itk,
+      #                                 coord_ith_shared=ab_ith_shared,
+      #                                 coord_ithk=ab_ithk,
+      #                                 beta_edge_tp=beta_lambda_tp, x_ijtkp=x_ijtkp,
+      #                                 directed=TRUE )
+      # gamma_ijtk[diag_y_idx] <- NA
+      # all.equal(gamma_ijtk,gamma_ijtk_old)
+      
+      ### Llayer-specific additive effects ###
+      if(!is.null(sp_link_itk)){
+        out_aux <- sample_add_eff_itk_link( sp_itk=sp_link_itk,
+                                            sp_t_cov_prior_inv=cov_gp_prior_inv,
+                                            y_ijtk=y_ijtk, w_ijtk=w_ijtk, gamma_ijtk=gamma_ijtk,
+                                            directed=TRUE )
+        sp_link_itk <- out_aux$sp_itk
+        gamma_ijtk <- out_aux$gamma_ijtk
+        
+        # MCMC chain #
+        if(is.element(iter_i,iter_out_mcmc)){
+          sp_link_itk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- sp_link_itk
+        }
+      }
+    }
+    
+    
     ### Step W3. Sample coefficients ###
     if( !is.null(beta_lambda_tp) ) {
       out_aux <- sample_coeff_tp_link( beta_tp=beta_lambda_tp,
@@ -861,7 +875,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           # For link probabilities #
                           pi_ijtk_mcmc=pi_ijtk_mcmc,
                           eta_tk_mcmc=eta_tk_mcmc, eta_tk_bar_mcmc=eta_tk_bar_mcmc,
-                          sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
+                          sp_link_it_shared_mcmc=sp_link_it_shared_mcmc, sp_link_it_shared_bar_mcmc=sp_link_it_shared_bar_mcmc,
                           sp_link_itk_mcmc=sp_link_itk_mcmc,
                           ab_ith_shared_mcmc=ab_ith_shared_mcmc, ab_ith_shared_bar_mcmc=ab_ith_shared_bar_mcmc,
                           ab_ithk_mcmc=ab_ithk_mcmc, ab_ithk_bar_mcmc=ab_ithk_bar_mcmc,
@@ -920,7 +934,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     # For link probabilities #
                     pi_ijtk_mcmc=pi_ijtk_mcmc,
                     eta_tk_mcmc=eta_tk_mcmc, eta_tk_bar_mcmc=eta_tk_bar_mcmc,
-                    sp_link_it_shared_mcmc=sp_link_it_shared_mcmc,
+                    sp_link_it_shared_mcmc=sp_link_it_shared_mcmc, sp_link_it_shared_bar_mcmc=sp_link_it_shared_bar_mcmc,
                     sp_link_itk_mcmc=sp_link_itk_mcmc,
                     ab_ith_shared_mcmc=ab_ith_shared_mcmc, ab_ith_shared_bar_mcmc=ab_ith_shared_bar_mcmc,
                     ab_ithk_mcmc=ab_ithk_mcmc, ab_ithk_bar_mcmc=ab_ithk_bar_mcmc,

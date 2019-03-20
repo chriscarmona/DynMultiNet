@@ -416,10 +416,18 @@ sample_add_eff_itk_link <- function( sp_itk,
 
 #' @keywords internal
 sample_add_eff_it_shared_link <- function( sp_it_shared,
+                                           
                                            y_ijtk, w_ijtk, gamma_ijtk,
+                                           
                                            class_dyn=c("GP","nGP")[1],
+                                           
                                            sp_t_cov_prior_inv=NULL,
+                                           lat_mean=TRUE,
+                                           sp_it_shared_bar=NULL,
+                                           sigma_sp_bar=5,
+                                           
                                            nGP_mat=NULL,
+                                           
                                            directed=FALSE ) {
   
   V_net <- dim(y_ijtk)[1]
@@ -439,22 +447,31 @@ sample_add_eff_it_shared_link <- function( sp_it_shared,
   }
   
   ### Sample sp_it_shared ###
-  out_aux <- sample_add_eff_it_shared_link_cpp( sp_it=c(sp_it_shared), # transformed to vector
-                                                sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+  out_aux <- sample_add_eff_it_shared_link_cpp( sp_it=c(sp_it_shared), # transformed to vector length(sp_it)==V_net*T_net*2
+                                                
                                                 y_ijt=y_ijtk_list,
                                                 w_ijt=w_ijtk_list,
                                                 gamma_ijt=gamma_ijtk_list,
+                                                
+                                                sp_t_cov_prior_inv=sp_t_cov_prior_inv,
+                                                lat_mean=lat_mean,
+                                                sp_it_bar=c(sp_it_shared_bar), # transformed to vector length(sp_it_shared_bar)==V_net*2
+                                                sigma_sp_bar=sigma_sp_bar,
+                                                
                                                 directed=directed )
   
   if(!directed) {
     sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net))
+    sp_it_shared_bar <- matrix(out_aux$sp_it_bar,V_net,1)
   } else {
     sp_it_shared <- array(out_aux$sp_it,dim=c(V_net,T_net,2))
+    sp_it_shared_bar <- matrix(out_aux$sp_it_bar,V_net,2)
   }
   for(k in 1:K_net) {gamma_ijtk[,,,k] <- out_aux$gamma_ijtk[k,1][[1]]}
   
   return( list( sp_it_shared=sp_it_shared,
-                gamma_ijtk=gamma_ijtk ) );
+                gamma_ijtk=gamma_ijtk,
+                sp_it_shared_bar=sp_it_shared_bar ) );
 }
 
 
