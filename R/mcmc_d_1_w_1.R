@@ -22,7 +22,7 @@
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
-#' @param keep_y_ijtk_imp Boolean. Indicates wheter the chain with imputed missing links will be saved (FALSE by default)
+#' @param slim_mcmc_out Boolean. Indicates if only the main components of the MCMC will be returned (TRUE by default)
 #' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
@@ -54,7 +54,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           n_chains_mcmc=1,
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
-                          keep_y_ijtk_imp=FALSE,
+                          slim_mcmc_out=TRUE,
                           
                           rds_file=NULL, log_file=NULL,
                           quiet_mcmc=FALSE,
@@ -109,11 +109,14 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   theta_tk <- matrix( data=runif(T_net*K_net),
                       nrow=T_net,
                       ncol=K_net )
-  theta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  theta_tk_mcmc <- NULL
+  if(!slim_mcmc_out){
+    theta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  }
   # mean baseline #
   theta_tk_bar <- theta_tk[1,]; theta_tk_bar[] <- 0
   theta_tk_bar_mcmc <- NULL
-  if(lat_mean){
+  if(lat_mean & !slim_mcmc_out ){
     theta_tk_bar_mcmc <- matrix( NA, K_net, n_iter_mcmc_out )
   }
   
@@ -124,13 +127,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                      dim=c(V_net,T_net,H_dim) ),
                          receive=array( data=runif(V_net*T_net*H_dim,-1,1),
                                         dim=c(V_net,T_net,H_dim) ) )
+  uv_ith_shared_mcmc <- NULL
+  if(!slim_mcmc_out){
   uv_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
                               receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
-  
+  }
   uv_ith_shared_bar <- list( send=matrix(0,V_net,H_dim),
                              receive=matrix(0,V_net,H_dim) )
   uv_ith_shared_bar_mcmc <- NULL
-  if(lat_mean){
+  if( lat_mean & !slim_mcmc_out ){
     uv_ith_shared_bar_mcmc <- list( send=array(NA,c(V_net,H_dim,n_iter_mcmc_out)),
                                     receive=array(NA,c(V_net,H_dim,n_iter_mcmc_out)) )
   }
@@ -146,14 +151,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                  dim=c(V_net,T_net,R_dim,K_net) ),
                      receive=array( data=runif(V_net*T_net*R_dim*K_net),
                                     dim=c(V_net,T_net,R_dim,K_net) ) )
+    if(!slim_mcmc_out){
     uv_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
                           receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
-    
+    }
     uv_ithk_bar <- list( send=array( data=0,
                                  dim=c(V_net,R_dim,K_net) ),
                      receive=array( data=0,
                                     dim=c(V_net,R_dim,K_net) ) )
-    if(lat_mean){
+    if(lat_mean&!slim_mcmc_out){
       uv_ithk_bar_mcmc <- list( send=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)),
                                 receive=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)) )
     }
@@ -183,23 +189,29 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   sp_weight_itk_bar_mcmc <- NULL
   
   if(add_eff_weight){
-    sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
-    dimnames(sp_weight_it_shared_mcmc) = list( node_all,
-                                               time_all,
-                                               c("send","receive"),
-                                               NULL )
-    if(lat_mean){
-      sp_weight_it_shared_bar_mcmc <- array(NA,dim=c(V_net,2,n_iter_mcmc_out))
-      dimnames(sp_weight_it_shared_bar_mcmc) = list( node_all,
-                                                     c("send","receive"),
-                                                     NULL )
+    if(!slim_mcmc_out){
+      sp_weight_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
+      dimnames(sp_weight_it_shared_mcmc) = list( node_all,
+                                                 time_all,
+                                                 c("send","receive"),
+                                                 NULL )
+      if(lat_mean){
+        sp_weight_it_shared_bar_mcmc <- array(NA,dim=c(V_net,2,n_iter_mcmc_out))
+        dimnames(sp_weight_it_shared_bar_mcmc) = list( node_all,
+                                                       c("send","receive"),
+                                                       NULL )
+      }
     }
+    
     if(F&K_net>1){ # we will only consider global additive effects
       sp_weight_itk <- array(0,dim=c(V_net,T_net,K_net,2))
-      sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-      sp_weight_itk_bar <- array(0,dim=c(V_net,K_net,2))
-      if(lat_mean){
-        sp_weight_itk_bar_mcmc <- array(NA,dim=c(V_net,K_net,2,n_iter_mcmc_out))
+      if(!slim_mcmc_out){
+        sp_weight_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
+        
+        sp_weight_itk_bar <- array(0,dim=c(V_net,K_net,2))
+        if(lat_mean){
+          sp_weight_itk_bar_mcmc <- array(NA,dim=c(V_net,K_net,2,n_iter_mcmc_out))
+        }
       }
     }
   }
@@ -213,9 +225,10 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                beta_edge_tp=beta_mu_tp, x_ijtkp=x_ijtkp,
                                directed=TRUE )
   mu_ijtk[diag_y_idx] <- NA
+  dimnames(mu_ijtk) <- dimnames(y_ijtk)
   
   mu_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
-  
+  dimnames(mu_ijtk_mcmc) <- dimnames(y_ijtk)
   
   
   ### LOGISTIC MODEL FOR LINKS ###
@@ -229,11 +242,14 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   eta_tk <- matrix( data=runif(T_net*K_net),
                     nrow=T_net,
                     ncol=K_net )
-  eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  eta_tk_mcmc <- NULL
+  if(!slim_mcmc_out){
+    eta_tk_mcmc <- array( NA, dim=c(T_net,K_net,n_iter_mcmc_out) )
+  }
   # mean baseline #
   eta_tk_bar <- eta_tk[1,]; eta_tk_bar[] <- 0
   eta_tk_bar_mcmc <- NULL
-  if(lat_mean){
+  if(lat_mean&!slim_mcmc_out){
     eta_tk_bar_mcmc <- matrix( NA, K_net, n_iter_mcmc_out )
   }
   
@@ -244,13 +260,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                      dim=c(V_net,T_net,H_dim) ),
                          receive=array( data=runif(V_net*T_net*H_dim,-1,1),
                                         dim=c(V_net,T_net,H_dim) ) )
-  ab_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
-                              receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
-  
+  ab_ith_shared_mcmc <- NULL
+  if(!slim_mcmc_out){
+    ab_ith_shared_mcmc <- list( send=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)),
+                                receive=array(NA,c(V_net,T_net,H_dim,n_iter_mcmc_out)) )
+  }
   ab_ith_shared_bar <- list( send=matrix(0,V_net,H_dim),
                              receive=matrix(0,V_net,H_dim) )
   ab_ith_shared_bar_mcmc <- NULL
-  if(lat_mean){
+  if( lat_mean & !slim_mcmc_out ){
     ab_ith_shared_bar_mcmc <- list( send=array(NA,c(V_net,H_dim,n_iter_mcmc_out)),
                                     receive=array(NA,c(V_net,H_dim,n_iter_mcmc_out)) )
   }
@@ -266,14 +284,15 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                  dim=c(V_net,T_net,R_dim,K_net) ),
                      receive=array( data=runif(V_net*T_net*R_dim*K_net),
                                     dim=c(V_net,T_net,R_dim,K_net) ) )
+    if(!slim_mcmc_out){
     ab_ithk_mcmc <- list( send=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)),
                           receive=array(NA,c(V_net,T_net,R_dim,K_net,n_iter_mcmc_out)) )
-    
+    }
     ab_ithk_bar <- list( send=array( data=0,
                                      dim=c(V_net,R_dim,K_net) ),
                          receive=array( data=0,
                                         dim=c(V_net,R_dim,K_net) ) )
-    if(lat_mean){
+    if(lat_mean&!slim_mcmc_out){
       ab_ithk_bar_mcmc <- list( send=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)),
                                 receive=array(NA,c(V_net,R_dim,K_net,n_iter_mcmc_out)) )
     }
@@ -291,16 +310,26 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   sp_link_itk_bar_mcmc <- NULL
   
   if(add_eff_link){
-    sp_link_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
-    if(lat_mean){
-      sp_link_it_shared_bar_mcmc <- array(NA,dim=c(V_net,2,n_iter_mcmc_out))
+    if(!slim_mcmc_out){
+      sp_link_it_shared_mcmc <- array(NA,dim=c(V_net,T_net,2,n_iter_mcmc_out))
+      dimnames(sp_link_it_shared_mcmc) = list( node_all,
+                                               time_all,
+                                               c("send","receive"),
+                                               NULL )
+      if(lat_mean){
+        sp_link_it_shared_bar_mcmc <- array(NA,dim=c(V_net,2,n_iter_mcmc_out))
+        dimnames(sp_link_it_shared_bar_mcmc) = list( node_all,
+                                                     c("send","receive"),
+                                                     NULL )
+      }
     }
     if(F&K_net>1){ # we will only consider global additive effects
       sp_link_itk <- array(0,dim=c(V_net,T_net,K_net,2))
+      if(!slim_mcmc_out){
       sp_link_itk_mcmc <- array(NA,dim=c(V_net,T_net,K_net,2,n_iter_mcmc_out))
-      
+      }
       sp_link_itk_bar <- array(0,dim=c(V_net,K_net,2))
-      if(lat_mean){
+      if(lat_mean&!slim_mcmc_out){
         sp_link_itk_bar_mcmc <- array(NA,dim=c(V_net,K_net,2,n_iter_mcmc_out))
       }
       
@@ -316,9 +345,11 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                                   beta_edge_tp=beta_lambda_tp, x_ijtkp=x_ijtkp,
                                   directed=TRUE )
   gamma_ijtk[diag_y_idx] <- NA
+  dimnames(gamma_ijtk) <- dimnames(y_ijtk)
   
   # Probability of an edge between actors i and j at time t in layer k
   pi_ijtk_mcmc <- array(NA, dim=c(V_net,V_net,T_net,K_net,n_iter_mcmc_out))
+  dimnames(pi_ijtk_mcmc) <- dimnames(y_ijtk)
   
   ## Shrinkage Parameters ##
   
@@ -396,11 +427,10 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     y_ijtk_miss_idx <- y_ijtk_miss_idx[y_ijtk_miss_idx[,1]!=y_ijtk_miss_idx[,2],]
     
     # MCMC chain for missing values #
-    if(keep_y_ijtk_imp){
+    y_ijtk_imp_mcmc <- NULL
+    if(F & !slim_mcmc_out){
       # CAUTION: may take too much disk space
       y_ijtk_imp_mcmc <- matrix( NA, nrow = n_iter_mcmc_out, ncol=nrow(y_ijtk_miss_idx) )
-    } else {
-      y_ijtk_imp_mcmc <- NULL 
     }
   }
   
@@ -452,7 +482,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     theta_tk_bar <- out_aux$theta_tk_bar
     
     # MCMC chain #
-    if(is.element(iter_i,iter_out_mcmc)){
+    if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
       theta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- theta_tk
       if(lat_mean){
         theta_tk_bar_mcmc[,match(iter_i,iter_out_mcmc)] <- theta_tk_bar
@@ -495,7 +525,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     uv_ith_shared_bar <- out_aux$uv_ith_shared_bar
     
     # MCMC chain #
-    if(is.element(iter_i,iter_out_mcmc)){
+    if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
       uv_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared[[1]]
       uv_ith_shared_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- uv_ith_shared[[2]]
       if(lat_mean){
@@ -528,7 +558,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       uv_ithk_bar <- out_aux$uv_ithk_bar
       
       # MCMC chain for uv_ithk #
-      if(is.element(iter_i,iter_out_mcmc)){
+      if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
         uv_ithk_mcmc[[1]][,,,,match(iter_i,iter_out_mcmc)] <- uv_ithk[[1]]
         uv_ithk_mcmc[[2]][,,,,match(iter_i,iter_out_mcmc)] <- uv_ithk[[2]]
         if(lat_mean){
@@ -561,7 +591,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       sp_weight_it_shared_bar <- out_aux$sp_it_shared_bar
       
       # MCMC chain #
-      if(is.element(iter_i,iter_out_mcmc)){
+      if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
         sp_weight_it_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- sp_weight_it_shared
         if(lat_mean){
           sp_weight_it_shared_bar_mcmc[,,match(iter_i,iter_out_mcmc)] <- sp_weight_it_shared_bar
@@ -593,7 +623,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
         mu_ijtk[diag_y_idx] <- NA
         
         # MCMC chain #
-        if(is.element(iter_i,iter_out_mcmc)){
+        if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
           sp_weight_itk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- sp_weight_itk
         }
       }
@@ -667,7 +697,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     eta_tk_bar <- out_aux$eta_tk_bar
     
     # MCMC chain #
-    if(is.element(iter_i,iter_out_mcmc)){
+    if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
       eta_tk_mcmc[,,match(iter_i,iter_out_mcmc)] <- eta_tk
       if(lat_mean){
         eta_tk_bar_mcmc[,match(iter_i,iter_out_mcmc)] <- eta_tk_bar
@@ -701,7 +731,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     ab_ith_shared_bar <- out_aux$ab_ith_bar
     
     # MCMC chain #
-    if(is.element(iter_i,iter_out_mcmc)){
+    if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
       ab_ith_shared_mcmc[[1]][,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared[[1]]
       ab_ith_shared_mcmc[[2]][,,,match(iter_i,iter_out_mcmc)] <- ab_ith_shared[[2]]
       if(lat_mean){
@@ -732,7 +762,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       ab_ithk_bar <- out_aux$ab_ithk_bar
       
       # MCMC chain for ab_ithk #
-      if(is.element(iter_i,iter_out_mcmc)){
+      if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
         ab_ithk_mcmc[[1]][,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk[[1]]
         ab_ithk_mcmc[[2]][,,,,match(iter_i,iter_out_mcmc)] <- ab_ithk[[2]]
         if(lat_mean){
@@ -762,7 +792,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
       sp_link_it_shared_bar <- out_aux$sp_it_shared_bar
       
       # MCMC chain #
-      if(is.element(iter_i,iter_out_mcmc)){
+      if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
         sp_link_it_shared_mcmc[,,,match(iter_i,iter_out_mcmc)] <- sp_link_it_shared
         if(lat_mean){
           sp_link_it_shared_bar_mcmc[,,match(iter_i,iter_out_mcmc)] <- sp_link_it_shared_bar
@@ -792,7 +822,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
         gamma_ijtk <- out_aux$gamma_ijtk
         
         # MCMC chain #
-        if(is.element(iter_i,iter_out_mcmc)){
+        if(is.element(iter_i,iter_out_mcmc)&!slim_mcmc_out){
           sp_link_itk_mcmc[,,,,match(iter_i,iter_out_mcmc)] <- sp_link_itk
         }
       }
@@ -826,7 +856,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
     
     
     ### Impute missing links ###
-    if( keep_y_ijtk_imp & y_ijtk_miss ) { # requires too much disk memory
+    if( F & !slim_mcmc_out & y_ijtk_miss ) { # requires too much disk memory
       # MCMC chain #
       if(is.element(iter_i,iter_out_mcmc)){
         Z_imp <- rbinom( n=nrow(y_ijtk_miss_idx), size=1, prob=plogis(gamma_ijtk[y_ijtk_miss_idx]) )
@@ -858,6 +888,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                           
                           n_chains_mcmc=n_chains_mcmc,
                           n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                          slim_mcmc_out=slim_mcmc_out,
                           
                           H_dim=H_dim, R_dim=R_dim,
                           
@@ -917,6 +948,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
                     
                     n_chains_mcmc=n_chains_mcmc,
                     n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
+                    slim_mcmc_out=slim_mcmc_out,
                     
                     H_dim=H_dim, R_dim=R_dim,
                     

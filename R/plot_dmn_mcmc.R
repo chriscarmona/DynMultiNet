@@ -32,7 +32,7 @@
 #' @param h numeric. Dimension of the latent space.
 #' @param pred_p character/numeric. Id of a predictor in the exogenous data.
 #' @param lat_space character In a directed network, specifies if the latent coordinate is in the "send" or "receive" space.
-#' @param cred_int_type character. Type of credible intervals: Empirical or normal approximation
+#' @param cred_int_type character. Type of credible intervals: mcmc or normal approximation
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
 #' 
@@ -81,7 +81,7 @@ plot_dmn_mcmc <- function( x,
                                       "rho_h_shared","rho_h_k" )[1],
                            node_i=NULL, node_j=NULL, layer_k=NULL, h=NULL, pred_p=NULL,
                            lat_space=NULL,
-                           cred_int_type = c("empirical","norm")[1],
+                           cred_int_type = c("mcmc","norm")[1],
                            n_burn=0, n_thin=1,
                            rm_missing=FALSE ) {
   
@@ -298,7 +298,7 @@ plot_dmn_mcmc <- function( x,
   }
   
   cred_int_probs = c(0.05,0.25)
-  cred_int_quantiles = sort(c(cred_int_probs/2,1-cred_int_probs/2))
+  cred_int_quantiles = sort(c(0.5,cred_int_probs/2,1-cred_int_probs/2))
   
   summary_mcmc <- summary(param_mcmc_chain,quantiles=cred_int_quantiles)
   colnames(summary_mcmc[[2]]) <- paste("qmcmc_",100*cred_int_quantiles,sep="")
@@ -310,6 +310,16 @@ plot_dmn_mcmc <- function( x,
                                                                        mean=summary_mcmc$Mean,
                                                                        sd=summary_mcmc$SD ) },
                               simplify=TRUE )
+  if( is.element(param,"pi_ijtk") ){
+    
+    summary_mcmc_aux <- sapply( cred_int_quantiles, function(x) { qnorm( p=x,
+                                                                         mean=apply(qlogis(param_mcmc_chain),2,mean),
+                                                                         sd=apply(qlogis(param_mcmc_chain),2,sd) ) },
+                                simplify=TRUE )
+    summary_mcmc_aux <- plogis(summary_mcmc_aux)
+    rownames(summary_mcmc_aux) <- NULL
+  }
+  
   colnames(summary_mcmc_aux) <- paste("qnorm_",100*cred_int_quantiles,sep="")
   summary_mcmc <- cbind(summary_mcmc,summary_mcmc_aux)
   rownames(summary_mcmc) <- NULL
@@ -326,7 +336,7 @@ plot_dmn_mcmc <- function( x,
     t_valid_idx <- seq_along(x$time_all)
   }
     
-  if( is.element(cred_int_type,"empirical") ){
+  if( is.element(cred_int_type,"mcmc") ){
     p <- ggplot() +
       # geom_ribbon( aes( ymin=Mean-SD,
       #                   ymax=Mean+SD,
@@ -340,7 +350,8 @@ plot_dmn_mcmc <- function( x,
                         ymax=get(paste("qmcmc_",100*(1-cred_int_probs[2]/2),sep="")),
                         x=time ),
                    fill="grey50", data=summary_mcmc, alpha=0.50 ) +
-      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc ) +
+      # geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc ) +
+      geom_line( aes(y=qmcmc_50,x=time),col="red", data=summary_mcmc ) +
       theme_bw()
     
   } else if( is.element(cred_int_type,"norm") ){
@@ -353,7 +364,8 @@ plot_dmn_mcmc <- function( x,
                         ymax=get(paste("qnorm_",100*(1-cred_int_probs[2]/2),sep="")),
                         x=time ),
                    fill="grey50", data=summary_mcmc, alpha=0.50 ) +
-      geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc ) +
+      # geom_line( aes(y=Mean,x=time),col="red", data=summary_mcmc ) +
+      geom_line( aes(y=qnorm_50,x=time),col="red", data=summary_mcmc ) +
       theme_bw()
   }
   

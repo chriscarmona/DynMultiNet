@@ -17,7 +17,7 @@
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
-#' @param keep_y_ijtk_imp Boolean. Indicates wheter the chain with imputed missing links will be saved (FALSE by default)
+#' @param slim_mcmc_out Boolean. Indicates if only the main components of the MCMC will be returned (TRUE by default)
 #' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
@@ -86,7 +86,7 @@ dmn_sampling <- function( y_ijtk,
                           
                           n_iter_mcmc=10000, n_burn=floor(n_iter_mcmc/4), n_thin=3,
                           
-                          keep_y_ijtk_imp = FALSE,
+                          slim_mcmc_out = TRUE,
                           
                           rds_file=NULL, log_file=NULL,
                           
@@ -161,11 +161,19 @@ dmn_sampling <- function( y_ijtk,
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
         "delta = ",delta,"\n",
+        "add_eff_weight = ",add_eff_weight,"\n",
+        "add_eff_link = ",add_eff_link,"\n",
+        
+        "class_dyn = ",class_dyn,"\n",
+        "delta = ",delta,"\n",
+        "lat_mean = ",lat_mean,"\n",
+        "sigma_lat_mean = ",sigma_lat_mean,"\n",
         
         "----- MCMC parameters -----\n",
         "n_iter_mcmc = ",n_iter_mcmc,"\n",
         "n_burn = ",n_burn,"\n",
         "n_thin = ",n_thin,"\n",
+        
         "----- Storage and processing -----\n",
         "rds_file = ",rds_file,"\n",
         "log_file = ",log_file,"\n",
@@ -253,7 +261,7 @@ dmn_sampling <- function( y_ijtk,
                               
                               n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
                               
-                              keep_y_ijtk_imp=keep_y_ijtk_imp,
+                              slim_mcmc_out=slim_mcmc_out,
                               
                               rds_file=rds_file, log_file=log_file,
                               quiet_mcmc=quiet_mcmc,
