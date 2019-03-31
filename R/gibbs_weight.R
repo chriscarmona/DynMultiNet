@@ -1,5 +1,4 @@
 
-#' @import foreach
 #' @keywords internal
 sample_baseline_tk_weight <- function( theta_tk,
                                        

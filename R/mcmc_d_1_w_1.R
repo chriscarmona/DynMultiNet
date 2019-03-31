@@ -28,7 +28,6 @@
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
 #' @param parallel_mcmc Boolean. Indicates if the mcmc should be processed in parallel.
 #' 
-#' @import foreach
 #' @import BayesLogit
 #' @importFrom MCMCpack procrustes
 #' 
