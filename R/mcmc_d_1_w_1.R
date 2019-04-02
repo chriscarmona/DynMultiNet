@@ -72,7 +72,7 @@ mcmc_d_1_w_1 <- function( y_ijtk,
   # assume no self-edges
   diag_y_idx <- matrix(FALSE,V_net,V_net); diag(diag_y_idx)<-TRUE
   diag_y_idx <- array(diag_y_idx,dim=dim(y_ijtk))
-  y_ijtk[diag_y_idx] <- 0
+  y_ijtk[diag_y_idx] <- NA
   
   ### iterations that will be reported ###
   # after burn-in period and thinning
