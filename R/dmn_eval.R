@@ -31,16 +31,16 @@ dmn_eval <- function( x,
   x$y_ijtk[diag_y_idx] <- NA
   
   ### start: WAIC ###
-  prob_y_link_pi_post <- dbinom(1*(x$y_ijtk>0),1,x$pi_ijtk_mcmc)
+  loglik_y_link_pi_post <- dbinom(1*(x$y_ijtk>0),1,x$pi_ijtk_mcmc,log=T)
   
-  aux_f <- matrix( prob_y_link_pi_post,
-                   nrow = prod(dim(prob_y_link_pi_post)[1:4]),
-                   ncol = dim(prob_y_link_pi_post)[5] )
-  aux_f <- t(aux_f)
-  if(!all.equal(is.na(c(x$y_ijtk)), apply(is.na(aux_f),2,all) )){stop("Problem calculating WAIC")}
-  aux_f <- aux_f[,!is.na(c(x$y_ijtk))]
+  aux_log_f <- matrix( loglik_y_link_pi_post,
+                   nrow = prod(dim(loglik_y_link_pi_post)[1:4]),
+                   ncol = dim(loglik_y_link_pi_post)[5] )
+  aux_log_f <- t(aux_log_f)
+  if(!all.equal(is.na(c(x$y_ijtk)), apply(is.na(aux_log_f),2,all) )){stop("Problem calculating WAIC")}
+  aux_log_f <- aux_log_f[,!is.na(c(x$y_ijtk))]
   
-  aux_f_w <- aux_f; aux_f_w[]<-1
+  aux_log_f_w <- aux_log_f; aux_log_f_w[]<-0
   if(x$weighted){
     # Array with MCMC for sigma
     aux_sigma_k <- x$mu_ijtk_mcmc; aux_sigma_k[] <- NA
@@ -50,22 +50,22 @@ dmn_eval <- function( x,
     dim(aux_sigma_k)
     
     # Gaussian probability for weight
-    prob_y_weight_pi_post <- dnorm(x$y_ijtk,mean=x$mu_ijtk_mcmc,sd=aux_sigma_k)
+    loglik_y_weight_pi_post <- dnorm(x$y_ijtk,mean=x$mu_ijtk_mcmc,sd=aux_sigma_k,log=T)
     
-    aux_f_w <- matrix( prob_y_weight_pi_post,
-                     nrow = prod(dim(prob_y_weight_pi_post)[1:4]),
-                     ncol = dim(prob_y_weight_pi_post)[5] )
-    aux_f_w <- t(aux_f_w)
-    if(!all.equal(is.na(c(x$y_ijtk)), apply(is.na(aux_f_w),2,all) )){stop("Problem calculating WAIC")}
+    aux_log_f_w <- matrix( loglik_y_weight_pi_post,
+                     nrow = prod(dim(loglik_y_weight_pi_post)[1:4]),
+                     ncol = dim(loglik_y_weight_pi_post)[5] )
+    aux_log_f_w <- t(aux_log_f_w)
+    if(!all.equal(is.na(c(x$y_ijtk)), apply(is.na(aux_log_f_w),2,all) )){stop("Problem calculating WAIC")}
     
     # dirac delta for non-linked pairs
-    aux_f_w[,which(c(x$y_ijtk)==0)] <- 1
+    aux_log_f_w[,which(c(x$y_ijtk)==0)] <- 0
     
-    aux_f_w <- aux_f_w[,!is.na(c(x$y_ijtk))]
+    aux_log_f_w <- aux_log_f_w[,!is.na(c(x$y_ijtk))]
     
   }
   
-  dmn_waic <- loo::waic(aux_f*aux_f_w)
+  dmn_waic <- loo::waic(aux_log_f_w+aux_log_f)
   ### end: WAIC ###
   
   return( list(waic=dmn_waic) )
