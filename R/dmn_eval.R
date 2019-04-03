@@ -37,9 +37,13 @@ dmn_eval <- function( x,
     y_oos <- y_ijtk_complete; y_oos[] <- 0
     y_oos[is.na(x$y_ijtk)&(!is.na(y_ijtk_complete))] <- 1
   }
+  if(any(is.na(x$pi_ijtk_mcmc[!diag_y_idx]))){stop("There are NA values in pi_ijtk_mcmc")}
   
   ### start: WAIC ###
   loglik_y_link_pi_post <- dbinom(1*(x$y_ijtk>0),1,x$pi_ijtk_mcmc,log=T)
+  
+  # eliminates -Inf
+  loglik_y_link_pi_post[is.infinite(loglik_y_link_pi_post)] <- -1000
   
   aux_log_f <- matrix( loglik_y_link_pi_post,
                        nrow = prod(dim(loglik_y_link_pi_post)[1:4]),
@@ -47,6 +51,7 @@ dmn_eval <- function( x,
   aux_log_f <- t(aux_log_f)
   if(!all.equal(is.na(c(x$y_ijtk)), apply(is.na(aux_log_f),2,all) )){stop("Problem calculating WAIC")}
   aux_log_f <- aux_log_f[,!is.na(c(x$y_ijtk))]
+  
   dmn_waic_link <- loo::waic(aux_log_f)
   
   ### initialize output table ###
@@ -72,6 +77,8 @@ dmn_eval <- function( x,
     
     # Gaussian probability for weight
     loglik_y_weight_pi_post <- dnorm(x$y_ijtk,mean=x$mu_ijtk_mcmc,sd=aux_sigma_k,log=T)
+    # eliminates -Inf
+    loglik_y_weight_pi_post[is.infinite(loglik_y_weight_pi_post)] <- -1000
     
     aux_log_f_w <- matrix( loglik_y_weight_pi_post,
                            nrow = prod(dim(loglik_y_weight_pi_post)[1:4]),
