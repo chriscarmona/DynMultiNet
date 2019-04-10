@@ -2,7 +2,7 @@
 #'    Bayesian Learning of Dynamic Multilayer Networks with binary data
 #'
 #' @description
-#'    \code{dmn_sampling} Implements model from Durante and Dunson, 2018
+#'    \code{dmn_MCMC} Implements model from Durante and Dunson, 2018
 #'
 #' @param net_data Data frame.Network information.
 #' @param pred_data Data frame. Linked predictors information.
@@ -65,7 +65,7 @@
 #'                             a_1 = 1.5, a_2 = 2.5 )
 #' 
 #' set.seed(0)
-#' net_mcmc <- dmn_sampling( net_data = synth_net$edge_data,
+#' net_mcmc <- dmn_MCMC( net_data = synth_net$edge_data,
 #'                           pred_data = NULL,
 #'                           directed = FALSE,
 #'                           H_dim = 10, R_dim = 5,
@@ -80,7 +80,7 @@
 #' @export
 #' 
 
-dmn_sampling <- function( net_data,
+dmn_MCMC <- function( net_data,
                           pred_data=NULL,
                           directed=FALSE, weighted=FALSE,
                           H_dim=10, R_dim=10,
