@@ -16,28 +16,25 @@ data {
   
   real<lower=0> y_tkij[T_net,K_net,V_net,V_net];
   
-  int<lower=1> T_all; // Total number of time-steps (incluiding forecast)
-  vector[T_all] time_all; // Time stamps of all time-steps
-  int<lower=1> time_all_idx_net[T_net]; // Indices of time_all that correspond to observed networks
+  vector[T_net] time_all; // Time stamps of all time-steps
   
-  // latent variables, for link probability
   real<lower=0> delta;
-  
+  real<lower=0> sigma_lat_mean;
 }
 
 transformed data {
   
-  cov_matrix[T_all] eta_t_cov;
-  cholesky_factor_cov[T_all] eta_t_cov_sqrt;
-  cov_matrix[T_all] ab_t_cov;
-  cholesky_factor_cov[T_all] ab_t_cov_sqrt;
+  cov_matrix[T_net] eta_t_cov;
+  cholesky_factor_cov[T_net] eta_t_cov_sqrt;
+  cov_matrix[T_net] ab_t_cov;
+  cholesky_factor_cov[T_net] ab_t_cov_sqrt;
   
-  cov_matrix[T_all] theta_t_cov;
-  cholesky_factor_cov[T_all] theta_t_cov_sqrt;
-  cov_matrix[T_all] uv_t_cov;
-  cholesky_factor_cov[T_all] uv_t_cov_sqrt;
+  cov_matrix[T_net] theta_t_cov;
+  cholesky_factor_cov[T_net] theta_t_cov_sqrt;
+  cov_matrix[T_net] uv_t_cov;
+  cholesky_factor_cov[T_net] uv_t_cov_sqrt;
   
-  for(t1 in 1:T_all) {
+  for(t1 in 1:T_net) {
     for(t2 in 1:t1) {
       // for link probability
       eta_t_cov[t1,t2] = exp(-((time_all[t1]-time_all[t2])/delta)^2);
@@ -52,32 +49,32 @@ transformed data {
     }
   }
   // for link probability
-  eta_t_cov = eta_t_cov + diag_matrix(rep_vector(1e-4, T_all));
+  eta_t_cov = eta_t_cov + diag_matrix(rep_vector(1e-4, T_net));
   eta_t_cov_sqrt = cholesky_decompose( eta_t_cov );
-  ab_t_cov = ab_t_cov + diag_matrix(rep_vector(1e-4, T_all));
+  ab_t_cov = ab_t_cov + diag_matrix(rep_vector(1e-4, T_net));
   ab_t_cov_sqrt = cholesky_decompose( ab_t_cov );
   // for link weight
-  theta_t_cov = theta_t_cov + diag_matrix(rep_vector(1e-4, T_all));
+  theta_t_cov = theta_t_cov + diag_matrix(rep_vector(1e-4, T_net));
   theta_t_cov_sqrt = cholesky_decompose( theta_t_cov );
-  uv_t_cov = uv_t_cov + diag_matrix(rep_vector(1e-4, T_all));
+  uv_t_cov = uv_t_cov + diag_matrix(rep_vector(1e-4, T_net));
   uv_t_cov_sqrt = cholesky_decompose( uv_t_cov );
   
 }
 
 parameters {
   // for link probability
-  vector[T_all] eta_t_k[K_net];
-  vector[T_all] ab_t_hi_shared[2,H_dim,V_net];
-  vector[T_all] ab_t_hki[2,R_dim,K_net,V_net];
+  vector[T_net] eta_t_k[K_net];
+  vector[T_net] ab_t_hi_shared[2,H_dim,V_net];
+  vector[T_net] ab_t_hki[2,R_dim,K_net,V_net];
   
   real eta_bar_k[K_net];
   real ab_bar_hi_shared[2,H_dim,V_net];
   real ab_bar_hki[2,R_dim,K_net,V_net];
   
   // for link weight
-  vector[T_all] theta_t_k[K_net];
-  vector[T_all] uv_t_hi_shared[2,H_dim,V_net];
-  vector[T_all] uv_t_hki[2,R_dim,K_net,V_net];
+  vector[T_net] theta_t_k[K_net];
+  vector[T_net] uv_t_hi_shared[2,H_dim,V_net];
+  vector[T_net] uv_t_hki[2,R_dim,K_net,V_net];
   
   real theta_bar_k[K_net];
   real uv_bar_hi_shared[2,H_dim,V_net];
@@ -88,38 +85,32 @@ parameters {
 
 transformed parameters {
   // Linear predictors
-  matrix[V_net,V_net] gamma_ij_tk[T_all,K_net]; // for link probability
-  matrix[V_net,V_net] mu_ij_tk[T_all,K_net]; // for link weight
+  matrix[V_net,V_net] gamma_ij_tk[T_net,K_net]; // for link probability
+  matrix[V_net,V_net] mu_ij_tk[T_net,K_net]; // for link weight
   
   // Link probabilities
-  matrix<lower=0,upper=1>[V_net,V_net] pi_ij_tk[T_all,K_net];
+  matrix<lower=0,upper=1>[V_net,V_net] pi_ij_tk[T_net,K_net];
   
-  matrix[V_net,H_dim] ab_ih_t_shared[2,T_all];
-  matrix[V_net,R_dim] ab_ih_tk[2,T_all,K_net];
+  matrix[V_net,H_dim] ab_ih_t_shared[2,T_net];
+  matrix[V_net,R_dim] ab_ih_tk[2,T_net,K_net];
   
-  cholesky_factor_cov[T_all] ab_t_shared_cov_sqrt[2,H_dim];
-  cholesky_factor_cov[T_all] ab_t_k_cov_sqrt[2,R_dim,K_net];
-  
-  vector[T_all] eta_bar_t_k[K_net];
-  vector[T_all] ab_bar_t_hi_shared[2,H_dim,V_net];
-  vector[T_all] ab_bar_t_hki[2,R_dim,K_net,V_net];
+  vector[T_net] eta_bar_t_k[K_net];
+  vector[T_net] ab_bar_t_hi_shared[2,H_dim,V_net];
+  vector[T_net] ab_bar_t_hki[2,R_dim,K_net,V_net];
   
   // Link weight
-  matrix[V_net,H_dim] uv_ih_t_shared[2,T_all];
-  matrix[V_net,R_dim] uv_ih_tk[2,T_all,K_net];
+  matrix[V_net,H_dim] uv_ih_t_shared[2,T_net];
+  matrix[V_net,R_dim] uv_ih_tk[2,T_net,K_net];
   
-  cholesky_factor_cov[T_all] uv_t_shared_cov_sqrt[2,H_dim];
-  cholesky_factor_cov[T_all] uv_t_k_cov_sqrt[2,R_dim,K_net];
-  
-  vector[T_all] theta_bar_t_k[K_net];
-  vector[T_all] uv_bar_t_hi_shared[2,H_dim,V_net];
-  vector[T_all] uv_bar_t_hki[2,R_dim,K_net,V_net];
+  vector[T_net] theta_bar_t_k[K_net];
+  vector[T_net] uv_bar_t_hi_shared[2,H_dim,V_net];
+  vector[T_net] uv_bar_t_hki[2,R_dim,K_net,V_net];
   
   for(dir in 1:2){
     
     // Shared latent coordinates //
     // rearrange 
-    for(t in 1:T_all) {
+    for(t in 1:T_net) {
       for(h in 1:H_dim) {
         for(i in 1:V_net) {
           ab_ih_t_shared[dir,t][i,h] = ab_t_hi_shared[dir,h,i][t];
@@ -130,7 +121,7 @@ transformed parameters {
   
     // Layer-specific latent coordinates //
     // rearrange
-    for(t in 1:T_all) {
+    for(t in 1:T_net) {
       for(k in 1:K_net) {
         for(h in 1:R_dim) {
           for(i in 1:V_net) {
@@ -141,20 +132,24 @@ transformed parameters {
       }
     }
     
-    for(h in 1:R_dim) {
-      for(i in 1:V_net) {
-        eta_bar_t_k[K_net] = rep_vector(eta_bar_k[K_net],T_all);
-        ab_bar_t_hi_shared[dir,H_dim,V_net] = rep_vector(ab_bar_hi_shared[dir,H_dim,V_net],T_all);
-        ab_bar_t_hki[dir,R_dim,K_net,V_net] = rep_vector(ab_bar_hki[dir,R_dim,K_net,V_net],T_all);
-        theta_bar_t_k[K_net] = rep_vector(theta_bar_k[K_net],T_all);
-        uv_bar_t_hi_shared[dir,H_dim,V_net] = rep_vector(uv_bar_hi_shared[dir,H_dim,V_net],T_all);
-        uv_bar_t_hki[dir,R_dim,K_net,V_net] = rep_vector(uv_bar_hki[dir,R_dim,K_net,V_net],T_all);
+    for(k in 1:K_net) {
+      for(h in 1:R_dim) {
+        for(i in 1:V_net) {
+          eta_bar_t_k[k] = rep_vector(eta_bar_k[k],T_net);
+          ab_bar_t_hi_shared[dir,h,i] = rep_vector(ab_bar_hi_shared[dir,h,i],T_net);
+          ab_bar_t_hki[dir,h,k,i] = rep_vector(ab_bar_hki[dir,h,k,i],T_net);
+          
+          theta_bar_t_k[k] = rep_vector(theta_bar_k[k],T_net);
+          uv_bar_t_hi_shared[dir,h,i] = rep_vector(uv_bar_hi_shared[dir,h,i],T_net);
+          uv_bar_t_hki[dir,h,k,i] = rep_vector(uv_bar_hki[dir,h,k,i],T_net);
+        }
       }
     }
+    
   }
   
   // Linear predictors //
-  for(t in 1:T_all) {
+  for(t in 1:T_net) {
     for(k in 1:K_net) {
       gamma_ij_tk[t,k] = eta_t_k[k][t] + ab_ih_t_shared[1,t]*ab_ih_t_shared[2,t]' + ab_ih_tk[1,t,k]*ab_ih_tk[2,t,k]';
       mu_ij_tk[t,k] = theta_t_k[k][t] + uv_ih_t_shared[1,t]*uv_ih_t_shared[2,t]' + uv_ih_tk[1,t,k]*uv_ih_tk[2,t,k]';
@@ -162,7 +157,7 @@ transformed parameters {
   }
   
   // Link probabilities //
-  for (t in 1:T_all) {
+  for (t in 1:T_net) {
     for (k in 1:K_net) {
       pi_ij_tk[t,k] = inv_logit( gamma_ij_tk[t,k] );
     }
@@ -178,7 +173,7 @@ model {
           if(i!=j){
             if( y_tkij[t,k,i,j]==0 ){
               target += log(1-pi_ij_tk[t,k][i,j]);
-            } else {
+            } else if( y_tkij[t,k,i,j]!=1234567890 ){
               target += log(pi_ij_tk[t,k][i,j]) + normal_lpdf( y_tkij[t,k,i,j] | mu_ij_tk[t,k][i,j] , exp(log_sigma_w_k[k]) );
             }
           }
@@ -210,6 +205,14 @@ model {
     }
     
   }
+  
+  // eta_bar_k ~ normal( 0.0 , sigma_lat_mean );
+  // ab_bar_hi_shared ~ normal( 0.0 , sigma_lat_mean );
+  // ab_bar_hki ~ normal( 0.0 , sigma_lat_mean );
+  // theta_bar_k ~ normal( 0.0 , sigma_lat_mean );
+  // uv_bar_hi_shared ~ normal( 0.0 , sigma_lat_mean );
+  // uv_bar_hki ~ normal( 0.0 , sigma_lat_mean );
+  
 }
 
 generated quantities {

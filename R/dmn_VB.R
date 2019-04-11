@@ -1,37 +1,28 @@
 #' @title
-#'    Bayesian Learning of Dynamic Multilayer Networks with binary data
+#'    Bayesian Learning of Dynamic Multilayer Networks
 #'
 #' @description
-#'    \code{dmn_VB} Implements model from Durante and Dunson, 2018
+#'    \code{dmn_sampling} Implements model from Carmona and Martinez-Jaramillo, 2018
 #'
-#' @param net_data Data frame.Network information.
-#' @param pred_data Data frame. Linked predictors information.
+#' @param y_ijtk Array. Network information, should be dimension (V_net,V_net,T_net,K_net).
 #' @param directed Boolean. Indicates if the provided network is directed, i.e. the adjacency matrix is assymetrical.
 #' @param weighted Boolean. Indicates if the provided network is weighted, i.e. edges with values other that 0 and 1.
-#' @param H_dim Integer. Latent space dimension.
+#' @param x_ijtkp Array. Edge Specific external covariates.
+#' @param H_dim Integer. Latent space dimension, for global latent vectors.
 #' @param R_dim Integer. Latent space dimension, for layer specific latent vectors.
-#' 
-#' @param delta_mu Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link probabilities. In general, you won't be able to extrapolate more than \code{delta_mu} units away from your data.
-#' @param delta_x Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link probabilities.
-#' @param delta_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients.
-#' 
-#' @param delta_lambda Positive scalar. Hyperparameter for the smoothness of movements of the baseline process for link weight. In general, you won't be able to extrapolate more than \code{delta_lambda} units away from your data.
-#' @param delta_u Positive scalar. Hyperparameter for the smoothness of movements of the latent coordinates that correspond to link weights.
-#' @param delta_p Positive numeric vector. Hyperparameter for the smoothness of movements of predictor coefficients that correspond to link weights.
-#' 
-#' @param a_1 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
-#' @param a_2 Positive scalar. Hyperparameter for number of effective dimensions in the latent space.
-#' @param n_chains_mcmc Integer. Number of chains for the MCMC.
+#' @param add_eff_weight Boolean. Indicates if dynamic additive effects by node should be considered for edge weights.
+#' @param add_eff_link Boolean. Indicates if dynamic additive effects by node should be considered for links.
+#' @param class_dyn character. Specifies the dynamics for latent elements: "GP" for Gaussian Processes, "nGP" for Nested Gaussian Processes.
+#' @param delta Positive scalar. Hyperparameter controlling for the smoothness in the dynamic of latent coordinates. Larger=smoother, only valid for class_dyn="GP".
 #' @param n_iter_mcmc Integer. Number of iterations for the MCMC.
 #' @param n_burn Integer. Number of iterations discarded as part of the MCMC warming up period at the beginning of the chain.
 #' @param n_thin Integer. Number of iterations discarded for thining the chain (reducing the autocorrelation). We keep 1 of every n_thin iterations.
-#' @param time_fc Numeric vector. Specifies times in the networks to be forecasted.
-#' @param out_file String. Indicates a file (.RData) where the output will be saved.
+#' @param slim_mcmc_out Boolean. Indicates if only the main components of the MCMC will be returned (TRUE by default)
+#' @param rds_file String. Indicates a file (.rds) where the output will be saved.
 #' @param log_file String. Indicates a file (.txt) where the log of the process will be saved.
 #' @param quiet_mcmc Boolean. Indicates if silent mode is preferes, if \code{FALSE} progress update is displayed.
 #' @param parallel_mcmc Boolean. Indicates if some steps in the mcmc would be processed in parallel.
-#' @param only_read_csv_stan_fit Boolean. Indicates if the sampling process is skipped and only reads the csv output from a previous run.
-#' 
+#'
 #' @details
 #'    The model assumes a latent variable approach
 #'    
@@ -54,97 +45,79 @@
 #' @examples
 #' 
 #' \dontrun{
-#' 
-#' set.seed(0)
-#' 
 #' synth_net <- gen_synth_net( node_all = seq(1,10),
 #'                             time_all = seq(1,15),
 #'                             layer_all = seq(1,3),
 #'                             directed = FALSE,
 #'                             H_dim = 3, R_dim = 3,
+#'                             delta=36,
 #'                             a_1 = 1.5, a_2 = 2.5 )
-#' 
-#' set.seed(0)
-#' net_mcmc <- dmn_VB( net_data = synth_net$edge_data,
-#'                           pred_data = NULL,
-#'                           directed = FALSE,
-#'                           H_dim = 10, R_dim = 5,
-#'                           a_1 = 2, a_2 = 2,
-#'                           n_iter_mcmc = 2000 )
+#'                             
+#' dmn_mcmc <- dmn_sampling( net_data = synth_net$edge_data,
+#'                                  directed = FALSE,
+#'                                  H_dim = 10, R_dim = 5,
+#'                                  delta=36,
+#'                                  a_1 = 2, a_2 = 2,
+#'                                  n_iter_mcmc = 3000, n_burn = 1000, n_thin = 2 )
 #' }
 #' 
-#' @useDynLib DynMultiNet
+#' @useDynLib DynMultiNet, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
 #' 
 #' @import dplyr
 #' 
 #' @export
 #' 
 
-dmn_VB <- function( net_data,
-                    pred_data=NULL,
+dmn_VB <- function( y_ijtk,
                     directed=FALSE, weighted=FALSE,
+                    
+                    x_ijtkp=NULL,
+                    
                     H_dim=10, R_dim=10,
                     
-                    delta_mu=5,
-                    delta_x=5,
-                    delta_p=5,
+                    add_eff_weight=FALSE,
+                    add_eff_link=FALSE,
                     
-                    delta_lambda=5,
-                    delta_u=5,
-                    delta_q=5,
+                    delta=36,
+                    lat_mean=TRUE,
+                    sigma_lat_mean=5,
                     
-                    a_1=2, a_2=2.5,
+                    vb_algorithm=c("meanfield","fullrank")[2],
                     
-                    n_chains_mcmc=1,
-                    n_iter_mcmc=1000, n_burn=n_iter_mcmc/2, n_thin=3,
-                    time_fc=NULL,
-                    out_file=NULL, log_file=NULL,
-                    quiet_mcmc=FALSE,
-                    parallel_mcmc=FALSE,
-                    only_read_csv_stan_fit=FALSE ) {
+                    rds_file=NULL, log_file=NULL ) {
   
   mcmc_clock <- Sys.time()
   
-  if(!is.null(pred_data)) {
-    if( !all( is.element(unique(pred_data[,"layer"]),c(NA,unique(net_data$layer))) ) ) {
-      stop('Layers in "pred_data" must be one of layers in "net_data"')
+  if( !is.null(rds_file) ) {
+    if( substr(rds_file,nchar(rds_file)-3,nchar(rds_file))!=".rds" ) {
+      rds_file<-paste(rds_file,".rds",sep="")
     }
   }
-  
   #### Start: Processing data ####
   ### Network data ###
-  y_ijtk <- get_y_ijtk_from_edges( net_data,
-                                   directed=directed,
-                                   weighted=weighted,
-                                   self_edges=FALSE )
-  node_all <- sort(unique(unlist(net_data[,c("source","target")])))
-  V_net <- length(node_all)
-  time_net <- sort(unique(unlist(net_data$time)))
-  T_net <- length(time_net)
-  layer_all <- sort(unique(unlist(net_data$layer)))
-  K_net <- length(layer_all)
   
-  if(any(is.element(time_fc,time_net))) {
-    warning('Some elements in "time_fc" are already in the network observed data.')
-    time_fc <- time_fc[!is.element(time_fc,time_net)]
+  if(dim(y_ijtk)[1]!=dim(y_ijtk)[2]){
+    stop("y_ijtk should be an array with the same cardinality for dimensions 1 and 2")
+  }
+  if(length(dim(y_ijtk))==3){
+    warning("y_ijtk was declared with only 3 dimensions, a single layer will be assumed")
+    y_ijtk <- array(y_ijtk,dim=c(dim(y_ijtk),1))
   }
   
-  time_all <- sort(c(time_net,time_fc))
-  time_all_idx_net <- which(is.element(time_all,time_net))
+  V_net <- dim(y_ijtk)[1]
+  T_net <- dim(y_ijtk)[3]
+  K_net <- dim(y_ijtk)[4]
   
-  ### Predictors data ###
-  # Pending: do something for predictors and time_fc
-  pred_net <- get_z_pred( pred_data,
-                          node_all, time_all, layer_all,
-                          quiet=FALSE )
+  node_all <- dimnames(y_ijtk)[[1]]
+  if(is.null(node_all)){node_all<-1:V_net; dimnames(y_ijtk)[[1]]<-dimnames(y_ijtk)[[2]]<-node_all}
   
-  pred_all <- pred_net$pred_all
-  
-  pred_id_layer <- pred_net$pred_id_layer
-  pred_id_edge <- pred_net$pred_id_edge
-  
-  z_tkp<-pred_net$z_tkp
-  z_ijtkp<-pred_net$z_ijtkp
+  time_all <- dimnames(y_ijtk)[[3]]
+  if(is.null(time_all)){time_all<-1:T_net; dimnames(y_ijtk)[[3]]<-time_all}
+  time_all <- as.numeric(time_all)
+  if(any(is.na(time_all))){stop("dimnames(y_ijtk)[[3]] should be NULL or able to transform to a numeric value")}
+  layer_all <- dimnames(y_ijtk)[[4]]
+  if(is.null(layer_all)){layer_all<-1:K_net; dimnames(y_ijtk)[[4]]<-layer_all}
   
   #### End: Processing data ####
   
@@ -167,81 +140,64 @@ dmn_VB <- function( net_data,
       model_des <- paste(model_des," unweighted edges",collapse="")
     }
     
-    cat("**** DynMultiNet *****\n",
-        
-        "\n----- Network topology -----\n",
+    cat("**** DynMultiNet *****\n\n",
+        "----- Network topology -----\n",
         "Nodes = ",V_net,"\n",
         "Layers = ",K_net,"\n",
         "Times steps = ",T_net,"\n",
+        
         "Directed = ",directed,"\n",
         "Weighted = ",weighted,"\n",
         
-        "\n----- Inferential parameters -----\n",
+        "----- External covariates -----\n",
+        "P = ",ifelse(is.null(x_ijtkp),0,dim(x_ijtkp)[5]),"\n",
+        
+        "----- Inferential parameters -----\n",
         "H_dim = ",H_dim,"\n",
         "R_dim = ",R_dim,"\n",
         
-        "delta_mu =",delta_mu,"\n",
-        "delta_x =",delta_x,"\n",
-        "delta_p =",delta_p,"\n",
+        "delta = ",delta,"\n",
         
-        "delta_lambda =",delta_lambda,"\n",
-        "delta_u =",delta_u,"\n",
-        "delta_q =",delta_q,"\n",
+        "add_eff_weight = ",add_eff_weight,"\n",
+        "add_eff_link = ",add_eff_link,"\n",
         
-        "a_1 = ",a_1,"\n",
-        "a_2 = ",a_2,"\n",
+        "lat_mean = ",lat_mean,"\n",
+        "sigma_lat_mean = ",sigma_lat_mean,"\n",
         
-        "\n----- MCMC parameters -----\n",
-        "n_chains_mcmc = ",n_chains_mcmc,"\n",
-        "n_iter_mcmc = ",n_iter_mcmc,"\n",
-        "n_burn = ",n_burn,"\n",
-        "n_thin = ",n_thin,"\n",
+        "----- variational inference algorithm -----\n",
+        "vb_algorithm = ",vb_algorithm,"\n",
         
-        "\n----- Network forecasting -----\n",
-        "time_fc = ", paste(time_fc,collapse=","), "\n",
-        
-        "\n----- Storage and processing -----\n",
-        "out_file = ",paste(out_file,".rds",sep=""),"\n",
-        "log_file = ",paste(log_file,".txt",sep=""),"\n",
-        "parallel_mcmc = ",parallel_mcmc,"\n",
-        "\n---------------------------\n",
-        "\nProcess starting time:\n",as.character(mcmc_clock),"\n",
-        "\n---------------------------\n",
-        "\nMCMC Starting time:\n",as.character(Sys.time()),"\n",
-        "\n---------------------------\n\n",
-        file=paste(log_file,".txt",sep="") )
+        "----- Storage and processing -----\n",
+        "rds_file = ",rds_file,"\n",
+        "log_file = ",log_file,"\n",
+        "---------------------------\n\n",
+        "Process starting time:\n",as.character(mcmc_clock),"\n\n",
+        "---------------------------\n\n",
+        "MCMC Starting time:\n",as.character(Sys.time()),"\n\n",
+        "---------------------------\n\n\n",
+        file=log_file )
   }
   mcmc_clock <- Sys.time()
   
   dmn_mcmc <- VB_stan( y_ijtk=y_ijtk,
-                       node_all=node_all, time_all=time_all, layer_all=layer_all,
-                       time_all_idx_net=time_all_idx_net,
+                       directed=directed, weighted=weighted,
                        
-                       pred_all=pred_all,
-                       pred_id_layer=pred_id_layer, pred_id_edge=pred_id_edge,
-                       z_tkp=z_tkp, z_ijtkp=z_ijtkp,
+                       node_all=node_all, time_all=time_all, layer_all=layer_all,
+                       
+                       x_ijtkp=x_ijtkp,
                        
                        H_dim=H_dim, R_dim=R_dim,
                        
-                       delta_mu=delta_mu,
-                       delta_x=delta_x,
-                       delta_p=delta_p,
+                       add_eff_link=add_eff_link,
+                       add_eff_weight=add_eff_weight,
                        
-                       delta_lambda=delta_lambda,
-                       delta_u=delta_u,
-                       delta_q=delta_q,
+                       delta=delta,
+                       lat_mean=lat_mean,
+                       sigma_lat_mean=sigma_lat_mean,
                        
-                       a_1=a_1, a_2=a_2,
+                       vb_algorithm=vb_algorithm,
                        
-                       directed=directed,
-                       weighted=weighted,
-                       
-                       n_chains_mcmc=n_chains_mcmc,
-                       n_iter_mcmc=n_iter_mcmc, n_burn=n_burn, n_thin=n_thin,
-                       
-                       out_file=out_file,
-                       quiet_mcmc=quiet_mcmc,
-                       only_read_csv_stan_fit=only_read_csv_stan_fit )
+                       rds_file=rds_file, log_file=log_file )
   
   if( !is.null(log_file) ) {
     cat("MCMC Finish time:\n",as.character(Sys.time()),"\n\n",
