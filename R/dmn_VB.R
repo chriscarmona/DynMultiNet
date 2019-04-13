@@ -84,7 +84,6 @@ dmn_VB <- function( y_ijtk,
                     sigma_lat_mean=5,
                     
                     vb_algorithm=c("meanfield","fullrank")[2],
-                    
                     rds_file=NULL, log_file=NULL ) {
   
   mcmc_clock <- Sys.time()
@@ -196,7 +195,6 @@ dmn_VB <- function( y_ijtk,
                        sigma_lat_mean=sigma_lat_mean,
                        
                        vb_algorithm=vb_algorithm,
-                       
                        rds_file=rds_file, log_file=log_file )
   
   if( !is.null(log_file) ) {

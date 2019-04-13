@@ -1,8 +1,9 @@
 
-#' @import foreach
-#' @importFrom rstan stan sampling
-#' @importFrom matrixcalc is.positive.definite
+#' @import rstan
+#' 
 #' @keywords internal
+#' 
+
 VB_stan <- function( y_ijtk,
                      directed=FALSE, weighted=FALSE,
                      
@@ -20,7 +21,6 @@ VB_stan <- function( y_ijtk,
                      sigma_lat_mean=5,
                      
                      vb_algorithm=c("meanfield","fullrank")[2],
-                     
                      rds_file=NULL, log_file=NULL ) {
   
   V_net <- length(node_all)
@@ -40,8 +40,36 @@ VB_stan <- function( y_ijtk,
                            
                            delta=delta )
   
-  if( K_net>=1 & is.null(x_ijtkp) & directed & weighted ) {
-    browser()
+  if( K_net==1 & is.null(x_ijtkp) & directed & weighted ) {
+    
+    stan_fit <- rstan::vb( stanmodels$net_m_0_p_0_d_1_w_1,
+                           data = stan_data_input,
+                           sample_file=out_file,
+                           init=0,
+                           pars=c("pi_ij_tk",
+                                  
+                                  "eta_t_k",
+                                  "ab_t_hi_shared","ab_t_hki",
+                                  "eta_bar_k",
+                                  "ab_bar_hi_shared", "ab_bar_hki",
+                                  
+                                  "mu_ij_tk",
+                                  
+                                  "theta_t_k",
+                                  "theta_bar_k",
+                                  "uv_t_hi_shared","uv_t_hki",
+                                  "uv_bar_hi_shared", "uv_bar_hki",
+                                  
+                                  "sigma_w_k"),
+                           algorithm=vb_algorithm )
+    saveRDS( stan_fit , file=paste(out_file,"_stan.rds",sep="") )
+    return(stan_fit)
+    dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
+                                    directed=directed,
+                                    weighted=weighted )
+    
+  } else if ( K_net>1 & is.null(x_ijtkp) & directed & weighted ) {
+    
     stan_fit <- rstan::vb( stanmodels$net_m_1_p_0_d_1_w_1,
                            data = stan_data_input,
                            sample_file=out_file,
@@ -62,8 +90,8 @@ VB_stan <- function( y_ijtk,
                                   
                                   "sigma_w_k"),
                            algorithm=vb_algorithm )
-    
     saveRDS( stan_fit , file=paste(out_file,"_stan.rds",sep="") )
+    return(stan_fit)
     dmn_mcmc <- dmn_mcmc_from_stan( stan_fit=stan_fit,
                                     directed=directed,
                                     weighted=weighted )
