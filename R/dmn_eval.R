@@ -160,5 +160,28 @@ dmn_eval <- function( x,
   }
   ### end: Predictive out-of-sample ###
   
+  ### start: AUC ###
+  if(!is.null(y_ijtk_complete)){
+    p_hat <- apply(x$pi_ijtk_mcmc,1:4,median)
+    
+    # AUC in sample #
+    auc_1 <- pROC::auc( ((x$y_ijtk>0)*1)[y_oos==0],
+                        (p_hat[y_oos==0]) )
+    
+    # AUC out-of-sample #
+    auc_2 <- pROC::auc( ((y_ijtk_complete>0)*1)[y_oos==1],
+                        (p_hat[y_oos==1]) )
+    
+    # Add log pointwise predictive density, out of sample
+    out_table_temp <- out_table[1:2,,drop=F];out_table_temp[]<-NA
+    out_table_temp$criteria <- c("AUC","AUC_oos")
+    out_table_temp$estim_type <- "Estimate"
+    out_table_temp$value <- c(auc_1,auc_2)
+    out_table_temp$response <- 'binary'
+    out_table <- rbind(out_table,out_table_temp)
+    
+  }
+  ### end: AUC ###
+  
   return( out_table )
 }
