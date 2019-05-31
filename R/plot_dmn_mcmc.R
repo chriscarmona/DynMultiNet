@@ -2,7 +2,7 @@
 #'     Plotting posterior MCMC results for the function \code{dmn_sampling}
 #'
 #' @description
-#'     Plotting method for objects inheriting from class "\code{dmn_mcmc}".
+#'     Plotting posterior MCMC results
 #'
 #' @param x an object of class "\code{plot_dmn_mcmc}"
 #' @param param Character. Specifies the parameter that will be plotted. Possible parameters are:

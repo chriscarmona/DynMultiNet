@@ -1,8 +1,15 @@
 #' @title
 #'     Drawing Inferred Network
 #'
+#' @description
+#'     Drawing Inferred Network
+#' 
+#' @param x an object of class "\code{DynMultiNet}"
+#' @param character, One of c("pi_ijtk","mu_ijtk", "E_y_ijtk")
+#' 
 #' @import igraph
 #' 
+#' @export
 draw_net <- function( x,
                       param = c( "pi_ijtk",
                                  "mu_ijtk",
