@@ -20,6 +20,7 @@ draw_net <- function( x,
                       max_edge_width=1,
                       v_size=7,
                       no_id=FALSE,
+                      v_delete=NULL,
                       ... ) {
   
   if(!is.element(param,c("pi_ijtk","mu_ijtk","E_y_ijtk")) | length(param)>1 ){ stop('"param" not supported') }
@@ -36,6 +37,9 @@ draw_net <- function( x,
   net_data_obs <- net_data_obs[!is.na(net_data_obs[,3]),]
   
   net <- igraph::graph_from_data_frame( net_data_obs , directed=x$directed )
+  
+  if( !is.null(v_delete) ){ net <- delete_vertices(net, v_delete) }
+  
   if(no_id){ V(net)$name <- rank(-strength(net,mode="all")) }
   
   # Node strength
